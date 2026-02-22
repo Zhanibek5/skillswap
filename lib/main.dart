@@ -65,11 +65,11 @@ class MyApp extends StatelessWidget {
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       theme: ThemeData(
-        brightness: Brightness.light, // Light mode
+        brightness: Brightness.light,
         primarySwatch: Colors.teal,
       ),
       darkTheme: ThemeData(
-        brightness: Brightness.dark, // Dark mode
+        brightness: Brightness.dark,
         primarySwatch: Colors.teal,
         scaffoldBackgroundColor: Colors.black,
         elevatedButtonTheme: ElevatedButtonThemeData(

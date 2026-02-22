@@ -220,7 +220,7 @@ class _UserCardState extends State<UserCard> {
                           ),
                         ),
                         child: const Text(
-                          "Exchange",
+                          "xx",
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
