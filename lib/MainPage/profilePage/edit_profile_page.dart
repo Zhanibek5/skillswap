@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -179,34 +180,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ===== BACKGROUND GRADIENT (UNCHANGED) =====
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: [
-                  0.0,
-                  0.10,
-                  0.15,
-                  0.35,
-                  0.45,
-                  0.58,
-                  1.0,
-                ],
-                colors: [
-                  Color(0xFF3594DD),
-                  Color(0xFF5036D5),
-                  Color(0xFF5B16D0),
-                  Color(0xFF7A5DE8),
-                  Color(0xFFB8B0F5),
-                  Color(0xFFF2F1FD),
-                  Colors.white,
-                ],
-              ),
-            ),
-          ),
-
+          Backgroundcolor(),
           SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 80, 16, 32),
             child: Column(
@@ -230,7 +204,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         child: Container(
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Color(0xFF5036D5),
+                            color: Color(0xFF1E88E5),
                           ),
                           child: GestureDetector(
                             onTap: _uploadingPhoto ? null : _pickPhoto,
@@ -332,7 +306,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   child: ElevatedButton(
                     onPressed: _saveProfile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5036D5),
+                      backgroundColor: const Color(0xFF1E88E5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -443,7 +417,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF5036D5)
+                            ? const Color(0xFF1E88E5)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -480,7 +454,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF5036D5) : Colors.transparent,
+            color: isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
@@ -541,12 +515,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF5036D5)
+                        ? const Color(0xFF1E88E5)
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF5036D5)
+                          ? const Color(0xFF1E88E5)
                           : Colors.grey.shade300,
                     ),
                   ),

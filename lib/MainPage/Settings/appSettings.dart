@@ -10,6 +10,7 @@ import 'package:skillswap/loginPage/login_page.dart';
 import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -259,25 +260,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// 🌈 SAME BACKGROUND
   Widget _background() {
-    return Container(
-      decoration: const BoxDecoration(
-          gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: const [
-          0.0,
-          0.4,
-          0.75,
-          1.0,
-        ],
-        colors: const [
-          Color(0xFF1565C0), // deep knowledge blue
-          Color(0xFF1E88E5), // growth blue
-          Color(0xFFE3F2FD), // soft learning background
-          Colors.white, // clean bottom
-        ],
-      )),
-    );
+    return Backgroundcolor();
   }
 
   /// 📦 CARD

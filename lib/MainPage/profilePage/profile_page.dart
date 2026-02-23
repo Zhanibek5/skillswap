@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'saved_videos_page.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -83,25 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: const [
-                        0.0,
-                        0.4,
-                        0.75,
-                        1.0,
-                      ],
-                      colors: const [
-                        Color(0xFF1565C0), // deep knowledge blue
-                        Color(0xFF1E88E5), // growth blue
-                        Color(0xFFE3F2FD), // soft learning background
-                        Colors.white, // clean bottom
-                      ],
-                    )),
-                  ),
+                  Backgroundcolor(),
                   SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -180,7 +163,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
-                                  foregroundColor: Color(0xFF5036D5),
+                                  foregroundColor: Color(0xFF1E88E5),
                                 ),
                                 child: Text('edit'.tr()),
                               ),
@@ -291,7 +274,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   Row(
                                     children: [
                                       Icon(Icons.school,
-                                          color: Colors.deepPurple, size: 28),
+                                          color: Color(0xFF1E88E5), size: 28),
                                       const SizedBox(width: 12),
                                       Column(
                                         crossAxisAlignment:
@@ -316,7 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
                                   Switch(
-                                    activeColor: Colors.deepPurple,
+                                    activeColor: Color(0xFF1E88E5),
                                     value: canTeach,
                                     onChanged: (value) {
                                       setState(() {
@@ -441,7 +424,7 @@ class _ProfilePageState extends State<ProfilePage> {
             width: 8,
             height: 8,
             decoration: const BoxDecoration(
-              color: Color(0xFF5036D5),
+              color: Color(0xFF1E88E5),
               shape: BoxShape.circle,
             ),
           ),

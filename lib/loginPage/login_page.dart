@@ -5,6 +5,7 @@ import 'package:skillswap/MainPage/skillMain.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'reset_password_page.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -72,32 +73,7 @@ class _LoginPageState extends State<LoginPage> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [
-                    0.0,
-                    0.10,
-                    0.15,
-                    0.35,
-                    0.45,
-                    0.58,
-                    1.0,
-                  ],
-                  colors: [
-                    Color(0xFF3594DD),
-                    Color(0xFF5036D5),
-                    Color(0xFF5B16D0),
-                    Color(0xFF7A5DE8),
-                    Color(0xFFB8B0F5),
-                    Color(0xFFF2F1FD),
-                    Colors.white,
-                  ],
-                ),
-              ),
-            ),
+            Backgroundcolor(),
             SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Form(
@@ -246,7 +222,7 @@ class _LoginPageState extends State<LoginPage> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF203068),
+                          backgroundColor: Color(0xFF1E88E5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -281,7 +257,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text('register'.tr(),
                               style: TextStyle(
-                                color: Color(0xFF5036D5),
+                                color: Color(0xFF1E88E5),
                               )),
                         ),
                       ],
@@ -300,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text('reset_password'.tr(),
                               style: TextStyle(
-                                color: Color(0xFF5036D5),
+                                color: Color(0xFF1E88E5),
                               )),
                         ),
                       ],

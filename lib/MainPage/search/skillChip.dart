@@ -23,22 +23,22 @@ class SkillChip extends StatelessWidget {
           gradient: isSelected
               ? const LinearGradient(
                   colors: [
-                    Color(0xFF7B4DFF),
-                    Color(0xFF6A3FDB),
+                    Color(0xFF1565C0),
+                    Color(0xFF1E88E5),
                   ],
                 )
               : null,
           color: isSelected ? null : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: const Color(0xFF6A3FDB),
+            color: const Color(0xFF1E88E5),
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF6A3FDB),
+            color: isSelected ? Colors.white : const Color(0xFF1E88E5),
             fontWeight: FontWeight.w500,
           ),
         ),

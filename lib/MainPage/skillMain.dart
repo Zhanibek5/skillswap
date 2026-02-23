@@ -47,8 +47,8 @@ class _SkillMainPageState extends State<SkillMainPage> {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
-        selectedItemColor: Color(0xFF5036D5),
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: Color(0xFF1E88E5),
+        unselectedItemColor: Color(0xFF203068),
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: [

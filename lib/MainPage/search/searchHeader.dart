@@ -100,7 +100,7 @@ class _SearchHeaderState extends State<SearchHeader> {
           child: Text(
             text,
             style: TextStyle(
-              color: isSelected ? Colors.black : Colors.white,
+              color: isSelected ? Color(0xFF1E88E5) : Colors.white,
               fontWeight: FontWeight.w600,
             ),
           ),

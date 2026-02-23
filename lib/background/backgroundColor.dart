@@ -1,0 +1,28 @@
+import 'package:flutter/material.dart';
+
+class Backgroundcolor extends StatelessWidget {
+  const Backgroundcolor({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+          gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        stops: const [
+          0.0,
+          0.4,
+          0.75,
+          1.0,
+        ],
+        colors: const [
+          Color(0xFF1565C0),
+          Color(0xFF1E88E5),
+          Color(0xFFE3F2FD),
+          Colors.white,
+        ],
+      )),
+    );
+  }
+}

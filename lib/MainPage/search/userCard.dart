@@ -214,7 +214,7 @@ class _UserCardState extends State<UserCard> {
                       ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6A3FDB),
+                          backgroundColor: const Color(0xFF1E88E5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),

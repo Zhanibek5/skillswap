@@ -5,6 +5,7 @@ import 'package:skillswap/loginPage/verify_email.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -81,32 +82,7 @@ class _RegisterPageState extends State<RegisterPage> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [
-                    0.0,
-                    0.10,
-                    0.15,
-                    0.35,
-                    0.45,
-                    0.58,
-                    1.0,
-                  ],
-                  colors: [
-                    Color(0xFF3594DD),
-                    Color(0xFF5036D5),
-                    Color(0xFF5B16D0),
-                    Color(0xFF7A5DE8),
-                    Color(0xFFB8B0F5),
-                    Color(0xFFF2F1FD),
-                    Colors.white,
-                  ],
-                ),
-              ),
-            ),
+            Backgroundcolor(),
             SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Form(
@@ -258,7 +234,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF203068),
+                          backgroundColor: Color(0xFF1E88E5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -291,7 +267,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           child: Text(
                             'login'.tr(),
                             style: TextStyle(
-                              color: Color(0xFF5036D5),
+                              color: Color(0xFF1E88E5),
                             ),
                           ),
                         ),

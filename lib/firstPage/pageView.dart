@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skillswap/loginPage/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -126,29 +127,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         fit: StackFit.expand,
         children: [
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 stops: [
                   0.0,
-                  0.22,
-                  0.44,
-                  0.62,
-                  0.78,
-                  0.88,
-                  0.94,
+                  0.15,
+                  0.30,
+                  0.45,
+                  0.60,
+                  0.75,
+                  0.90,
                   1.0,
                 ],
                 colors: [
-                  Color(0xFF3594DD), // blue
-                  Color(0xFF4563DB),
-                  Color(0xFF5036D5),
-                  Color(0xFF5B16D0), // purple
-                  Color(0xFF7A5DE8), // softened purple
-                  Color(0xFFB8B0F5), // very light lavender
-                  Color(0xFFEDEBFB), // almost white
-                  Colors.white, // pure white
+                  Color(0xFF0D47A1), // deep blue
+                  Color(0xFF1565C0),
+                  Color(0xFF1976D2),
+                  Color(0xFF1E88E5),
+                  Color(0xFF42A5F5),
+                  Color(0xFF90CAF9),
+                  Color(0xFFE3F2FD),
+                  Colors.white,
                 ],
               ),
             ),
@@ -233,9 +234,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         backgroundColor:
                             MaterialStateProperty.all(Colors.white),
                         foregroundColor:
-                            MaterialStateProperty.all(Color(0xFF5036D5)),
+                            MaterialStateProperty.all(Color(0xFF1E88E5)),
                         side: MaterialStateProperty.all(
-                            const BorderSide(color: Color(0xFF5036D5))),
+                            const BorderSide(color: Color(0xFF1E88E5))),
                       ),
                       child: Text('previous'.tr()),
                     ),
@@ -255,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       },
                       style: commonButtonStyle.copyWith(
                         backgroundColor:
-                            MaterialStateProperty.all(Color(0xFF5036D5)),
+                            MaterialStateProperty.all(Color(0xFF1E88E5)),
                         foregroundColor:
                             MaterialStateProperty.all(Colors.white),
                         side: MaterialStateProperty.all(

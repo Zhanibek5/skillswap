@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class VerifyEmailPage extends StatefulWidget {
   const VerifyEmailPage({super.key});
