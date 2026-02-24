@@ -132,7 +132,7 @@ class _FilterSheetState extends State<FilterSheet> {
                     min: 0,
                     max: 5,
                     divisions: 5,
-                    activeColor: const Color(0xFF6A3FDB),
+                    activeColor: const Color(0xFF1E88E5),
                     label: "$rating ${"and_higher".tr()}",
                     onChanged: (value) => setState(() => rating = value),
                   ),
@@ -186,7 +186,7 @@ class _FilterSheetState extends State<FilterSheet> {
               min: 16,
               max: 75,
               divisions: 59,
-              activeColor: const Color(0xFF6A3FDB),
+              activeColor: const Color(0xFF1E88E5),
               inactiveColor: Colors.grey.shade300,
               labels: RangeLabels(
                 "${minAge ?? 16}",
@@ -246,6 +246,9 @@ class _FilterSheetState extends State<FilterSheet> {
               children: [
                 Expanded(
                   child: OutlinedButton(
+                    style: ButtonStyle(
+                        side: MaterialStateProperty.all(
+                            BorderSide(color: Color(0xFF1E88E5)))),
                     onPressed: () {
                       // Navigator-пен тек filter мәндерін емес, SearchPage-де қолданылатын мәндерді де reset етеміз
                       Navigator.pop(context, {
@@ -258,14 +261,17 @@ class _FilterSheetState extends State<FilterSheet> {
                         'reset': true, // қосымша flag
                       });
                     },
-                    child: Text("reset".tr()),
+                    child: Text(
+                      "reset".tr(),
+                      style: TextStyle(color: Color(0xFF1E88E5)),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6A3FDB),
+                      backgroundColor: const Color(0xFF1E88E5),
                     ),
                     onPressed: () {
                       Navigator.pop(context, {
