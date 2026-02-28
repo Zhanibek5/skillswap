@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
+import 'package:flutter/gestures.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -83,9 +85,34 @@ class _RegisterPageState extends State<RegisterPage> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Before proceeding with registration, please review and accept our User Agreement and Privacy Policy to use the SkillSwap application. This includes our community guidelines for skill exchange and how we handle your data.',
-                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                      children: [
+                        TextSpan(
+                          text: 'Before proceeding with registration, please review and accept our User Agreement and ',
+                        ),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PrivacyPolicyPage(),
+                                ),
+                              );
+                            },
+                        ),
+                        TextSpan(
+                          text: ' to use the SkillSwap application. This includes our community guidelines for skill exchange and how we handle your data.',
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -107,12 +134,35 @@ class _RegisterPageState extends State<RegisterPage> {
                               isChecked = !isChecked;
                             });
                           },
-                          child: Text(
-                            'I accept the terms of the user agreement and the privacy policy.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF203068),
-                              fontWeight: FontWeight.w500,
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF203068),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'I accept the terms of the user agreement and the ',
+                                ),
+                                TextSpan(
+                                  text: 'privacy policy',
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const PrivacyPolicyPage(),
+                                        ),
+                                      );
+                                    },
+                                ),
+                                TextSpan(text: '.'),
+                              ],
                             ),
                           ),
                         ),
