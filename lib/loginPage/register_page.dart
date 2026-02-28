@@ -59,6 +59,108 @@ class _RegisterPageState extends State<RegisterPage> {
     Navigator.pop(context);
   }
 
+  void _showClickWrapDialog() {
+    bool isChecked = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'User Agreement',
+                style: GoogleFonts.roboto(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF203068),
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Before proceeding with registration, please review and accept our User Agreement and Privacy Policy to use the SkillSwap application. This includes our community guidelines for skill exchange and how we handle your data.',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Checkbox(
+                        value: isChecked,
+                        activeColor: Color(0xFF1E88E5),
+                        onChanged: (value) {
+                          setState(() {
+                            isChecked = value ?? false;
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isChecked = !isChecked;
+                            });
+                          },
+                          child: Text(
+                            'I accept the terms of the user agreement and the privacy policy.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF203068),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isChecked
+                      ? () {
+                          Navigator.pop(context); // Close dialog
+                          register();            // Proceed to register
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF1E88E5),
+                    disabledBackgroundColor: Colors.grey.shade400,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Continue',
+                    style: TextStyle(
+                      color: isChecked ? Colors.white : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,7 +332,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (formKey.currentState!.validate()) {
-                            register();
+                            _showClickWrapDialog();
                           }
                         },
                         style: ElevatedButton.styleFrom(
