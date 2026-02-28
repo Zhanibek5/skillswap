@@ -8,6 +8,7 @@ import 'package:skillswap/loginPage/reset_password_page.dart';
 import 'package:skillswap/loginPage/delete_account_page.dart';
 import 'package:skillswap/loginPage/login_page.dart';
 import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
+import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
@@ -208,6 +209,18 @@ class _SettingsPageState extends State<SettingsPage> {
                                       '',
                                 ),
                               ),
+                            );
+                          },
+                        ),
+                        _divider(),
+                        _item(
+                          Icons.privacy_tip_outlined,
+                          'privacy_policy'.tr(),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const PrivacyPolicyPage()),
                             );
                           },
                         ),
