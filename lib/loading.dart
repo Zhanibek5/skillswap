@@ -25,7 +25,7 @@ class _ScreenState extends State<Screen> with SingleTickerProviderStateMixin {
     Timer(const Duration(seconds: 5), () {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const SkillMainPage(),
+          pageBuilder: (_, __, ___) => SkillMainPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: animation,

@@ -25,7 +25,7 @@ class AuthLayout extends StatelessWidget {
             return const VerifyEmailPage();
           }
 
-          return const SkillMainPage(); // verified
+          return SkillMainPage(); // verified
         }
 
         return const LoginPage();

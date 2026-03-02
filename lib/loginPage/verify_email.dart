@@ -44,7 +44,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const SkillMainPage()),
+        MaterialPageRoute(builder: (_) => SkillMainPage()),
       );
     }
   }

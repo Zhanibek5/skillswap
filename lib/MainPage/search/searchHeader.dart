@@ -48,7 +48,6 @@ class _SearchHeaderState extends State<SearchHeader> {
 
           Row(
             children: [
-              /// SEGMENTED CONTROL
               Expanded(
                 child: Container(
                   height: 40,
@@ -64,10 +63,7 @@ class _SearchHeaderState extends State<SearchHeader> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 15),
-
-              /// FILTER ICON
               GestureDetector(
                 onTap: widget.onFilterTap,
                 child: const Icon(

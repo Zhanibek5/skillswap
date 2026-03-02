@@ -43,7 +43,6 @@ class _SearchPageState extends State<SearchPage> {
 
     if (result != null) {
       if (result['reset'] == true) {
-        // барлық фильтр айнымалыларын бастапқы мәнге қайтарамыз
         setState(() {
           minRating = 0;
           selectedLanguage = null;
@@ -98,10 +97,10 @@ class _SearchPageState extends State<SearchPage> {
             1.0,
           ],
           colors: const [
-            Color(0xFF1565C0), // deep knowledge blue
-            Color(0xFF1E88E5), // growth blue
-            Color(0xFFE3F2FD), // soft learning background
-            Colors.white, // clean bottom
+            Color(0xFF1565C0),
+            Color(0xFF1E88E5),
+            Color(0xFFE3F2FD),
+            Colors.white,
           ],
         )),
         child: SafeArea(

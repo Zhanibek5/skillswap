@@ -79,11 +79,9 @@ class _FilterSheetState extends State<FilterSheet> {
               ),
             ),
             const SizedBox(height: 25),
-
             Text("activity".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
-
             Wrap(
               spacing: 10,
               children: [
@@ -116,10 +114,7 @@ class _FilterSheetState extends State<FilterSheet> {
                 ),
               ],
             ),
-
             const SizedBox(height: 25),
-
-            /// ⭐ Рейтинг
             Text("rating".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             Row(
@@ -140,8 +135,6 @@ class _FilterSheetState extends State<FilterSheet> {
               ],
             ),
             const SizedBox(height: 20),
-
-            /// 🌍 Тілдер
             Text("languages_comfortable".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
@@ -169,15 +162,12 @@ class _FilterSheetState extends State<FilterSheet> {
               }).toList(),
             ),
             const SizedBox(height: 25),
-
             Text("age".tr(),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 )),
             const SizedBox(height: 10),
-
-// Slider диапазоны
             RangeSlider(
               values: RangeValues(
                 (minAge ?? 16).toDouble(),
@@ -212,10 +202,7 @@ class _FilterSheetState extends State<FilterSheet> {
                 ),
               ],
             ),
-
             const SizedBox(height: 25),
-
-            /// ⚧ Жыныс
             Text("sex".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
@@ -240,8 +227,6 @@ class _FilterSheetState extends State<FilterSheet> {
               }).toList(),
             ),
             const SizedBox(height: 30),
-
-            /// ✅ Түймешелер
             Row(
               children: [
                 Expanded(
@@ -250,7 +235,6 @@ class _FilterSheetState extends State<FilterSheet> {
                         side: MaterialStateProperty.all(
                             BorderSide(color: Color(0xFF1E88E5)))),
                     onPressed: () {
-                      // Navigator-пен тек filter мәндерін емес, SearchPage-де қолданылатын мәндерді де reset етеміз
                       Navigator.pop(context, {
                         'rating': 0.0,
                         'language': null,
@@ -258,7 +242,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         'minAge': null,
                         'maxAge': null,
                         'activity': 'all',
-                        'reset': true, // қосымша flag
+                        'reset': true,
                       });
                     },
                     child: Text(

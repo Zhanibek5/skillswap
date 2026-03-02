@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'skillChip.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/MainPage/chat/chatPage.dart';
+import 'package:skillswap/MainPage/chat/chat_utils.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skillswap/MainPage/skillMain.dart';
 
 class UserCard extends StatefulWidget {
   final String userId;
@@ -15,6 +19,43 @@ class UserCard extends StatefulWidget {
 
 class _UserCardState extends State<UserCard> {
   Set<String> selectedSkills = {};
+
+  void startChat({
+    required String currentUserId,
+    required String otherUserId,
+    required List<String> selectedSkills,
+    required String mode, // learn or teach
+    required BuildContext context,
+  }) async {
+    final chatId = generateChatId(currentUserId, otherUserId);
+
+    final chatDoc = FirebaseFirestore.instance.collection('chats').doc(chatId);
+
+    final doc = await chatDoc.get();
+
+    if (!doc.exists) {
+      await chatDoc.set({
+        'participants': [currentUserId, otherUserId],
+        'lastMessage': '',
+        'lastTimestamp': FieldValue.serverTimestamp(),
+        'lastSkill': selectedSkills.join(', '),
+      });
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatPage(
+          chatId: chatId,
+          otherUserId: otherUserId,
+          selectedSkills: selectedSkills,
+          mode: mode,
+        ),
+      ),
+    ).then((_) {
+      mainPageKey.currentState?.changeTab(0);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +253,20 @@ class _UserCardState extends State<UserCard> {
                             : const SizedBox(),
                       ),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: selectedSkills.isEmpty
+                            ? null
+                            : () {
+                                final currentUserId =
+                                    FirebaseAuth.instance.currentUser!.uid;
+
+                                startChat(
+                                  currentUserId: currentUserId,
+                                  otherUserId: widget.userId,
+                                  selectedSkills: selectedSkills.toList(),
+                                  mode: widget.mode,
+                                  context: context,
+                                );
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E88E5),
                           shape: RoundedRectangleBorder(

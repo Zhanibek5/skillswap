@@ -89,13 +89,13 @@ class MyApp extends StatelessWidget {
         'loginPage/change_password_page.dart': (_) =>
             const ChangePasswordPage(),
         'loginPage/delete_account_page.dart': (_) => const DeleteAccountPage(),
-        'MainPage/skillMain.dart': (_) => const SkillMainPage(),
+        'MainPage/skillMain.dart': (_) => SkillMainPage(),
         'loginPage/verify_email.dart': (_) => const VerifyEmailPage(),
         'secondPage/loading.dart': (_) => const Screen()
       },
-      //initialRoute: 'MainPage/skillMain.dart',
+      initialRoute: 'MainPage/skillMain.dart',
       // initialRoute: 'loginPage/verify_email.dart',
-      initialRoute: 'firstPage/loadingPage.dart',
+      // initialRoute: 'firstPage/loadingPage.dart',
     );
   }
 }

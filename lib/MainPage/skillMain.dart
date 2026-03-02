@@ -2,19 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/MainPage/Settings/appSettings.dart';
-import 'chat/chatPage.dart';
+import 'chat/chats_list_page.dart';
 import 'profilePage/profile_page.dart';
 import 'search/searchPage.dart';
 
+final GlobalKey<_SkillMainPageState> mainPageKey =
+    GlobalKey<_SkillMainPageState>();
+
 class SkillMainPage extends StatefulWidget {
-  const SkillMainPage({Key? key}) : super(key: key);
+  SkillMainPage({Key? key}) : super(key: mainPageKey);
 
   @override
   State<SkillMainPage> createState() => _SkillMainPageState();
 }
 
 class _SkillMainPageState extends State<SkillMainPage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 1;
+
+  void changeTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -36,9 +45,9 @@ class _SkillMainPageState extends State<SkillMainPage> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          Text(""),
           //Text(""),
-          //ChatPage(),
+          //Text(""),
+          ChatsListPage(),
           SearchPage(),
           SettingsPage(),
           ProfilePage(),

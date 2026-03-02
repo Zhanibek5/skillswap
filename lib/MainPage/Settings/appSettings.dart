@@ -12,6 +12,7 @@ import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'instructions_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -220,7 +221,20 @@ class _SettingsPageState extends State<SettingsPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const PrivacyPolicyPage()),
+                                builder: (_) => const PrivacyPolicyPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _item(
+                          Icons.lock_reset,
+                          'reset_password1'.tr(),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => InstructionsPage(),
+                              ),
                             );
                           },
                         ),
