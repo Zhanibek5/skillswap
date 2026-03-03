@@ -5,6 +5,7 @@ import 'package:skillswap/MainPage/Settings/appSettings.dart';
 import 'chat/chats_list_page.dart';
 import 'profilePage/profile_page.dart';
 import 'search/searchPage.dart';
+import 'dart:ui';
 
 final GlobalKey<_SkillMainPageState> mainPageKey =
     GlobalKey<_SkillMainPageState>();
@@ -28,7 +29,6 @@ class _SkillMainPageState extends State<SkillMainPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Locale өзгергенде қайта build жасау
     EasyLocalization.of(context)!.locale;
     setState(() {});
   }
@@ -42,42 +42,104 @@ class _SkillMainPageState extends State<SkillMainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
+      extendBody: true, // Blur үшін маңызды
+      body: Stack(
         children: [
-          //Text(""),
-          //Text(""),
-          ChatsListPage(),
-          SearchPage(),
-          SettingsPage(),
-          ProfilePage(),
+          IndexedStack(
+            index: _selectedIndex,
+            children: const [
+              ChatsListPage(),
+              SearchPage(),
+              SettingsPage(),
+              ProfilePage(),
+            ],
+          ),
+
+          /// CUSTOM BOTTOM BAR
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 15,
+            child: _buildCustomNavBar(),
+          ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Color(0xFF1E88E5),
-        unselectedItemColor: Color(0xFF203068),
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'chat'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'search'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'settings'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'profile'.tr(),
+    );
+  }
+
+  Widget _buildCustomNavBar() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 25,
+            spreadRadius: 5,
+            offset: Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(40),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _navItem(Icons.chat, 'chat'.tr(), 0),
+                _navItem(Icons.search, 'search'.tr(), 1),
+                _navItem(Icons.settings, 'settings'.tr(), 2),
+                _navItem(Icons.person_outline, 'profile'.tr(), 3),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, int index) {
+    bool isSelected = _selectedIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 250),
+        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? Color(0xFF1E88E5) : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                color:
+                    isSelected ? Colors.white : Color(0xFF1E88E5) // Black icons
+                ),
+            if (isSelected)
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

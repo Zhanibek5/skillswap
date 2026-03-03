@@ -103,15 +103,25 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _saveProfile() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
+    final ageParsed = int.tryParse(_ageCtrl.text);
+
+    bool completed = isProfileCompleted(
+      name: _firstNameCtrl.text,
+      age: ageParsed,
+      skillsTeach: _teachCtrl.text,
+      skillsLearn: _learnCtrl.text,
+      language: _languages.isNotEmpty ? "ok" : "",
+    );
+
     await FirebaseFirestore.instance.collection('users').doc(uid).set({
       'firstName': _firstNameCtrl.text.trim(),
       'lastName': _lastNameCtrl.text.trim(),
-      'age': int.tryParse(_ageCtrl.text),
-      //'email': _emailCtrl.text.trim(),
+      'age': ageParsed,
       'sex': _sex,
       'languages': _languages,
       'skillsTeach': _teachCtrl.text.trim(),
       'skillsLearn': _learnCtrl.text.trim(),
+      'profileCompleted': completed, // 🔥 МАҢЫЗДЫ
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
@@ -171,6 +181,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _learnCtrl.text = data['skillsLearn'] ?? '';
       _photoUrl = data['photoUrl'];
     });
+  }
+
+  bool isProfileCompleted({
+    required String name,
+    required int? age,
+    required String skillsTeach,
+    required String skillsLearn,
+    required String language,
+  }) {
+    return name.trim().isNotEmpty &&
+        age != null &&
+        skillsTeach.trim().isNotEmpty &&
+        skillsLearn.trim().isNotEmpty &&
+        language.isNotEmpty;
   }
 
   @override

@@ -76,32 +76,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [
-                    0.0,
-                    0.10,
-                    0.15,
-                    0.35,
-                    0.45,
-                    0.58,
-                    1.0,
-                  ],
-                  colors: [
-                    Color(0xFF3594DD),
-                    Color(0xFF5036D5),
-                    Color(0xFF5B16D0),
-                    Color(0xFF7A5DE8),
-                    Color(0xFFB8B0F5),
-                    Color(0xFFF2F1FD),
-                    Colors.white,
-                  ],
-                ),
-              ),
-            ),
+            Backgroundcolor(),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Center(

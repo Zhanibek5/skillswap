@@ -66,8 +66,9 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    Query query = FirebaseFirestore.instance.collection('users');
-
+    Query query = FirebaseFirestore.instance
+        .collection('users')
+        .where('profileCompleted', isEqualTo: true);
     if (selectedActivity == "active") {
       if (mode == 'learn') {
         query = query.where('canTeach', isEqualTo: true);
@@ -219,16 +220,21 @@ class _SearchPageState extends State<SearchPage> {
                     }
 
                     return ListView.separated(
-                      padding: const EdgeInsets.all(20),
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
                       itemCount: filteredUsers.length,
                       itemBuilder: (context, index) {
-                        return UserCard(
-                          userId: filteredUsers[index].id,
-                          mode: mode,
+                        final doc = filteredUsers[index];
+                        return RepaintBoundary(
+                          child: UserCard(
+                            userId: doc.id,
+                            mode: mode,
+                            userData: doc.data() as Map<String, dynamic>,
+                          ),
                         );
                       },
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 40),
+                      separatorBuilder: (_, __) => const SizedBox(height: 40),
                     );
                   },
                 ),
