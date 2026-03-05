@@ -123,8 +123,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                 backgroundImage:
                                     photoUrl != null && photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
-                                        : const AssetImage('assets/avatar.png')
-                                            as ImageProvider,
+                                        : null,
+                                child: photoUrl == null || photoUrl.isEmpty
+                                    ? const Icon(Icons.person, size: 70)
+                                    : null,
                               ),
                               const SizedBox(width: 16),
                               Expanded(

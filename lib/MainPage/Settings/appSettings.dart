@@ -226,9 +226,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             );
                           },
                         ),
+                        _divider(),
                         _item(
-                          Icons.lock_reset,
-                          'reset_password1'.tr(),
+                          Icons.help_outline,
+                          'instructions'.tr(),
                           onTap: () {
                             Navigator.push(
                               context,

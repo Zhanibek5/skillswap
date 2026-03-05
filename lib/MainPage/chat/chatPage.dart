@@ -29,6 +29,7 @@ class _ChatPageState extends State<ChatPage> {
   final currentUserId = FirebaseAuth.instance.currentUser!.uid;
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   FlutterSoundPlayer player = FlutterSoundPlayer();
+  ScrollController _scrollController = ScrollController();
 
   Future<void> playAudio(String url) async {
     await player.openPlayer();
@@ -40,6 +41,14 @@ class _ChatPageState extends State<ChatPage> {
     await recorder.startRecorder(
       toFile: 'audio.aac',
     );
+  }
+
+  @override
+  void dispose() {
+    messageController.dispose();
+    recorder.closeRecorder();
+    player.closePlayer();
+    super.dispose();
   }
 
   Future<String?> stopRecording() async {
@@ -83,10 +92,260 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _sendMeetingMessage(DateTime meetingTime) async {
+    final chatRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages');
+
+    await chatRef.add({
+      'senderId': 'system',
+      'type': 'system_meeting_created',
+      'meetingTime': Timestamp.fromDate(meetingTime),
+      'timestamp': FieldValue.serverTimestamp(),
+      'readBy': [],
+    });
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .update({
+      'lastMessage': '📅 Кездесу жоспарланды',
+      'lastTimestamp': FieldValue.serverTimestamp(),
+      'lastType': 'system_meeting_created',
+    });
+
+    Duration diff = meetingTime.difference(DateTime.now());
+
+    if (diff.inMinutes > 10) {
+      Future.delayed(diff - const Duration(minutes: 10), () async {
+        await chatRef.add({
+          'senderId': 'system',
+          'type': 'system_meeting_10min',
+          'meetingTime': Timestamp.fromDate(meetingTime),
+          'timestamp': FieldValue.serverTimestamp(),
+          'readBy': [],
+        });
+
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatId)
+            .update({
+          'lastMessage': '⏰ 10 минут қалды',
+          'lastTimestamp': FieldValue.serverTimestamp(),
+          'lastType': 'system_meeting_10min',
+        });
+      });
+    }
+
+    if (diff.inSeconds > 0) {
+      Future.delayed(diff, () async {
+        final startedSnapshot = await chatRef
+            .where('type', isEqualTo: 'system_meeting_started')
+            .limit(1)
+            .get();
+
+        if (startedSnapshot.docs.isEmpty) {
+          await chatRef.add({
+            'senderId': 'system',
+            'type': 'system_meeting_started',
+            'meetingTime': Timestamp.fromDate(meetingTime),
+            'timestamp': FieldValue.serverTimestamp(),
+            'readBy': [],
+          });
+
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .update({
+            'lastMessage': '🔔 Кездесу басталды',
+            'lastTimestamp': FieldValue.serverTimestamp(),
+            'lastType': 'system_meeting_started',
+          });
+        }
+      });
+    }
+  }
+
+  void _showConfirmDialog(DateTime meetingTime) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: const Text("Confirm Meeting"),
+          content: Text(
+              "Meeting Time:\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Color(0xFF1E88E5)),
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _sendMeetingMessage(meetingTime);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Color(0xFF1E88E5),
+                side: const BorderSide(
+                  color: Color(0xFF1E88E5), // шекара түсі
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 10,
+                ),
+              ),
+              child: const Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _openMeetingScheduler() async {
+    DateTime? selectedDate;
+    TimeOfDay? selectedTime;
+
+    selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogBackgroundColor: Colors.white,
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E88E5),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedDate == null) return;
+
+    selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: const TimePickerThemeData(
+              backgroundColor: Colors.white,
+            ),
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E88E5),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedTime == null) return;
+
+    final meetingDateTime = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    _showConfirmDialog(meetingDateTime);
+  }
+
   @override
   void initState() {
     super.initState();
     checkAndSendInitialMessage();
+    checkMeetingReminder();
+    markMessagesAsRead();
+  }
+
+  Future<void> checkMeetingReminder() async {
+    final chatRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages');
+
+    // Алдымен кездесуді тексеру
+    final meetingSnapshot = await chatRef
+        .where('type', isEqualTo: 'system_meeting_created')
+        .limit(1)
+        .get();
+
+    if (meetingSnapshot.docs.isEmpty) return;
+
+    final meetingTime =
+        (meetingSnapshot.docs.first['meetingTime'] as Timestamp).toDate();
+    final diff = meetingTime.difference(DateTime.now());
+
+    if (diff.inMinutes <= 10 && diff.inMinutes > 0) {
+      final tenMinSnapshot = await chatRef
+          .where('type', isEqualTo: 'system_meeting_10min')
+          .limit(1)
+          .get();
+
+      if (tenMinSnapshot.docs.isEmpty) {
+        await chatRef.add({
+          'senderId': 'system',
+          'type': 'system_meeting_10min',
+          'meetingTime': Timestamp.fromDate(meetingTime),
+          'timestamp': FieldValue.serverTimestamp(),
+          'readBy': [],
+        });
+
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatId)
+            .update({
+          'lastMessage': '⏰ 10 минут қалды',
+          'lastTimestamp': FieldValue.serverTimestamp(),
+          'lastType': 'system_meeting_10min',
+        });
+      }
+    }
+
+    // if (diff.inSeconds <= 0) {
+    //   final startedSnapshot = await chatRef
+    //       .where('type', isEqualTo: 'system_meeting_started')
+    //       .limit(1)
+    //       .get();
+
+    //   if (startedSnapshot.docs.isEmpty) {
+    //     await chatRef.add({
+    //       'senderId': 'system',
+    //       'type': 'system_meeting_started',
+    //       'meetingTime': Timestamp.fromDate(meetingTime),
+    //       'timestamp': FieldValue.serverTimestamp(),
+    //       'readBy': [],
+    //     });
+
+    //     await FirebaseFirestore.instance
+    //         .collection('chats')
+    //         .doc(widget.chatId)
+    //         .update({
+    //       'lastMessage': '🔔 Кездесу басталды',
+    //       'lastTimestamp': FieldValue.serverTimestamp(),
+    //       'lastType': 'system_meeting_started',
+    //     });
+    //   }
+    // }
   }
 
   Future<void> checkAndSendInitialMessage() async {
@@ -116,7 +375,7 @@ class _ChatPageState extends State<ChatPage> {
         .add({
       'senderId': currentUserId,
       'text': text,
-      'type': 'audio',
+      'type': 'text',
       'timestamp': FieldValue.serverTimestamp(),
       'readBy': [currentUserId],
     });
@@ -127,6 +386,7 @@ class _ChatPageState extends State<ChatPage> {
         .update({
       'lastMessage': text,
       'lastTimestamp': FieldValue.serverTimestamp(),
+      'lastType': 'text',
     });
 
     messageController.clear();
@@ -187,15 +447,21 @@ class _ChatPageState extends State<ChatPage> {
                           },
                         ),
                         CircleAvatar(
-                          radius: 25,
+                          radius: 28,
                           backgroundColor: Colors.grey.shade200,
-                          backgroundImage: photoUrl.isNotEmpty
-                              ? NetworkImage(photoUrl)
-                              : null,
-                          child: photoUrl.isEmpty
-                              ? const Icon(Icons.person,
-                                  size: 28, color: Colors.grey)
-                              : null,
+                          child: ClipOval(
+                            child: photoUrl.isNotEmpty
+                                ? Image.network(
+                                    photoUrl,
+                                    width: 56,
+                                    height: 56,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(Icons.person, size: 28);
+                                    },
+                                  )
+                                : Icon(Icons.person, size: 33),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -218,6 +484,13 @@ class _ChatPageState extends State<ChatPage> {
                             ],
                           ),
                         ),
+                        IconButton(
+                          icon: const Icon(Icons.calendar_month,
+                              color: Colors.black),
+                          onPressed: () {
+                            _openMeetingScheduler();
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -236,9 +509,22 @@ class _ChatPageState extends State<ChatPage> {
                         }
 
                         final messages = snapshot.data!.docs;
+
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (_scrollController.hasClients) {
+                            _scrollController.animateTo(
+                              _scrollController.position.maxScrollExtent,
+                              duration: Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          }
+                        });
+
                         if (messages.isNotEmpty) {
                           final lastMsg = messages.last;
-                          List readBy = lastMsg['readBy'] ?? [];
+                          final lastData =
+                              lastMsg.data() as Map<String, dynamic>;
+                          List readBy = lastData['readBy'] ?? [];
 
                           if (lastMsg['senderId'] != currentUserId &&
                               !readBy.contains(currentUserId)) {
@@ -249,12 +535,110 @@ class _ChatPageState extends State<ChatPage> {
                         }
 
                         return ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
                             final msg = messages[index];
-                            final isMe = msg['senderId'] == currentUserId;
-                            List readBy = msg['readBy'] ?? [];
+                            final data = msg.data() as Map<String, dynamic>;
+                            final type = data['type'] ?? 'text';
+                            if (type != null &&
+                                type.toString().startsWith('system_')) {
+                              DateTime? meetingDt;
+                              if (data['meetingTime'] != null) {
+                                meetingDt =
+                                    (data['meetingTime'] as Timestamp).toDate();
+                              }
+
+                              return Center(
+                                child: Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      /// MAIN CONTENT
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (type ==
+                                              'system_meeting_created') ...[
+                                            const Text(
+                                              "📅 Кездесу жоспарланды",
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            if (meetingDt != null)
+                                              Text(
+                                                "${meetingDt.day}.${meetingDt.month}.${meetingDt.year}  ${meetingDt.hour}:${meetingDt.minute.toString().padLeft(2, '0')}",
+                                              ),
+                                          ],
+                                          if (type == 'system_meeting_10min')
+                                            const Text("⏰ 10 минут қалды"),
+                                          if (type ==
+                                              'system_meeting_started') ...[
+                                            const Text(
+                                              "🔔 Кездесу басталды",
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ElevatedButton(
+                                              onPressed: () {},
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.blueAccent,
+                                                foregroundColor: Colors.white,
+                                                shadowColor: Colors.black54,
+                                                elevation: 5,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 20,
+                                                  vertical: 5,
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                "Қосылу",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          ],
+                                          const SizedBox(height: 20),
+                                        ],
+                                      ),
+
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Text(
+                                          formatTime(msg['timestamp']),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final isMe = data['senderId'] == currentUserId;
+                            List readBy = data['readBy'] ?? [];
 
                             return Align(
                               alignment: isMe
@@ -284,12 +668,12 @@ class _ChatPageState extends State<ChatPage> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      msg['text'],
+                                      data['text'] ?? '',
                                       style: TextStyle(
-                                          color: isMe
-                                              ? Colors.white
-                                              : Colors.black,
-                                          fontSize: 15),
+                                        color:
+                                            isMe ? Colors.white : Colors.black,
+                                        fontSize: 15,
+                                      ),
                                     ),
                                     const SizedBox(height: 5),
                                     Row(
@@ -311,7 +695,6 @@ class _ChatPageState extends State<ChatPage> {
                                             height: 16,
                                             child: Stack(
                                               children: [
-                                                // 1st tick (always visible)
                                                 Positioned(
                                                   left: 0,
                                                   child: Icon(

@@ -14,7 +14,7 @@ class InstructionsPage extends StatelessWidget {
         title: Text(
           'instructions'.tr(),
           style: GoogleFonts.roboto(
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -22,6 +22,7 @@ class InstructionsPage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
@@ -31,7 +32,9 @@ class InstructionsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// 📚 INTRODUCTION
+                SizedBox(
+                  height: 20,
+                ),
                 _section(
                   title: 'app_guide'.tr(),
                   content: 'getting_started'.tr(),

@@ -111,9 +111,20 @@ class _UserCardState extends State<UserCard> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundImage:
-                        photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-                    child: photoUrl.isEmpty ? const Icon(Icons.person) : null,
+                    backgroundColor: Colors.grey.shade200,
+                    child: ClipOval(
+                      child: photoUrl != null && photoUrl.isNotEmpty
+                          ? Image.network(
+                              photoUrl,
+                              width: 70,
+                              height: 70,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(Icons.person, size: 40);
+                              },
+                            )
+                          : Icon(Icons.person, size: 40),
+                    ),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
