@@ -5,6 +5,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'dart:async';
+import 'dart:math';
 
 class ChatPage extends StatefulWidget {
   final String chatId;
@@ -30,31 +32,119 @@ class _ChatPageState extends State<ChatPage> {
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   FlutterSoundPlayer player = FlutterSoundPlayer();
   ScrollController _scrollController = ScrollController();
+  
+  bool isRecording = false;
+  bool isCancelled = false;
+  bool isTyping = false;
+  String playingUrl = '';
 
-  Future<void> playAudio(String url) async {
-    await player.openPlayer();
-    await player.startPlayer(fromURI: url, codec: Codec.aacADTS);
+  StreamSubscription? _recordingSubscription;
+  Duration _recordingDuration = Duration.zero;
+
+  StreamSubscription? _playbackSubscription;
+  Duration _playbackPosition = Duration.zero;
+  Duration _playbackDuration = Duration.zero;
+
+  Future<void> playAudio(String url, int durationSecs) async {
+    try {
+      String prevUrl = playingUrl;
+      if (player.isPlaying) {
+        await player.stopPlayer();
+        _playbackSubscription?.cancel();
+        setState(() {
+          playingUrl = '';
+          _playbackPosition = Duration.zero;
+        });
+        if (prevUrl == url) return; // Toggle logic
+      }
+      
+      setState(() {
+        playingUrl = url;
+        _playbackDuration = Duration(seconds: durationSecs);
+        _playbackPosition = Duration.zero;
+      });
+
+      await player.startPlayer(
+        fromURI: url,
+        codec: Codec.aacADTS, // Явно указываем кодек для удаленных файлов
+        whenFinished: () {
+          if (mounted) {
+            setState(() {
+              playingUrl = '';
+              _playbackPosition = Duration.zero;
+            });
+          }
+        },
+      );
+
+      player.setSubscriptionDuration(const Duration(milliseconds: 50));
+      _playbackSubscription = player.onProgress!.listen((e) {
+        if (mounted) {
+          setState(() {
+            _playbackPosition = e.position;
+            if (e.duration.inMilliseconds > 0) {
+              _playbackDuration = e.duration;
+            }
+          });
+        }
+      });
+    } catch (e) {
+      print("Play error: $e");
+      setState(() {
+        playingUrl = '';
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Аудио ойнату мүмкін болмады: $e")),
+        );
+      }
+    }
   }
 
   Future<void> startRecording() async {
-    await recorder.openRecorder();
-    await recorder.startRecorder(
-      toFile: 'audio.aac',
-    );
+    try {
+      final tempDir = Directory.systemTemp;
+      String filePath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      await recorder.startRecorder(
+        toFile: filePath,
+        codec: Codec.aacADTS,
+        sampleRate: 48000, // Студийное качество (высшая частота дискретизации)
+        bitRate: 192000,   // Высокий битрейт для HD звука
+        numChannels: 1,    // Моно звук (для голоса лучше моно, убирает странные эффекты "эха" и медлительности)
+      );
+
+      recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
+      _recordingSubscription = recorder.onProgress!.listen((e) {
+        if (mounted) {
+          setState(() {
+            _recordingDuration = e.duration;
+          });
+        }
+      });
+    } catch (e) {
+      print("Recorder error: $e");
+    }
   }
 
   @override
   void dispose() {
     messageController.dispose();
+    _recordingSubscription?.cancel();
+    _playbackSubscription?.cancel();
     recorder.closeRecorder();
     player.closePlayer();
     super.dispose();
   }
 
   Future<String?> stopRecording() async {
-    String? path = await recorder.stopRecorder();
-    await recorder.closeRecorder();
-    return path; // Жазылған файл жолы
+    try {
+      _recordingSubscription?.cancel();
+      String? path = await recorder.stopRecorder();
+      return path; // Жазылған файл жолы
+    } catch (e) {
+      print("Stop recorder error: $e");
+      return null;
+    }
   }
 
   Future<void> requestMicrophonePermission() async {
@@ -66,10 +156,14 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<String> uploadAudio(String filePath) async {
     File file = File(filePath);
+    if (!file.existsSync()) {
+      throw Exception("Аудио файл табылған жоқ");
+    }
     Reference ref = FirebaseStorage.instance
         .ref()
         .child("audios/${DateTime.now().millisecondsSinceEpoch}.aac");
-    await ref.putFile(file);
+    // Указываем content type, чтобы плеер знал как его читать
+    await ref.putFile(file, SettableMetadata(contentType: 'audio/aac'));
     String url = await ref.getDownloadURL();
     return url; // Осы URL-ді Firestore-ке жазамыз
   }
@@ -272,6 +366,15 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    messageController.addListener(() {
+      if (mounted) {
+        setState(() {
+          isTyping = messageController.text.trim().isNotEmpty;
+        });
+      }
+    });
+    player.openPlayer();
+    recorder.openRecorder();
     checkAndSendInitialMessage();
     checkMeetingReminder();
     markMessagesAsRead();
@@ -390,6 +493,95 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     messageController.clear();
+  }
+
+  Future<void> processAndSendAudio(String filePath, int durationSecs) async {
+    // 1. Создаем временный документ (для мгновенного отображения в UI)
+    DocumentReference docRef = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .add({
+      'senderId': currentUserId,
+      'audioUrl': 'uploading', // Флаг загрузки
+      'duration': durationSecs,
+      'type': 'audio',
+      'timestamp': FieldValue.serverTimestamp(),
+      'readBy': [currentUserId],
+    });
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .update({
+      'lastMessage': '🎤 Аудио хабарлама',
+      'lastTimestamp': FieldValue.serverTimestamp(),
+      'lastType': 'audio',
+    });
+
+    try {
+      // 2. Фоново загружаем файл в Storage
+      String url = await uploadAudio(filePath);
+      // 3. Обновляем документ реальной ссылкой
+      await docRef.update({'audioUrl': url});
+    } catch (e) {
+      print("Upload failed: $e");
+      await docRef.delete(); // Удаляем сообщение если загрузка не удалась
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Аудио жүктеу мүмкін болмады: $e")),
+        );
+      }
+    }
+  }
+
+  String formatAudioDuration(int totalSeconds) {
+    final m = totalSeconds ~/ 60;
+    final s = totalSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  String formatRecordingDuration(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    final ms = (d.inMilliseconds % 1000) ~/ 100;
+    return '${m.toString()}:${s.toString().padLeft(2, '0')},$ms';
+  }
+
+  Widget buildWaveform(String url, bool isMe, int durationSecs) {
+    bool isPlaying = playingUrl == url;
+    double progress = 0;
+    if (isPlaying && _playbackDuration.inMilliseconds > 0) {
+      progress = _playbackPosition.inMilliseconds / _playbackDuration.inMilliseconds;
+    }
+
+    var rg = Random(url.hashCode);
+    int barsCount = 30;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(barsCount, (index) {
+        double height = rg.nextDouble() * 15 + 5;
+        bool isPlayed = (index / barsCount) <= progress;
+        
+        Color barColor;
+        if (isMe) {
+           barColor = isPlayed ? Colors.white : Colors.white.withOpacity(0.4);
+        } else {
+           barColor = isPlayed ? const Color(0xFF1E88E5) : Colors.grey.shade300;
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+          width: 3,
+          height: height,
+          decoration: BoxDecoration(
+            color: barColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        );
+      }),
+    );
   }
 
   String formatTime(Timestamp? timestamp) {
@@ -667,14 +859,72 @@ class _ChatPageState extends State<ChatPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(
-                                      data['text'] ?? '',
-                                      style: TextStyle(
-                                        color:
-                                            isMe ? Colors.white : Colors.black,
-                                        fontSize: 15,
+                                    if (type == 'audio' && data['audioUrl'] != null)
+                                      Builder(
+                                        builder: (context) {
+                                          final int audioDuration = data['duration'] ?? 0;
+                                          final bool isPlaying = playingUrl == data['audioUrl'];
+                                          final bool isUploading = data['audioUrl'] == 'uploading';
+                                          
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 44,
+                                                  height: 44,
+                                                  decoration: BoxDecoration(
+                                                    color: isMe ? Colors.white : const Color(0xFF1E88E5),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: isUploading
+                                                    ? Padding(
+                                                        padding: const EdgeInsets.all(12),
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2.5,
+                                                          color: isMe ? const Color(0xFF1E88E5) : Colors.white,
+                                                        ),
+                                                      )
+                                                    : GestureDetector(
+                                                        onTap: () => playAudio(data['audioUrl'], audioDuration),
+                                                        child: Icon(
+                                                          isPlaying ? Icons.pause : Icons.play_arrow,
+                                                          color: isMe ? const Color(0xFF1E88E5) : Colors.white,
+                                                          size: 28,
+                                                        ),
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    buildWaveform(data['audioUrl'], isMe, audioDuration),
+                                                    const SizedBox(height: 6),
+                                                    Text(
+                                                      isPlaying 
+                                                        ? formatAudioDuration(_playbackPosition.inSeconds) 
+                                                        : formatAudioDuration(audioDuration),
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: isMe ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }
+                                      )
+                                    else
+                                      Text(
+                                        data['text'] ?? '',
+                                        style: TextStyle(
+                                          color: isMe ? Colors.white : Colors.black,
+                                          fontSize: 15,
+                                        ),
                                       ),
-                                    ),
                                     const SizedBox(height: 5),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -757,46 +1007,137 @@ class _ChatPageState extends State<ChatPage> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(25),
                             ),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                maxHeight: 120, // max height for multi-line
-                              ),
-                              child: Scrollbar(
-                                child: TextField(
-                                  controller: messageController,
-                                  maxLines: null,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
-                                  decoration: const InputDecoration(
-                                    hintText: "Message...",
-                                    border: InputBorder.none,
-                                    isCollapsed: true, // remove extra padding
+                            child: isRecording
+                                ? ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      minHeight: 25,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          formatRecordingDuration(_recordingDuration), 
+                                          style: const TextStyle(color: Colors.black, fontSize: 16)
+                                        ),
+                                        const Spacer(),
+                                        const Text("< Влево — отмена", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                      ],
+                                    ),
+                                  )
+                                : ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxHeight: 120, // max height for multi-line
+                                    ),
+                                    child: Scrollbar(
+                                      child: TextField(
+                                        controller: messageController,
+                                        maxLines: null,
+                                        textCapitalization:
+                                            TextCapitalization.sentences,
+                                        decoration: const InputDecoration(
+                                          hintText: "Message...",
+                                          border: InputBorder.none,
+                                          isCollapsed: true, // remove extra padding
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
                           ),
                         ),
 
                         const SizedBox(width: 6),
 
-                        Container(
-                          width: 45,
-                          height: 45,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E88E5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.send,
-                              color: Colors.white,
+                        if (isTyping)
+                          Container(
+                            width: 45,
+                            height: 45,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1E88E5),
+                              shape: BoxShape.circle,
                             ),
-                            onPressed: () {
-                              sendMessage(messageController.text);
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.send,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                sendMessage(messageController.text);
+                              },
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Аудио жазу үшін басып тұрыңыз"),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
                             },
+                            onLongPressStart: (details) async {
+                              await requestMicrophonePermission();
+                              isCancelled = false;
+                              setState(() {
+                                _recordingDuration = Duration.zero;
+                                isRecording = true;
+                              });
+                              await startRecording();
+                            },
+                            onLongPressMoveUpdate: (details) async {
+                              if (details.localOffsetFromOrigin.dx < -50) {
+                                if (!isCancelled && isRecording) {
+                                  isCancelled = true;
+                                  await stopRecording();
+                                  setState(() {
+                                    isRecording = false;
+                                  });
+                                }
+                              }
+                            },
+                            onLongPressEnd: (details) async {
+                              if (!isCancelled && isRecording) {
+                                int durSecs = _recordingDuration.inSeconds;
+                                String? path = await stopRecording();
+                                setState(() {
+                                  isRecording = false; // Мгновенно убираем UI записи
+                                });
+                                if (path != null) {
+                                  // Запускаем фоновую загрузку (без await, чтобы UI не зависал)
+                                  processAndSendAudio(path, durSecs);
+                                }
+                              }
+                            },
+                            onLongPressCancel: () async {
+                              if (isRecording) {
+                                await stopRecording();
+                                setState(() {
+                                  isRecording = false;
+                                  isCancelled = true;
+                                });
+                              }
+                            },
+                            child: Container(
+                              width: 45,
+                              height: 45,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1E88E5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.mic,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   )
