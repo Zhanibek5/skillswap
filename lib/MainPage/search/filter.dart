@@ -232,7 +232,7 @@ class _FilterSheetState extends State<FilterSheet> {
                 Expanded(
                   child: OutlinedButton(
                     style: ButtonStyle(
-                        side: MaterialStateProperty.all(
+                        side: WidgetStateProperty.all(
                             BorderSide(color: Color(0xFF1E88E5)))),
                     onPressed: () {
                       Navigator.pop(context, {

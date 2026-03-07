@@ -4,7 +4,6 @@ import 'package:skillswap/loginPage/auth_service.dart';
 import 'package:skillswap/loginPage/verify_email.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:flutter/gestures.dart';

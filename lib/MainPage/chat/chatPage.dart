@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // HapticFeedback үшін
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:audio_session/audio_session.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
@@ -31,7 +33,7 @@ class _ChatPageState extends State<ChatPage> {
   final currentUserId = FirebaseAuth.instance.currentUser!.uid;
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   FlutterSoundPlayer player = FlutterSoundPlayer();
-  ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   
   bool isRecording = false;
   bool isCancelled = false;
@@ -66,7 +68,7 @@ class _ChatPageState extends State<ChatPage> {
 
       await player.startPlayer(
         fromURI: url,
-        codec: Codec.aacADTS, // Явно указываем кодек для удаленных файлов
+        codec: Codec.aacMP4, // Ең тұрақты кодек
         whenFinished: () {
           if (mounted) {
             setState(() {
@@ -104,13 +106,15 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> startRecording() async {
     try {
       final tempDir = Directory.systemTemp;
-      String filePath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      String filePath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      
       await recorder.startRecorder(
         toFile: filePath,
-        codec: Codec.aacADTS,
-        sampleRate: 48000, // Студийное качество (высшая частота дискретизации)
-        bitRate: 192000,   // Высокий битрейт для HD звука
-        numChannels: 1,    // Моно звук (для голоса лучше моно, убирает странные эффекты "эха" и медлительности)
+        codec: Codec.aacMP4, 
+        sampleRate: 44100,
+        bitRate: 128000,
+        numChannels: 1, 
+        audioSource: AudioSource.microphone, // Изменение микрофона на стандартный (без фильтров "рации")
       );
 
       recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
@@ -161,9 +165,9 @@ class _ChatPageState extends State<ChatPage> {
     }
     Reference ref = FirebaseStorage.instance
         .ref()
-        .child("audios/${DateTime.now().millisecondsSinceEpoch}.aac");
+        .child("audios/${DateTime.now().millisecondsSinceEpoch}.m4a");
     // Указываем content type, чтобы плеер знал как его читать
-    await ref.putFile(file, SettableMetadata(contentType: 'audio/aac'));
+    await ref.putFile(file, SettableMetadata(contentType: 'audio/mp4'));
     String url = await ref.getDownloadURL();
     return url; // Осы URL-ді Firestore-ке жазамыз
   }
@@ -316,12 +320,11 @@ class _ChatPageState extends State<ChatPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            dialogBackgroundColor: Colors.white,
             colorScheme: const ColorScheme.light(
               primary: Color(0xFF1E88E5),
               onPrimary: Colors.white,
               onSurface: Colors.black,
-            ),
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );
@@ -373,11 +376,36 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     });
-    player.openPlayer();
-    recorder.openRecorder();
+    
+    _initAudio();
     checkAndSendInitialMessage();
     checkMeetingReminder();
     markMessagesAsRead();
+  }
+
+  Future<void> _initAudio() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth | AVAudioSessionCategoryOptions.defaultToSpeaker,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+        androidAudioAttributes: const AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          flags: AndroidAudioFlags.none,
+          usage: AndroidAudioUsage.media, // media вместо voiceCommunication предотвращает эхоподавление и рацию
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransient,
+        androidWillPauseWhenDucked: true,
+      ));
+    } catch (e) {
+      print('Audio session config error: $e');
+    }
+    
+    await player.openPlayer();
+    await recorder.openRecorder();
   }
 
   Future<void> checkMeetingReminder() async {
@@ -1086,11 +1114,15 @@ class _ChatPageState extends State<ChatPage> {
                             onLongPressStart: (details) async {
                               await requestMicrophonePermission();
                               isCancelled = false;
-                              setState(() {
-                                _recordingDuration = Duration.zero;
-                                isRecording = true;
-                              });
-                              await startRecording();
+                              await startRecording(); // Алдымен микрофонды іске қосамыз
+                              // Микрофон іске қосылғаннан КЕЙІН ғана вибрация беріп, UI өзгертеміз:
+                              if (!isCancelled) {
+                                HapticFeedback.vibrate(); // Телеграм сияқты діріл
+                                setState(() {
+                                  _recordingDuration = Duration.zero;
+                                  isRecording = true;
+                                });
+                              }
                             },
                             onLongPressMoveUpdate: (details) async {
                               if (details.localOffsetFromOrigin.dx < -50) {

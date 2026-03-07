@@ -91,13 +91,13 @@ class _SearchPageState extends State<SearchPage> {
             gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [
+          stops: [
             0.0,
             0.4,
             0.75,
             1.0,
           ],
-          colors: const [
+          colors: [
             Color(0xFF1565C0),
             Color(0xFF1E88E5),
             Color(0xFFE3F2FD),

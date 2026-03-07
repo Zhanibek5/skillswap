@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:skillswap/loginPage/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:skillswap/background/backgroundColor.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -91,9 +90,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _languageOption(Locale locale) {
     String label;
-    if (locale.languageCode == 'en')
+    if (locale.languageCode == 'en') {
       label = 'english'.tr();
-    else if (locale.languageCode == 'kk')
+    } else if (locale.languageCode == 'kk')
       label = 'kazakh'.tr();
     else
       label = 'russian'.tr();
@@ -232,10 +231,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       onPressed: _prevPage,
                       style: commonButtonStyle.copyWith(
                         backgroundColor:
-                            MaterialStateProperty.all(Colors.white),
+                            WidgetStateProperty.all(Colors.white),
                         foregroundColor:
-                            MaterialStateProperty.all(Color(0xFF1E88E5)),
-                        side: MaterialStateProperty.all(
+                            WidgetStateProperty.all(Color(0xFF1E88E5)),
+                        side: WidgetStateProperty.all(
                             const BorderSide(color: Color(0xFF1E88E5))),
                       ),
                       child: Text('previous'.tr()),
@@ -256,10 +255,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       },
                       style: commonButtonStyle.copyWith(
                         backgroundColor:
-                            MaterialStateProperty.all(Color(0xFF1E88E5)),
+                            WidgetStateProperty.all(Color(0xFF1E88E5)),
                         foregroundColor:
-                            MaterialStateProperty.all(Colors.white),
-                        side: MaterialStateProperty.all(
+                            WidgetStateProperty.all(Colors.white),
+                        side: WidgetStateProperty.all(
                             const BorderSide(color: Colors.white)),
                       ),
                       child: Text(

@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:skillswap/loginPage/app_loading_page.dart';
-import 'package:skillswap/loginPage/auth_service.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
 import 'package:skillswap/loginPage/verify_email.dart';
 import 'package:skillswap/loginPage/login_page.dart';

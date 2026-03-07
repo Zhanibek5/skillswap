@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:skillswap/MainPage/skillMain.dart';
 
 class Screen extends StatefulWidget {
-  const Screen({Key? key}) : super(key: key);
+  const Screen({super.key});
 
   @override
   State<Screen> createState() => _ScreenState();

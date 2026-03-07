@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'edit_profile_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'saved_videos_page.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 
@@ -62,7 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 );
               }
 
-              final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+              final data = snapshot.data?.data() ?? {};
 
               final bool canTeach = data['canTeach'] ?? false;
               final bool canLearn = data['canLearn'] ?? false;
@@ -142,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                               data['firstName']
                                                   .toString()
                                                   .isNotEmpty)
-                                          ? ('$firstName').trim()
+                                          ? (firstName).trim()
                                           : 'username'.tr(),
                                       style: const TextStyle(
                                         color: Colors.white,
@@ -301,7 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
                                   Switch(
-                                    activeColor: Color(0xFF1E88E5),
+                                    activeThumbColor: Color(0xFF1E88E5),
                                     value: canTeach,
                                     onChanged: (value) {
                                       setState(() {
@@ -349,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
                                   Switch(
-                                    activeColor: Colors.green,
+                                    activeThumbColor: Colors.green,
                                     value: canLearn,
                                     onChanged: (value) {
                                       setState(() {

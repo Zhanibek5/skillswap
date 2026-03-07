@@ -1,28 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:skillswap/firstPage/pageView.dart';
-import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/firstPage/loadingPage.dart';
-import 'package:skillswap/loginPage/auth_layout.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:skillswap/firstPage/pageView.dart';
 import 'package:skillswap/loginPage/login_page.dart';
 import 'package:skillswap/loginPage/register_page.dart';
-import 'package:skillswap/loginPage/login_page.dart';
 import 'package:skillswap/loginPage/reset_password_page.dart';
 import 'package:skillswap/loginPage/change_password_page.dart';
 import 'package:skillswap/loginPage/delete_account_page.dart';
 import 'package:skillswap/loginPage/verify_email.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'settings_provider.dart';
 import 'loading.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,9 +24,9 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   String? code = prefs.getString('selected_language'); // 'en'/'kk'/'ru'
   Locale startLocale = const Locale('en');
-  if (code == 'kk')
+  if (code == 'kk') {
     startLocale = const Locale('kk');
-  else if (code == 'ru') startLocale = const Locale('ru');
+  } else if (code == 'ru') startLocale = const Locale('ru');
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/MainPage/Settings/appSettings.dart';
 import 'chat/chats_list_page.dart';
 import 'profilePage/profile_page.dart';

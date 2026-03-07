@@ -115,8 +115,10 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   itemCount: chats.length,
                   itemBuilder: (context, index) {
                     final chat = chats[index];
+                    final chatData = chat.data() as Map<String, dynamic>;
+                    
                     final participants =
-                        List<String>.from(chat['participants']);
+                        List<String>.from(chatData['participants'] ?? []);
 
                     final otherUserId =
                         participants.firstWhere((id) => id != currentUserId);
@@ -137,10 +139,10 @@ class _ChatsListPageState extends State<ChatsListPage> {
 
                         final name = userData['firstName'] ?? 'No name';
                         final photoUrl = userData['photoUrl'] ?? '';
-                        final skill = chat['lastSkill'] ?? '';
+                        final skill = chatData['lastSkill'] ?? '';
 
-                        final lastType = chat['lastType'] ?? 'text';
-                        String lastMessage = chat['lastMessage'] ?? '';
+                        final lastType = chatData['lastType'] ?? 'text';
+                        String lastMessage = chatData['lastMessage'] ?? '';
 
                         /// SYSTEM MESSAGE TEXT
                         if (lastType == 'system_meeting_created') {
@@ -159,7 +161,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                           lastMessage = "🎤 Voice message";
                         }
 
-                        final timestamp = chat['lastTimestamp'];
+                        final timestamp = chatData['lastTimestamp'];
                         final timeText = formatTime(timestamp);
 
                         /// SEARCH FILTER
@@ -186,7 +188,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                     chatId: chat.id,
                                     otherUserId: otherUserId,
                                     selectedSkills:
-                                        (chat['lastSkill'] as String)
+                                        (chatData['lastSkill']?.toString() ?? '')
                                             .split(',')
                                             .map((e) => e.trim())
                                             .where((e) => e.isNotEmpty)

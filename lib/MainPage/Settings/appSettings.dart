@@ -7,9 +7,7 @@ import 'package:skillswap/loginPage/change_password_page.dart';
 import 'package:skillswap/loginPage/reset_password_page.dart';
 import 'package:skillswap/loginPage/delete_account_page.dart';
 import 'package:skillswap/loginPage/login_page.dart';
-import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
 import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'instructions_page.dart';
@@ -48,9 +46,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _languageOption(Locale locale) {
     String label;
-    if (locale.languageCode == 'en')
+    if (locale.languageCode == 'en') {
       label = 'english'.tr();
-    else if (locale.languageCode == 'kk')
+    } else if (locale.languageCode == 'kk')
       label = 'kazakh'.tr();
     else
       label = 'russian'.tr();
