@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chatPage.dart';
+import '../support/support_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ChatsListPage extends StatefulWidget {
   const ChatsListPage({super.key});
@@ -40,6 +42,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       backgroundColor: Colors.white,
       body: Column(
         children: [
@@ -78,6 +81,38 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   prefixIcon: Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(10),
+=======
+        backgroundColor: Colors.white,
+        body: Container(
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(left: 16, top: 60, right: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "SkillSwap",
+                      style: GoogleFonts.roboto(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E88E5),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SupportPage()),
+                        );
+                      },
+                      icon: const Icon(Icons.support_agent_outlined),
+                      color: Colors.grey[700],
+                      tooltip: 'support'.tr(),
+                    )
+                  ],
+>>>>>>> 0697032 (feat: Add technical support chat page)
                 ),
               ),
             ),
