@@ -42,21 +42,36 @@ class _ChatsListPageState extends State<ChatsListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-<<<<<<< HEAD
       backgroundColor: Colors.white,
       body: Column(
         children: [
           /// TITLE
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(left: 16, top: 60),
-            child: Text(
-              "SkillSwap",
-              style: GoogleFonts.roboto(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1E88E5),
-              ),
+            padding: const EdgeInsets.only(left: 16, top: 60, right: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "SkillSwap",
+                  style: GoogleFonts.roboto(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E88E5),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SupportPage()),
+                    );
+                  },
+                  icon: const Icon(Icons.support_agent_outlined),
+                  color: Colors.grey[700],
+                  tooltip: 'support'.tr(),
+                ),
+              ],
             ),
           ),
 
@@ -81,38 +96,6 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   prefixIcon: Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(10),
-=======
-        backgroundColor: Colors.white,
-        body: Container(
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.only(left: 16, top: 60, right: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "SkillSwap",
-                      style: GoogleFonts.roboto(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E88E5),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SupportPage()),
-                        );
-                      },
-                      icon: const Icon(Icons.support_agent_outlined),
-                      color: Colors.grey[700],
-                      tooltip: 'support'.tr(),
-                    )
-                  ],
->>>>>>> 0697032 (feat: Add technical support chat page)
                 ),
               ),
             ),
