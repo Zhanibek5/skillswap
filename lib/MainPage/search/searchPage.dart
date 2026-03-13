@@ -134,6 +134,9 @@ class _SearchPageState extends State<SearchPage> {
                       if (doc.id == currentUid) return false;
 
                       final data = doc.data() as Map<String, dynamic>;
+                      
+                      final role = data['role'] ?? 'user';
+                      if (role == 'admin' || role == 'moderator') return false;
 
                       final fullName =
                           '${data['firstName']} ${data['lastName']}'

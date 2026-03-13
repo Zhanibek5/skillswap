@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:skillswap/MainPage/search/userCard.dart';
+import 'package:skillswap/MainPage/chat/chatPage.dart';
+import 'dart:io';
 
 class ReportsManagementPage extends StatelessWidget {
   const ReportsManagementPage({Key? key}) : super(key: key);
@@ -11,6 +14,34 @@ class ReportsManagementPage extends StatelessWidget {
 
   void _banUser(String userId) async {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({'isBanned': true});
+  }
+
+  void _viewProfile(BuildContext context, String userId) async {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (!doc.exists) return;
+    
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            insetPadding: const EdgeInsets.all(16),
+            child: SizedBox(
+               height: MediaQuery.of(context).size.height * 0.8,
+               child: Scaffold(
+                 appBar: AppBar(title: const Text('User Profile View'), leading: const CloseButton()),
+                 body: SingleChildScrollView(
+                   child: Padding(
+                     padding: const EdgeInsets.all(16.0),
+                     child: UserCard(userId: userId, mode: 'learn', userData: doc.data()!),
+                   ),
+                 ),
+               ),
+            ),
+          );
+        }
+      );
+    }
   }
 
   @override
@@ -49,7 +80,9 @@ class ReportsManagementPage extends StatelessWidget {
               final reason = data['reason'] ?? 'No reason provided';
               final status = data['status'] ?? 'pending';
               final targetType = data['targetType'] ?? 'unknown';
-              
+              final targetId = data['targetId'];
+              final List<dynamic>? attachments = data['attachments'] as List<dynamic>?;
+
               DateTime? date;
               if (data['createdAt'] != null) {
                 date = (data['createdAt'] as Timestamp).toDate();
@@ -96,7 +129,72 @@ class ReportsManagementPage extends StatelessWidget {
                       const Text('Reason:', style: TextStyle(fontWeight: FontWeight.bold)),
                       Text(reason, style: const TextStyle(fontSize: 14)),
                       const SizedBox(height: 8),
+
+                      if (attachments != null && attachments.isNotEmpty) ...[
+                        const Text('Attachments:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: 80,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: attachments.length,
+                            itemBuilder: (context, idx) {
+                              final path = attachments[idx].toString();
+                              if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) {
+                                return Container(
+                                  width: 80, height: 80, margin: const EdgeInsets.only(right: 8),
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.videocam),
+                                );
+                              }
+                              return Container(
+                                width: 80, height: 80, margin: const EdgeInsets.only(right: 8),
+                                child: Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.error)),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+
                       Text('Date: $dateStr', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Divider(),
+
+                      /// NEW ACTIONS: View Chat / View Profiles
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          if (targetType == 'chat' && targetId != null)
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.chat, size: 16),
+                              label: const Text('View Chat'),
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => ChatPage(
+                                    chatId: targetId,
+                                    otherUserId: reportedUserId,
+                                    selectedSkills: const [],
+                                    mode: 'admin_view', // Avoid normal user logic
+                                  )
+                                ));
+                              },
+                            ),
+                            
+                          if (reporterId.isNotEmpty)
+                             OutlinedButton.icon(
+                              icon: const Icon(Icons.person, size: 16),
+                              label: const Text('Reporter'),
+                              onPressed: () => _viewProfile(context, reporterId),
+                            ),
+                          if (reportedUserId.isNotEmpty && reportedUserId != 'admin')
+                             OutlinedButton.icon(
+                              icon: const Icon(Icons.person_outline, size: 16),
+                              label: const Text('Reported User'),
+                              onPressed: () => _viewProfile(context, reportedUserId),
+                            ),
+                        ],
+                      ),
+                      
                       const Divider(),
                       if (status == 'pending')
                         Row(

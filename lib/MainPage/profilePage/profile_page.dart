@@ -78,6 +78,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
               final String firstName = data['firstName']?.toString() ?? '';
               final String lastName = data['lastName']?.toString() ?? '';
+              final String role = data['role']?.toString() ?? 'user';
+              final String adminTitle = data['adminTitle']?.toString() ?? (role == 'admin' ? 'Main Admin' : 'Moderator');
 
               return Stack(
                 fit: StackFit.expand,
@@ -147,8 +149,20 @@ class _ProfilePageState extends State<ProfilePage> {
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                    ),
-                                    SizedBox(height: 4),
+                                    ),                                      if (role == 'admin' || role == 'moderator') ...[
+                                        SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white24,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            adminTitle,
+                                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],                                    SizedBox(height: 4),
                                   ],
                                 ),
                               ),

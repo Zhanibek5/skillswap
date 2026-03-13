@@ -705,20 +705,22 @@ class _ChatPageState extends State<ChatPage> {
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.warning_amber_rounded,
-                              color: Colors.red),
-                          onPressed: () {
-                            ReportDialog.show(context, widget.otherUserId, 'chat', targetId: widget.chatId);
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.calendar_month,
-                              color: Colors.black),
-                          onPressed: () {
-                            _openMeetingScheduler();
-                          },
-                        ),
+                        if (widget.mode != 'support') ...[
+                          IconButton(
+                            icon: const Icon(Icons.warning_amber_rounded,
+                                color: Colors.red),
+                            onPressed: () {
+                              ReportDialog.show(context, widget.otherUserId, 'chat', targetId: widget.chatId);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.calendar_month,
+                                color: Colors.black),
+                            onPressed: () {
+                              _openMeetingScheduler();
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1013,10 +1015,11 @@ class _ChatPageState extends State<ChatPage> {
                       },
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    color: Colors.transparent,
+                  if (widget.mode != 'admin_view')
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                      color: Colors.transparent,
                     child: Row(
                       children: [
                         // /// Emoji / Attach button

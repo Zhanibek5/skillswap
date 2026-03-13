@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:skillswap/MainPage/admin/users_management_page.dart';
 import 'package:skillswap/MainPage/admin/reports_management_page.dart';
+import 'package:skillswap/MainPage/admin/admin_list_page.dart';
 import 'instructions_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -202,6 +203,19 @@ class _SettingsPageState extends State<SettingsPage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => const ReportsManagementPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _divider(),
+                            _item(
+                              Icons.admin_panel_settings,
+                              'Other Admins',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AdminListPage(),
                                   ),
                                 );
                               },

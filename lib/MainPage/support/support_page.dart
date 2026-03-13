@@ -19,7 +19,6 @@ class SupportPage extends StatefulWidget {
 class _SupportPageState extends State<SupportPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _messageController = TextEditingController();
-  final TextEditingController _contactController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   String? _selectedCategory;
   String? _selectedSubcategory;
@@ -88,22 +87,23 @@ class _SupportPageState extends State<SupportPage> {
     }
 
     final ticket = {
-      'userId': uid,
+      'reporterId': uid,
+      'reportedUserId': 'admin',
       'userEmail': user?.email,
       'category': _selectedCategory,
       'location': _selectedSubcategory,
-      'message': _messageController.text.trim(),
-      'contact': _contactController.text.trim(),
+      'reason': _messageController.text.trim(),
+      'targetType': 'feedback',
       'attachments': _attachments.map((f) => f.path).toList(),
       'includeLogs': _includeLogs,
       if (_scheduledDateTime != null) 'scheduledAt': Timestamp.fromDate(_scheduledDateTime!),
-      'status': 'open',
+      'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     };
 
 
     try {
-      await FirebaseFirestore.instance.collection('support_tickets').add(ticket);
+      await FirebaseFirestore.instance.collection('reports').add(ticket);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('support_sent'.tr())),
@@ -200,8 +200,9 @@ class _SupportPageState extends State<SupportPage> {
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('support_tickets')
-          .where('userId', isEqualTo: uid)
+            .collection('reports')
+            .where('reporterId', isEqualTo: uid)
+            .where('targetType', isEqualTo: 'feedback')
           // order the results manually below instead of using Firestore's
           // `orderBy` (which requires a composite index when combined with a
           // `where`) to avoid permissions/index errors during development.
@@ -243,7 +244,7 @@ class _SupportPageState extends State<SupportPage> {
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            final subject = (data['subject'] as String?)?.trim();
+              final subject = (data['reason'] as String?)?.trim();
             final category = (data['category'] as String?) ?? '';
             final created = (data['createdAt'] as Timestamp?)?.toDate();
             return ListTile(
@@ -332,7 +333,6 @@ class _SupportPageState extends State<SupportPage> {
   @override
   void dispose() {
     _messageController.dispose();
-    _contactController.dispose();
     _timeController.dispose();
     super.dispose();
   }
@@ -522,23 +522,6 @@ class _SupportPageState extends State<SupportPage> {
                                   ),
                                 ),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Text('• '),
-                            Text('contact_info'.tr(), style: GoogleFonts.roboto(fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _contactController,
-                          decoration: InputDecoration(
-                            hintText: 'enter_email'.tr(),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                           ),
                         ),
                         const SizedBox(height: 12),
