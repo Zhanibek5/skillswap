@@ -11,6 +11,7 @@ import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:skillswap/MainPage/admin/users_management_page.dart';
+import 'package:skillswap/MainPage/admin/reports_management_page.dart';
 import 'instructions_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -181,18 +182,31 @@ class _SettingsPageState extends State<SettingsPage> {
                       _card(
                         children: [
                           _item(
-                            Icons.admin_panel_settings,
-                            'Admin Panel',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const UsersManagementPage(),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                              Icons.manage_accounts,
+                              'Manage Users',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const UsersManagementPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _divider(),
+                            _item(
+                              Icons.report_problem,
+                              'Manage Reports',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ReportsManagementPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                       ),
                       const SizedBox(height: 16),
                     ],
