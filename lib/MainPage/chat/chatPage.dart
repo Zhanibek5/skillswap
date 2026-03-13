@@ -481,7 +481,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> checkAndSendInitialMessage() async {
-    if (widget.mode == 'support' || widget.mode == 'admin_view') return;
+    if (widget.mode == 'support' || widget.mode == 'admin_view' || widget.mode == 'support_admin') return;
 
     final messages = await FirebaseFirestore.instance
         .collection('chats')

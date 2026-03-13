@@ -116,7 +116,7 @@ class ReportsManagementPage extends StatelessWidget {
     );
   }
 
-  void _replyToFeedback(BuildContext context, String reporterId) async {
+  void _replyToFeedback(BuildContext context, String reporterId, String initialMessage) async {
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
     final chatQuery = await FirebaseFirestore.instance.collection('chats')
       .where('participants', arrayContains: currentUserId)
@@ -137,10 +137,18 @@ class ReportsManagementPage extends StatelessWidget {
         'participants': [currentUserId, reporterId],
         'isSupport': true,
         'createdAt': FieldValue.serverTimestamp(),
-        'lastMessage': '',
+        'lastMessage': initialMessage,
         'lastTimestamp': FieldValue.serverTimestamp(),
       });
       chatId = newChat.id;
+
+      await FirebaseFirestore.instance.collection('chats').doc(chatId).collection('messages').add({
+        'senderId': reporterId, // Pretend the user sent it so it appears on the left
+        'text': initialMessage,
+        'type': 'text',
+        'timestamp': FieldValue.serverTimestamp(),
+        'readBy': [reporterId],
+      });
     }
     
     if (context.mounted) {
@@ -286,7 +294,7 @@ class ReportsManagementPage extends StatelessWidget {
                   OutlinedButton.icon(
                     icon: const Icon(Icons.reply, size: 16),
                     label: const Text('Reply to User'),
-                    onPressed: () => _replyToFeedback(context, reporterId),
+                    onPressed: () => _replyToFeedback(context, reporterId, reason),
                   ),
               ],
             ),
