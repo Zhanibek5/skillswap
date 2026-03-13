@@ -10,6 +10,7 @@ import 'package:skillswap/loginPage/login_page.dart';
 import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'package:skillswap/MainPage/admin/users_management_page.dart';
 import 'instructions_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -104,6 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
           final photoUrl = data['photoUrl'];
           final firstName = data['firstName'] ?? '';
           final lastName = data['lastName'] ?? '';
+          final role = data['role'] ?? 'user';
 
           final displayName = (firstName?.trim().isNotEmpty == true ||
                   lastName?.trim().isNotEmpty == true)
@@ -173,6 +175,27 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
 
                     const SizedBox(height: 30),
+
+                    /// 👮 ADMIN CARD
+                    if (role == 'admin' || role == 'moderator') ...[
+                      _card(
+                        children: [
+                          _item(
+                            Icons.admin_panel_settings,
+                            'Admin Panel',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const UsersManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     /// ⚙️ GENERAL SETTINGS CARD
                     _card(
