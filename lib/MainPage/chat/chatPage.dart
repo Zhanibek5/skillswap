@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:skillswap/MainPage/admin/report_dialog.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
@@ -703,6 +704,13 @@ class _ChatPageState extends State<ChatPage> {
                               ),
                             ],
                           ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.warning_amber_rounded,
+                              color: Colors.red),
+                          onPressed: () {
+                            ReportDialog.show(context, widget.otherUserId, 'chat', targetId: widget.chatId);
+                          },
                         ),
                         IconButton(
                           icon: const Icon(Icons.calendar_month,
