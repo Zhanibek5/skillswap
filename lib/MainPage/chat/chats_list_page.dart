@@ -138,8 +138,10 @@ class _ChatsListPageState extends State<ChatsListPage> {
                     final participants =
                         List<String>.from(chatData['participants'] ?? []);
 
-                    final otherUserId =
-                        participants.firstWhere((id) => id != currentUserId);
+                    final otherUserId = participants.firstWhere(
+                      (id) => id != currentUserId,
+                      orElse: () => participants.isNotEmpty ? participants.first : currentUserId,
+                    );
 
                     return StreamBuilder<DocumentSnapshot>(
                       stream: FirebaseFirestore.instance
@@ -155,11 +157,11 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         final userData =
                             userSnapshot.data!.data() as Map<String, dynamic>;
 
-                        final name = userData['firstName'] ?? 'No name';
-                        final photoUrl = userData['photoUrl'] ?? '';
-                        final skill = chatData['lastSkill'] ?? '';
-
-                        final lastType = chatData['lastType'] ?? 'text';
+                          bool isSupportAgent = chatData['isSupport'] == true && userData['role'] == 'admin';
+                          final name = isSupportAgent ? 'Support' : (userData['firstName'] ?? 'No name');
+                          final photoUrl = isSupportAgent ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png' : (userData['photoUrl'] ?? '');
+                          final skill = chatData['lastSkill'] ?? '';
+                          final lastType = chatData['lastType'] ?? 'text';
                         String lastMessage = chatData['lastMessage'] ?? '';
 
                         /// SYSTEM MESSAGE TEXT
@@ -211,7 +213,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                             .map((e) => e.trim())
                                             .where((e) => e.isNotEmpty)
                                             .toList(),
-                                    mode: 'learn',
+                                    mode: (chatData['isSupport'] == true) ? 'support' : 'learn',
                                   ),
                                 ),
                               );

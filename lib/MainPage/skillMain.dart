@@ -52,11 +52,21 @@ class _SkillMainPageState extends State<SkillMainPage> {
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           final isBanned = data['isBanned'] ?? false;
-          if (isBanned) {
-            return const BannedPage();
+            final banExpiration = data['banExpiration'] as Timestamp?;
+            final banReason = data['banReason'];
+            
+            if (isBanned) {
+              if (banExpiration != null && banExpiration.toDate().isBefore(DateTime.now())) {
+                // Ban expired automatically
+                FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                  'isBanned': false,
+                  'banReason': FieldValue.delete(),
+                  'banExpiration': FieldValue.delete(),
+                });
+              } else {
+                return BannedPage(reason: banReason, expiration: banExpiration?.toDate());
+              }            }
           }
-        }
-
         return Scaffold(
           extendBody: true, // Blur үшін маңызды
           body: Stack(

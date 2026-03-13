@@ -481,6 +481,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> checkAndSendInitialMessage() async {
+    if (widget.mode == 'support' || widget.mode == 'admin_view') return;
+
     final messages = await FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.chatId)
@@ -649,8 +651,10 @@ class _ChatPageState extends State<ChatPage> {
 
               final userData =
                   userSnapshot.data!.data() as Map<String, dynamic>? ?? {};
-              final userName = userData['firstName'] ?? 'No Name';
-              final photoUrl = userData['photoUrl'] ?? '';
+              
+              bool isSupportAgent = widget.mode == 'support' && userData['role'] == 'admin';
+              final userName = isSupportAgent ? 'Support' : (userData['firstName'] ?? 'No Name');
+              final photoUrl = isSupportAgent ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png' : (userData['photoUrl'] ?? '');
 
               return Column(
                 children: [
