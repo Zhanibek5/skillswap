@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/MainPage/Settings/appSettings.dart';
 import 'chat/chats_list_page.dart';
 import 'profilePage/profile_page.dart';
 import 'search/searchPage.dart';
+import 'admin/banned_page.dart';
 import 'dart:ui';
 
 final GlobalKey<_SkillMainPageState> mainPageKey =
@@ -40,29 +43,45 @@ class _SkillMainPageState extends State<SkillMainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true, // Blur үшін маңызды
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _selectedIndex,
-            children: const [
-              ChatsListPage(),
-              SearchPage(),
-              SettingsPage(),
-              ProfilePage(),
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Scaffold();
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+          final isBanned = data['isBanned'] ?? false;
+          if (isBanned) {
+            return const BannedPage();
+          }
+        }
+
+        return Scaffold(
+          extendBody: true, // Blur үшін маңызды
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: _selectedIndex,
+                children: const [
+                  ChatsListPage(),
+                  SearchPage(),
+                  SettingsPage(),
+                  ProfilePage(),
+                ],
+              ),
+
+              /// CUSTOM BOTTOM BAR
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 15,
+                child: _buildCustomNavBar(),
+              ),
             ],
           ),
-
-          /// CUSTOM BOTTOM BAR
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 15,
-            child: _buildCustomNavBar(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
