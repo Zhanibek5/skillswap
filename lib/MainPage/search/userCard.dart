@@ -6,6 +6,7 @@ import 'package:skillswap/MainPage/chat/chatPage.dart';
 import 'package:skillswap/MainPage/chat/chat_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
+import 'package:skillswap/MainPage/admin/report_dialog.dart';
 
 class UserCard extends StatefulWidget {
   final String userId;
@@ -198,12 +199,25 @@ class _UserCardState extends State<UserCard> {
                       ],
                     ),
                   ),
-                  Row(
+                  Column(
                     children: [
-                      const Icon(Icons.star, color: Colors.amber),
-                      Text(
-                        " $rating",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber),
+                          Text(
+                            " $rating",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                        tooltip: 'Report User',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          ReportDialog.show(context, widget.userId, 'profile');
+                        },
                       ),
                     ],
                   )
