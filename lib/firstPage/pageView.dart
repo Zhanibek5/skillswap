@@ -72,6 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: Text('select_language'.tr()),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -230,8 +231,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ElevatedButton(
                       onPressed: _prevPage,
                       style: commonButtonStyle.copyWith(
-                        backgroundColor:
-                            WidgetStateProperty.all(Colors.white),
+                        backgroundColor: WidgetStateProperty.all(Colors.white),
                         foregroundColor:
                             WidgetStateProperty.all(Color(0xFF1E88E5)),
                         side: WidgetStateProperty.all(
@@ -256,8 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: commonButtonStyle.copyWith(
                         backgroundColor:
                             WidgetStateProperty.all(Color(0xFF1E88E5)),
-                        foregroundColor:
-                            WidgetStateProperty.all(Colors.white),
+                        foregroundColor: WidgetStateProperty.all(Colors.white),
                         side: WidgetStateProperty.all(
                             const BorderSide(color: Colors.white)),
                       ),

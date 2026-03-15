@@ -10,6 +10,7 @@ import 'package:skillswap/MainPage/admin/report_dialog.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
+import 'package:skillswap/MainPage/reviews/review_dialog.dart';
 
 class ChatPage extends StatefulWidget {
   final String chatId;
@@ -35,7 +36,7 @@ class _ChatPageState extends State<ChatPage> {
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   FlutterSoundPlayer player = FlutterSoundPlayer();
   final ScrollController _scrollController = ScrollController();
-  
+
   bool isRecording = false;
   bool isCancelled = false;
   bool isTyping = false;
@@ -47,6 +48,26 @@ class _ChatPageState extends State<ChatPage> {
   StreamSubscription? _playbackSubscription;
   Duration _playbackPosition = Duration.zero;
   Duration _playbackDuration = Duration.zero;
+  bool amILearner = false;
+  bool amITeacher = false;
+  bool chatLoaded = false;
+
+  Future<void> loadChatInfo() async {
+    final chatDoc = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .get();
+
+    final data = chatDoc.data()!;
+
+    if (!mounted) return;
+
+    setState(() {
+      amILearner = data['learnerId'] == currentUserId;
+      amITeacher = data['teacherId'] == currentUserId;
+      chatLoaded = true;
+    });
+  }
 
   Future<void> playAudio(String url, int durationSecs) async {
     try {
@@ -60,7 +81,7 @@ class _ChatPageState extends State<ChatPage> {
         });
         if (prevUrl == url) return; // Toggle logic
       }
-      
+
       setState(() {
         playingUrl = url;
         _playbackDuration = Duration(seconds: durationSecs);
@@ -107,15 +128,17 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> startRecording() async {
     try {
       final tempDir = Directory.systemTemp;
-      String filePath = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      
+      String filePath =
+          '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
       await recorder.startRecorder(
         toFile: filePath,
-        codec: Codec.aacMP4, 
+        codec: Codec.aacMP4,
         sampleRate: 44100,
         bitRate: 128000,
-        numChannels: 1, 
-        audioSource: AudioSource.microphone, // Изменение микрофона на стандартный (без фильтров "рации")
+        numChannels: 1,
+        audioSource: AudioSource
+            .microphone, // Изменение микрофона на стандартный (без фильтров "рации")
       );
 
       recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
@@ -213,57 +236,6 @@ class _ChatPageState extends State<ChatPage> {
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': 'system_meeting_created',
     });
-
-    Duration diff = meetingTime.difference(DateTime.now());
-
-    if (diff.inMinutes > 10) {
-      Future.delayed(diff - const Duration(minutes: 10), () async {
-        await chatRef.add({
-          'senderId': 'system',
-          'type': 'system_meeting_10min',
-          'meetingTime': Timestamp.fromDate(meetingTime),
-          'timestamp': FieldValue.serverTimestamp(),
-          'readBy': [],
-        });
-
-        await FirebaseFirestore.instance
-            .collection('chats')
-            .doc(widget.chatId)
-            .update({
-          'lastMessage': '⏰ 10 минут қалды',
-          'lastTimestamp': FieldValue.serverTimestamp(),
-          'lastType': 'system_meeting_10min',
-        });
-      });
-    }
-
-    if (diff.inSeconds > 0) {
-      Future.delayed(diff, () async {
-        final startedSnapshot = await chatRef
-            .where('type', isEqualTo: 'system_meeting_started')
-            .limit(1)
-            .get();
-
-        if (startedSnapshot.docs.isEmpty) {
-          await chatRef.add({
-            'senderId': 'system',
-            'type': 'system_meeting_started',
-            'meetingTime': Timestamp.fromDate(meetingTime),
-            'timestamp': FieldValue.serverTimestamp(),
-            'readBy': [],
-          });
-
-          await FirebaseFirestore.instance
-              .collection('chats')
-              .doc(widget.chatId)
-              .update({
-            'lastMessage': '🔔 Кездесу басталды',
-            'lastTimestamp': FieldValue.serverTimestamp(),
-            'lastType': 'system_meeting_started',
-          });
-        }
-      });
-    }
   }
 
   void _showConfirmDialog(DateTime meetingTime) {
@@ -325,7 +297,8 @@ class _ChatPageState extends State<ChatPage> {
               primary: Color(0xFF1E88E5),
               onPrimary: Colors.white,
               onSurface: Colors.black,
-            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
+            ),
+            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );
@@ -370,6 +343,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    loadChatInfo();
     messageController.addListener(() {
       if (mounted) {
         setState(() {
@@ -377,10 +351,9 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     });
-    
+
     _initAudio();
     checkAndSendInitialMessage();
-    checkMeetingReminder();
     markMessagesAsRead();
   }
 
@@ -389,14 +362,18 @@ class _ChatPageState extends State<ChatPage> {
       final session = await AudioSession.instance;
       await session.configure(AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth | AVAudioSessionCategoryOptions.defaultToSpeaker,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.allowBluetooth |
+                AVAudioSessionCategoryOptions.defaultToSpeaker,
         avAudioSessionMode: AVAudioSessionMode.defaultMode,
-        avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        avAudioSessionRouteSharingPolicy:
+            AVAudioSessionRouteSharingPolicy.defaultPolicy,
         avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
         androidAudioAttributes: const AndroidAudioAttributes(
           contentType: AndroidAudioContentType.speech,
           flags: AndroidAudioFlags.none,
-          usage: AndroidAudioUsage.media, // media вместо voiceCommunication предотвращает эхоподавление и рацию
+          usage: AndroidAudioUsage
+              .media, // media вместо voiceCommunication предотвращает эхоподавление и рацию
         ),
         androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransient,
         androidWillPauseWhenDucked: true,
@@ -404,80 +381,9 @@ class _ChatPageState extends State<ChatPage> {
     } catch (e) {
       print('Audio session config error: $e');
     }
-    
+
     await player.openPlayer();
     await recorder.openRecorder();
-  }
-
-  Future<void> checkMeetingReminder() async {
-    final chatRef = FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .collection('messages');
-
-    // Алдымен кездесуді тексеру
-    final meetingSnapshot = await chatRef
-        .where('type', isEqualTo: 'system_meeting_created')
-        .limit(1)
-        .get();
-
-    if (meetingSnapshot.docs.isEmpty) return;
-
-    final meetingTime =
-        (meetingSnapshot.docs.first['meetingTime'] as Timestamp).toDate();
-    final diff = meetingTime.difference(DateTime.now());
-
-    if (diff.inMinutes <= 10 && diff.inMinutes > 0) {
-      final tenMinSnapshot = await chatRef
-          .where('type', isEqualTo: 'system_meeting_10min')
-          .limit(1)
-          .get();
-
-      if (tenMinSnapshot.docs.isEmpty) {
-        await chatRef.add({
-          'senderId': 'system',
-          'type': 'system_meeting_10min',
-          'meetingTime': Timestamp.fromDate(meetingTime),
-          'timestamp': FieldValue.serverTimestamp(),
-          'readBy': [],
-        });
-
-        await FirebaseFirestore.instance
-            .collection('chats')
-            .doc(widget.chatId)
-            .update({
-          'lastMessage': '⏰ 10 минут қалды',
-          'lastTimestamp': FieldValue.serverTimestamp(),
-          'lastType': 'system_meeting_10min',
-        });
-      }
-    }
-
-    // if (diff.inSeconds <= 0) {
-    //   final startedSnapshot = await chatRef
-    //       .where('type', isEqualTo: 'system_meeting_started')
-    //       .limit(1)
-    //       .get();
-
-    //   if (startedSnapshot.docs.isEmpty) {
-    //     await chatRef.add({
-    //       'senderId': 'system',
-    //       'type': 'system_meeting_started',
-    //       'meetingTime': Timestamp.fromDate(meetingTime),
-    //       'timestamp': FieldValue.serverTimestamp(),
-    //       'readBy': [],
-    //     });
-
-    //     await FirebaseFirestore.instance
-    //         .collection('chats')
-    //         .doc(widget.chatId)
-    //         .update({
-    //       'lastMessage': '🔔 Кездесу басталды',
-    //       'lastTimestamp': FieldValue.serverTimestamp(),
-    //       'lastType': 'system_meeting_started',
-    //     });
-    //   }
-    // }
   }
 
   Future<void> checkAndSendInitialMessage() async {
@@ -583,7 +489,8 @@ class _ChatPageState extends State<ChatPage> {
     bool isPlaying = playingUrl == url;
     double progress = 0;
     if (isPlaying && _playbackDuration.inMilliseconds > 0) {
-      progress = _playbackPosition.inMilliseconds / _playbackDuration.inMilliseconds;
+      progress =
+          _playbackPosition.inMilliseconds / _playbackDuration.inMilliseconds;
     }
 
     var rg = Random(url.hashCode);
@@ -594,12 +501,12 @@ class _ChatPageState extends State<ChatPage> {
       children: List.generate(barsCount, (index) {
         double height = rg.nextDouble() * 15 + 5;
         bool isPlayed = (index / barsCount) <= progress;
-        
+
         Color barColor;
         if (isMe) {
-           barColor = isPlayed ? Colors.white : Colors.white.withOpacity(0.4);
+          barColor = isPlayed ? Colors.white : Colors.white.withOpacity(0.4);
         } else {
-           barColor = isPlayed ? const Color(0xFF1E88E5) : Colors.grey.shade300;
+          barColor = isPlayed ? const Color(0xFF1E88E5) : Colors.grey.shade300;
         }
 
         return Container(
@@ -701,10 +608,15 @@ class _ChatPageState extends State<ChatPage> {
                                     fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                widget.selectedSkills.join(", "),
+                                !chatLoaded
+                                    ? ""
+                                    : amILearner
+                                        ? "Teacher: ${widget.selectedSkills.join(", ")}"
+                                        : "Learner: ${widget.selectedSkills.join(", ")}",
                                 style: const TextStyle(
-                                    color: Colors.black38, fontSize: 13),
-                                overflow: TextOverflow.ellipsis,
+                                  color: Colors.black38,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -824,7 +736,24 @@ class _ChatPageState extends State<ChatPage> {
                                             ),
                                             const SizedBox(height: 8),
                                             ElevatedButton(
-                                              onPressed: () {},
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        ReviewDialog(
+                                                      teacherName: userName,
+                                                      chatId: widget.chatId,
+                                                      otherUserId:
+                                                          widget.otherUserId,
+                                                      selectedSkills: [
+                                                        widget.selectedSkills
+                                                            .join(", ")
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
                                                     Colors.blueAccent,
@@ -901,69 +830,101 @@ class _ChatPageState extends State<ChatPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    if (type == 'audio' && data['audioUrl'] != null)
-                                      Builder(
-                                        builder: (context) {
-                                          final int audioDuration = data['duration'] ?? 0;
-                                          final bool isPlaying = playingUrl == data['audioUrl'];
-                                          final bool isUploading = data['audioUrl'] == 'uploading';
-                                          
-                                          return Padding(
-                                            padding: const EdgeInsets.only(bottom: 2),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Container(
-                                                  width: 44,
-                                                  height: 44,
-                                                  decoration: BoxDecoration(
-                                                    color: isMe ? Colors.white : const Color(0xFF1E88E5),
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  child: isUploading
+                                    if (type == 'audio' &&
+                                        data['audioUrl'] != null)
+                                      Builder(builder: (context) {
+                                        final int audioDuration =
+                                            data['duration'] ?? 0;
+                                        final bool isPlaying =
+                                            playingUrl == data['audioUrl'];
+                                        final bool isUploading =
+                                            data['audioUrl'] == 'uploading';
+
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 2),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 44,
+                                                height: 44,
+                                                decoration: BoxDecoration(
+                                                  color: isMe
+                                                      ? Colors.white
+                                                      : const Color(0xFF1E88E5),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: isUploading
                                                     ? Padding(
-                                                        padding: const EdgeInsets.all(12),
-                                                        child: CircularProgressIndicator(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(12),
+                                                        child:
+                                                            CircularProgressIndicator(
                                                           strokeWidth: 2.5,
-                                                          color: isMe ? const Color(0xFF1E88E5) : Colors.white,
+                                                          color: isMe
+                                                              ? const Color(
+                                                                  0xFF1E88E5)
+                                                              : Colors.white,
                                                         ),
                                                       )
                                                     : GestureDetector(
-                                                        onTap: () => playAudio(data['audioUrl'], audioDuration),
+                                                        onTap: () => playAudio(
+                                                            data['audioUrl'],
+                                                            audioDuration),
                                                         child: Icon(
-                                                          isPlaying ? Icons.pause : Icons.play_arrow,
-                                                          color: isMe ? const Color(0xFF1E88E5) : Colors.white,
+                                                          isPlaying
+                                                              ? Icons.pause
+                                                              : Icons
+                                                                  .play_arrow,
+                                                          color: isMe
+                                                              ? const Color(
+                                                                  0xFF1E88E5)
+                                                              : Colors.white,
                                                           size: 28,
                                                         ),
                                                       ),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    buildWaveform(data['audioUrl'], isMe, audioDuration),
-                                                    const SizedBox(height: 6),
-                                                    Text(
-                                                      isPlaying 
-                                                        ? formatAudioDuration(_playbackPosition.inSeconds) 
-                                                        : formatAudioDuration(audioDuration),
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: isMe ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
-                                                      ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  buildWaveform(
+                                                      data['audioUrl'],
+                                                      isMe,
+                                                      audioDuration),
+                                                  const SizedBox(height: 6),
+                                                  Text(
+                                                    isPlaying
+                                                        ? formatAudioDuration(
+                                                            _playbackPosition
+                                                                .inSeconds)
+                                                        : formatAudioDuration(
+                                                            audioDuration),
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: isMe
+                                                          ? Colors.white
+                                                              .withOpacity(0.8)
+                                                          : Colors
+                                                              .grey.shade600,
                                                     ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }
-                                      )
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      })
                                     else
                                       Text(
                                         data['text'] ?? '',
                                         style: TextStyle(
-                                          color: isMe ? Colors.white : Colors.black,
+                                          color: isMe
+                                              ? Colors.white
+                                              : Colors.black,
                                           fontSize: 15,
                                         ),
                                       ),
@@ -1067,17 +1028,23 @@ class _ChatPageState extends State<ChatPage> {
                                         ),
                                         const SizedBox(width: 10),
                                         Text(
-                                          formatRecordingDuration(_recordingDuration), 
-                                          style: const TextStyle(color: Colors.black, fontSize: 16)
-                                        ),
+                                            formatRecordingDuration(
+                                                _recordingDuration),
+                                            style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 16)),
                                         const Spacer(),
-                                        const Text("< Влево — отмена", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                        const Text("< Влево — отмена",
+                                            style: TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 14)),
                                       ],
                                     ),
                                   )
                                 : ConstrainedBox(
                                     constraints: const BoxConstraints(
-                                      maxHeight: 120, // max height for multi-line
+                                      maxHeight:
+                                          120, // max height for multi-line
                                     ),
                                     child: Scrollbar(
                                       child: TextField(
@@ -1088,7 +1055,8 @@ class _ChatPageState extends State<ChatPage> {
                                         decoration: const InputDecoration(
                                           hintText: "Message...",
                                           border: InputBorder.none,
-                                          isCollapsed: true, // remove extra padding
+                                          isCollapsed:
+                                              true, // remove extra padding
                                         ),
                                       ),
                                     ),
@@ -1121,7 +1089,8 @@ class _ChatPageState extends State<ChatPage> {
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text("Аудио жазу үшін басып тұрыңыз"),
+                                  content:
+                                      Text("Аудио жазу үшін басып тұрыңыз"),
                                   duration: Duration(seconds: 1),
                                 ),
                               );
@@ -1132,7 +1101,8 @@ class _ChatPageState extends State<ChatPage> {
                               await startRecording(); // Алдымен микрофонды іске қосамыз
                               // Микрофон іске қосылғаннан КЕЙІН ғана вибрация беріп, UI өзгертеміз:
                               if (!isCancelled) {
-                                HapticFeedback.vibrate(); // Телеграм сияқты діріл
+                                HapticFeedback
+                                    .vibrate(); // Телеграм сияқты діріл
                                 setState(() {
                                   _recordingDuration = Duration.zero;
                                   isRecording = true;
@@ -1155,7 +1125,8 @@ class _ChatPageState extends State<ChatPage> {
                                 int durSecs = _recordingDuration.inSeconds;
                                 String? path = await stopRecording();
                                 setState(() {
-                                  isRecording = false; // Мгновенно убираем UI записи
+                                  isRecording =
+                                      false; // Мгновенно убираем UI записи
                                 });
                                 if (path != null) {
                                   // Запускаем фоновую загрузку (без await, чтобы UI не зависал)

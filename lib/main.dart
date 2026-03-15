@@ -22,7 +22,7 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  String? code = prefs.getString('selected_language'); // 'en'/'kk'/'ru'
+  String? code = prefs.getString('selected_language');
   Locale startLocale = const Locale('en');
   if (code == 'kk') {
     startLocale = const Locale('kk');

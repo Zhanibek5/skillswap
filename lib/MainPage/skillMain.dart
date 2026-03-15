@@ -8,6 +8,10 @@ import 'profilePage/profile_page.dart';
 import 'search/searchPage.dart';
 import 'admin/banned_page.dart';
 import 'dart:ui';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 final GlobalKey<_SkillMainPageState> mainPageKey =
     GlobalKey<_SkillMainPageState>();
@@ -39,6 +43,43 @@ class _SkillMainPageState extends State<SkillMainPage> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    requestNotificationPermission();
+    saveFcmToken();
+    listenTokenRefresh();
+  }
+
+  void listenTokenRefresh() {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'fcmTokens': FieldValue.arrayUnion([newToken])
+      });
+    });
+  }
+
+  Future<void> requestNotificationPermission() async {
+    await Permission.notification.request();
+  }
+
+  Future<void> saveFcmToken() async {
+    String? token = await FirebaseMessaging.instance.getToken();
+
+    if (token == null) return;
+
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(userId).set({
+      'fcmTokens': FieldValue.arrayUnion([token])
+    }, SetOptions(merge: true));
   }
 
   @override

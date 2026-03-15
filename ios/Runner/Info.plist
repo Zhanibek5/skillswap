@@ -53,5 +53,9 @@
 		<string>Профильге фото таңдау үшін рұқсат қажет</string>
 		<key>NSCameraUsageDescription</key>
 		<string>Камера профильге фото түсіру үшін қолданылады</string>
+		<key>UIBackgroundModes</key>
+    <array>
+    <string>remote-notification</string>
+    </array>
 	</dict>
 </plist>

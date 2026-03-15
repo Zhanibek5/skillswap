@@ -31,6 +31,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: Text('select_language'.tr()),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

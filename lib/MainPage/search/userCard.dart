@@ -26,6 +26,73 @@ class UserCard extends StatefulWidget {
 
 class _UserCardState extends State<UserCard> {
   Set<String> selectedSkills = {};
+  String formatTime(timestamp) {
+    if (timestamp == null) return '';
+
+    DateTime date = timestamp.toDate();
+    DateTime now = DateTime.now();
+
+    if (date.day == now.day &&
+        date.month == now.month &&
+        date.year == now.year) {
+      return DateFormat('HH:mm').format(date);
+    }
+
+    if (date.day == now.day - 1 &&
+        date.month == now.month &&
+        date.year == now.year) {
+      return "Yesterday";
+    }
+
+    return DateFormat('dd MMM').format(date);
+  }
+
+  void _openFeedbackSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(25),
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Feedback",
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: _buildFeedbackContent(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void startChat({
     required String currentUserId,
@@ -43,6 +110,8 @@ class _UserCardState extends State<UserCard> {
     if (!doc.exists) {
       await chatDoc.set({
         'participants': [currentUserId, otherUserId],
+        'learnerId': mode == 'learn' ? currentUserId : otherUserId,
+        'teacherId': mode == 'teach' ? currentUserId : otherUserId,
         'lastMessage': '',
         'lastTimestamp': FieldValue.serverTimestamp(),
         'lastSkill': selectedSkills.join(', '),
@@ -71,7 +140,7 @@ class _UserCardState extends State<UserCard> {
     final firstName = data['firstName'] ?? '';
     final age = data['age'] ?? '';
     final photoUrl = data['photoUrl'] ?? '';
-    final rating = (data['rating'] ?? 0).toDouble();
+    final rating = (data['ratingAverage'] ?? 0).toDouble();
 
     final skillsTeach = data['skillsTeach']?.toString() ?? '';
     final List<String> skillsT = skillsTeach
@@ -201,17 +270,20 @@ class _UserCardState extends State<UserCard> {
                   ),
                   Column(
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber),
-                          Text(
-                            " $rating",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                      if (widget.mode == 'learn')
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber),
+                            Text(
+                              " ${rating.toStringAsFixed(1)}",
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       IconButton(
-                        icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                        icon: const Icon(Icons.warning_amber_rounded,
+                            color: Colors.red, size: 20),
                         tooltip: 'Report User',
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -220,7 +292,7 @@ class _UserCardState extends State<UserCard> {
                         },
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 15),
@@ -343,7 +415,7 @@ class _UserCardState extends State<UserCard> {
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -407,26 +479,199 @@ class _UserCardState extends State<UserCard> {
                 ],
               ),
             )),
-        Positioned(
-          bottom: -10, // Картадан төмен
-          left: 90,
-          right: 90,
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(width: 0.5, color: Colors.grey)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        if (widget.mode == 'learn')
+          Positioned(
+            bottom: -10,
+            left: 90,
+            right: 90,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _openFeedbackSheet();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(width: 0.5, color: Colors.grey)),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              icon: Icon(Icons.chat_bubble_outline, color: Colors.yellow[700]),
+              label: Text("feedback".tr()),
             ),
-            icon: Icon(Icons.chat_bubble_outline, color: Colors.yellow[700]),
-            label: Text("feedback".tr()),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildFeedbackContent() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          /// ⭐ AVERAGE RATING
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(widget.userId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data?.data() == null) {
+                return const SizedBox();
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+
+              final avg = (data['ratingAverage'] ?? 0).toDouble();
+              final count = (data['ratingCount'] ?? 0);
+
+              return Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber),
+                  Text(
+                    " ${avg.toStringAsFixed(1)}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  Text(
+                    "  ($count reviews)",
+                    style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 15),
+
+          /// 📝 REVIEWS LIST
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('reviews')
+                  .where('teacherId', isEqualTo: widget.userId)
+                  .orderBy('createdAt', descending: true)
+                  .limit(50)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data!.docs;
+
+                if (docs.isEmpty) {
+                  return const Center(child: Text("No feedback yet"));
+                }
+
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+
+                    final rating = (data['rating'] ?? 0).toDouble();
+                    final comment = data['comment'] ?? '';
+                    final timestamp = data['createdAt'];
+                    final learnerID = data['learnerId'];
+
+                    final timeText = formatTime(timestamp);
+
+                    return StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(learnerID)
+                          .snapshots(),
+                      builder: (context, userSnapshot) {
+                        if (!userSnapshot.hasData ||
+                            !userSnapshot.data!.exists) {
+                          return const SizedBox();
+                        }
+
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>;
+                        final username = userData['firstName'] ?? 'Username';
+                        final photoUrl = userData['photoUrl'];
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// 👤 USER INFO
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundImage: photoUrl != null
+                                        ? NetworkImage(photoUrl)
+                                        : null,
+                                    child: photoUrl == null
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        username,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      Row(
+                                        children: [
+                                          ...List.generate(
+                                            5,
+                                            (index) => Icon(
+                                              index < rating
+                                                  ? Icons.star
+                                                  : Icons.star_border,
+                                              size: 18,
+                                              color: Colors.amber,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            timeText,
+                                            style: const TextStyle(
+                                                color: Colors.black45),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+
+                              /// 💬 COMMENT
+                              if (comment.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(comment),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
