@@ -65,18 +65,23 @@ class Signaling {
   }
 
   Future<void> _enqueueOrAddRemoteCandidate(Map<String, dynamic> data) async {
-    final candidate = RTCIceCandidate(
-      data['candidate'],
-      data['sdpMid'],
-      data['sdpMLineIndex'],
-    );
+    try {
+      final candidate = RTCIceCandidate(
+        data['candidate'],
+        data['sdpMid'],
+        data['sdpMLineIndex'],
+      );
 
-    if (peerConnection == null || !_hasRemoteDescription) {
-      _pendingRemoteCandidates.add(candidate);
-      return;
+      if (peerConnection == null || !_hasRemoteDescription) {
+        _pendingRemoteCandidates.add(candidate);
+        return;
+      }
+
+      await peerConnection!.addCandidate(candidate);
+    } catch (e) {
+      print('Error adding remote candidate: $e');
+      onConnectionStatusChange?.call('Candidate error: $e');
     }
-
-    await peerConnection!.addCandidate(candidate);
   }
 
   Future<void> _flushPendingRemoteCandidates() async {
@@ -92,7 +97,12 @@ class Signaling {
     _pendingRemoteCandidates.clear();
 
     for (final candidate in pendingCandidates) {
-      await peerConnection!.addCandidate(candidate);
+      try {
+        await peerConnection!.addCandidate(candidate);
+      } catch (e) {
+        print('Error flushing remote candidate: $e');
+        onConnectionStatusChange?.call('Candidate flush error: $e');
+      }
     }
   }
 
@@ -150,8 +160,13 @@ class Signaling {
     var callerCandidatesCollection = roomRef.collection('callerCandidates');
 
     peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
-      print('Got candidate: ${candidate.toMap()}');
-      callerCandidatesCollection.add(candidate.toMap());
+      try {
+        print('Got candidate: ${candidate.toMap()}');
+        callerCandidatesCollection.add(candidate.toMap());
+      } catch (e) {
+        print('Error sending caller candidate: $e');
+        onConnectionStatusChange?.call('Local candidate error: $e');
+      }
     };
 
     RTCSessionDescription offer = await peerConnection!.createOffer({
@@ -168,33 +183,43 @@ class Signaling {
     currentRoomText = 'Current room is $roomId - You are the caller!';
 
     _roomSub = roomRef.snapshots().listen((snapshot) async {
-      print('Got updated room: ${snapshot.data()}');
+      try {
+        print('Got updated room: ${snapshot.data()}');
 
-      if (!snapshot.exists) return;
-      var data = snapshot.data() as Map<String, dynamic>;
-      if (!_hasRemoteDescription && data['answer'] != null) {
-        var answer = RTCSessionDescription(
-          data['answer']['sdp'],
-          data['answer']['type'],
-        );
+        if (!snapshot.exists) return;
+        var data = snapshot.data() as Map<String, dynamic>;
+        if (!_hasRemoteDescription && data['answer'] != null) {
+          var answer = RTCSessionDescription(
+            data['answer']['sdp'],
+            data['answer']['type'],
+          );
 
-        print("Someone tried to connect");
-        await peerConnection?.setRemoteDescription(answer);
-        _hasRemoteDescription = true;
-        await _flushPendingRemoteCandidates();
+          print("Someone tried to connect");
+          await peerConnection?.setRemoteDescription(answer);
+          _hasRemoteDescription = true;
+          await _flushPendingRemoteCandidates();
+        }
+      } catch (e) {
+        print('Error handling room updates: $e');
+        onConnectionStatusChange?.call('Room update error: $e');
       }
     });
 
     _calleeCandidateSub =
         roomRef.collection('calleeCandidates').snapshots().listen((snapshot) {
-      for (var change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data();
-          if (data != null) {
-            print('Got new remote ICE candidate: ${jsonEncode(data)}');
-            _enqueueOrAddRemoteCandidate(data);
+      try {
+        for (var change in snapshot.docChanges) {
+          if (change.type == DocumentChangeType.added) {
+            final data = change.doc.data();
+            if (data != null) {
+              print('Got new remote ICE candidate: ${jsonEncode(data)}');
+              _enqueueOrAddRemoteCandidate(data);
+            }
           }
         }
+      } catch (e) {
+        print('Error listening callee candidates: $e');
+        onConnectionStatusChange?.call('Callee candidate error: $e');
       }
     });
 
@@ -211,60 +236,77 @@ class Signaling {
 
     // Wait until the room actually has an offer, in case we joined slightly before caller created it
     _roomSub = roomRef.snapshots().listen((snapshot) async {
-      if (!snapshot.exists) return;
+      try {
+        if (!snapshot.exists) return;
 
-      var data = snapshot.data() as Map<String, dynamic>?;
-      if (data == null || data['offer'] == null) return;
+        var data = snapshot.data() as Map<String, dynamic>?;
+        if (data == null || data['offer'] == null) return;
 
-      // Only initialize connection once
-      if (peerConnection != null) return;
+        // Only initialize connection once
+        if (peerConnection != null) return;
 
-      print(
-          'Create PeerConnection for join with configuration: $configuration');
-      peerConnection = await createPeerConnection(configuration);
-      registerPeerConnectionListeners();
+        print(
+            'Create PeerConnection for join with configuration: $configuration');
+        peerConnection = await createPeerConnection(configuration);
+        registerPeerConnectionListeners();
 
-      await _attachLocalStream();
+        await _attachLocalStream();
 
-      var calleeCandidatesCollection = roomRef.collection('calleeCandidates');
-      peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
-        print('onIceCandidate: ${candidate.toMap()}');
-        calleeCandidatesCollection.add(candidate.toMap());
-      };
-
-      var offer = data['offer'];
-      await peerConnection?.setRemoteDescription(
-        RTCSessionDescription(offer['sdp'], offer['type']),
-      );
-      _hasRemoteDescription = true;
-      var answer = await peerConnection!.createAnswer({
-        'offerToReceiveAudio': 1,
-        'offerToReceiveVideo': 1,
-      });
-      print('Created Answer $answer');
-
-      await peerConnection!.setLocalDescription(answer);
-
-      Map<String, dynamic> roomWithAnswer = {
-        'answer': {'type': answer.type, 'sdp': answer.sdp}
-      };
-
-      await roomRef.update(roomWithAnswer);
-
-      _callerCandidateSub =
-          roomRef.collection('callerCandidates').snapshots().listen((snapshot) {
-        for (var document in snapshot.docChanges) {
-          if (document.type == DocumentChangeType.added) {
-            final docData = document.doc.data();
-            if (docData != null) {
-              print('Got new remote ICE candidate: $docData');
-              _enqueueOrAddRemoteCandidate(docData);
-            }
+        var calleeCandidatesCollection = roomRef.collection('calleeCandidates');
+        peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
+          try {
+            print('onIceCandidate: ${candidate.toMap()}');
+            calleeCandidatesCollection.add(candidate.toMap());
+          } catch (e) {
+            print('Error sending callee candidate: $e');
+            onConnectionStatusChange?.call('Local candidate error: $e');
           }
-        }
-      });
+        };
 
-      await _flushPendingRemoteCandidates();
+        var offer = data['offer'];
+        await peerConnection?.setRemoteDescription(
+          RTCSessionDescription(offer['sdp'], offer['type']),
+        );
+        _hasRemoteDescription = true;
+        var answer = await peerConnection!.createAnswer({
+          'offerToReceiveAudio': 1,
+          'offerToReceiveVideo': 1,
+        });
+        print('Created Answer $answer');
+
+        await peerConnection!.setLocalDescription(answer);
+
+        Map<String, dynamic> roomWithAnswer = {
+          'answer': {'type': answer.type, 'sdp': answer.sdp}
+        };
+
+        await roomRef.update(roomWithAnswer);
+
+        _callerCandidateSub =
+            roomRef.collection('callerCandidates').snapshots().listen(
+          (snapshot) {
+            try {
+              for (var document in snapshot.docChanges) {
+                if (document.type == DocumentChangeType.added) {
+                  final docData = document.doc.data();
+                  if (docData != null) {
+                    print('Got new remote ICE candidate: $docData');
+                    _enqueueOrAddRemoteCandidate(docData);
+                  }
+                }
+              }
+            } catch (e) {
+              print('Error listening caller candidates: $e');
+              onConnectionStatusChange?.call('Caller candidate error: $e');
+            }
+          },
+        );
+
+        await _flushPendingRemoteCandidates();
+      } catch (e) {
+        print('Error joining room: $e');
+        onConnectionStatusChange?.call('Join error: $e');
+      }
     });
   }
 

@@ -70,34 +70,41 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Future<void> _autoStartCall() async {
     if (!_renderersReady) return;
 
-    await signaling.openUserMedia(_localRenderer, _remoteRenderer);
-    if (mounted) {
-      setState(() {
-        _connectionStatus =
-            widget.isCaller ? 'Creating room...' : 'Joining room...';
-      });
-    }
+    try {
+      await signaling.openUserMedia(_localRenderer, _remoteRenderer);
+      if (mounted) {
+        setState(() {
+          _connectionStatus =
+              widget.isCaller ? 'Creating room...' : 'Joining room...';
+        });
+      }
 
-    if (widget.isCaller) {
-      roomId = await signaling.createRoom(
-        _remoteRenderer,
-        specificRoomId: widget.specificRoomId,
-      );
+      if (widget.isCaller) {
+        roomId = await signaling.createRoom(
+          _remoteRenderer,
+          specificRoomId: widget.specificRoomId,
+        );
+        if (mounted) {
+          setState(() {
+            callStarted = true;
+            _connectionStatus = 'Waiting for other participant...';
+          });
+        }
+        return;
+      }
+
+      await Future.delayed(const Duration(seconds: 2));
+      await signaling.joinRoom(widget.specificRoomId!, _remoteRenderer);
       if (mounted) {
         setState(() {
           callStarted = true;
-          _connectionStatus = 'Waiting for other participant...';
+          _connectionStatus = 'Connected to room, waiting for media...';
         });
       }
-      return;
-    }
-
-    await Future.delayed(const Duration(seconds: 2));
-    await signaling.joinRoom(widget.specificRoomId!, _remoteRenderer);
-    if (mounted) {
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
-        callStarted = true;
-        _connectionStatus = 'Connected to room, waiting for media...';
+        _connectionStatus = 'Error: $e';
       });
     }
   }
@@ -157,12 +164,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       if (!_renderersReady) return;
-                      await signaling.openUserMedia(
-                        _localRenderer,
-                        _remoteRenderer,
-                      );
-                      if (mounted) {
-                        setState(() {});
+                      try {
+                        await signaling.openUserMedia(
+                          _localRenderer,
+                          _remoteRenderer,
+                        );
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setState(() {
+                            _connectionStatus = 'Error: $e';
+                          });
+                        }
                       }
                     },
                     child: const Text("Open camera & mic"),
@@ -171,10 +186,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       if (!_renderersReady) return;
-                      roomId = await signaling.createRoom(_remoteRenderer);
-                      textEditingController.text = roomId!;
-                      if (mounted) {
-                        setState(() {});
+                      try {
+                        roomId = await signaling.createRoom(_remoteRenderer);
+                        textEditingController.text = roomId!;
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setState(() {
+                            _connectionStatus = 'Error: $e';
+                          });
+                        }
                       }
                     },
                     child: const Text("Create room"),
@@ -199,10 +222,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     ElevatedButton(
                       onPressed: () async {
                         if (!_renderersReady) return;
-                        await signaling.joinRoom(
-                          textEditingController.text,
-                          _remoteRenderer,
-                        );
+                        try {
+                          await signaling.joinRoom(
+                            textEditingController.text,
+                            _remoteRenderer,
+                          );
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() {
+                              _connectionStatus = 'Error: $e';
+                            });
+                          }
+                        }
                       },
                       child: const Text("Join room"),
                     ),
