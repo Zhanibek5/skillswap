@@ -7,9 +7,11 @@ typedef void StreamStateCallback(MediaStream stream);
 
 class Signaling {
   Map<String, dynamic> configuration = {
+    'iceCandidatePoolSize': 10,
     'iceServers': [
       {
         'urls': [
+          'stun:stun.l.google.com:19302',
           'stun:stun1.l.google.com:19302',
           'stun:stun2.l.google.com:19302',
           'stun:stun3.l.google.com:19302',
@@ -17,12 +19,13 @@ class Signaling {
         ]
       },
       {
-        'urls': 'turn:openrelay.metered.ca:80',
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject'
-      },
-      {
-        'urls': 'turn:openrelay.metered.ca:443',
+        'urls': [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:80?transport=tcp',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp',
+          'turns:openrelay.metered.ca:443?transport=tcp',
+        ],
         'username': 'openrelayproject',
         'credential': 'openrelayproject'
       }
@@ -38,9 +41,59 @@ class Signaling {
 
   // Track this locally to avoid await calls in listeners
   bool _hasRemoteDescription = false;
+  final List<RTCIceCandidate> _pendingRemoteCandidates = [];
   StreamSubscription? _roomSub;
   StreamSubscription? _callerCandidateSub;
   StreamSubscription? _calleeCandidateSub;
+
+  Future<void> _deleteCollection(CollectionReference collection) async {
+    final snapshot = await collection.get();
+    for (final doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  Future<void> _clearRoom(DocumentReference roomRef) async {
+    await _deleteCollection(roomRef.collection('callerCandidates'));
+    await _deleteCollection(roomRef.collection('calleeCandidates'));
+
+    final roomSnapshot = await roomRef.get();
+    if (roomSnapshot.exists) {
+      await roomRef.delete();
+    }
+  }
+
+  Future<void> _enqueueOrAddRemoteCandidate(Map<String, dynamic> data) async {
+    final candidate = RTCIceCandidate(
+      data['candidate'],
+      data['sdpMid'],
+      data['sdpMLineIndex'],
+    );
+
+    if (peerConnection == null || !_hasRemoteDescription) {
+      _pendingRemoteCandidates.add(candidate);
+      return;
+    }
+
+    await peerConnection!.addCandidate(candidate);
+  }
+
+  Future<void> _flushPendingRemoteCandidates() async {
+    if (peerConnection == null ||
+        !_hasRemoteDescription ||
+        _pendingRemoteCandidates.isEmpty) {
+      return;
+    }
+
+    final pendingCandidates = List<RTCIceCandidate>.from(
+      _pendingRemoteCandidates,
+    );
+    _pendingRemoteCandidates.clear();
+
+    for (final candidate in pendingCandidates) {
+      await peerConnection!.addCandidate(candidate);
+    }
+  }
 
   Future<String> createRoom(RTCVideoRenderer remoteRenderer,
       {String? specificRoomId}) async {
@@ -48,16 +101,16 @@ class Signaling {
     DocumentReference roomRef;
 
     _hasRemoteDescription = false;
+    _pendingRemoteCandidates.clear();
 
     if (specificRoomId != null) {
       roomRef = db.collection('rooms').doc(specificRoomId);
-      var snap = await roomRef.get();
-      if (snap.exists) {
-        await roomRef.delete();
-      }
+      await _clearRoom(roomRef);
     } else {
       roomRef = db.collection('rooms').doc();
     }
+
+    roomId = roomRef.id;
 
     print('Create PeerConnection with configuration: $configuration');
 
@@ -83,7 +136,6 @@ class Signaling {
     Map<String, dynamic> roomWithOffer = {'offer': offer.toMap()};
 
     await roomRef.set(roomWithOffer);
-    roomId = roomRef.id;
     print('New room created with SDK offer. Room ID: $roomId');
     currentRoomText = 'Current room is $roomId - You are the caller!';
 
@@ -114,6 +166,7 @@ class Signaling {
         print("Someone tried to connect");
         await peerConnection?.setRemoteDescription(answer);
         _hasRemoteDescription = true;
+        await _flushPendingRemoteCandidates();
       }
     });
 
@@ -124,13 +177,7 @@ class Signaling {
           final data = change.doc.data();
           if (data != null) {
             print('Got new remote ICE candidate: ${jsonEncode(data)}');
-            peerConnection!.addCandidate(
-              RTCIceCandidate(
-                data['candidate'],
-                data['sdpMid'],
-                data['sdpMLineIndex'],
-              ),
-            );
+            _enqueueOrAddRemoteCandidate(data);
           }
         }
       }
@@ -143,6 +190,9 @@ class Signaling {
     FirebaseFirestore db = FirebaseFirestore.instance;
     print("Joining room: $roomId");
     DocumentReference roomRef = db.collection('rooms').doc(roomId);
+    this.roomId = roomId;
+    _hasRemoteDescription = false;
+    _pendingRemoteCandidates.clear();
 
     // Wait until the room actually has an offer, in case we joined slightly before caller created it
     _roomSub = roomRef.snapshots().listen((snapshot) async {
@@ -186,6 +236,7 @@ class Signaling {
       await peerConnection?.setRemoteDescription(
         RTCSessionDescription(offer['sdp'], offer['type']),
       );
+      _hasRemoteDescription = true;
       var answer = await peerConnection!.createAnswer();
       print('Created Answer $answer');
 
@@ -204,17 +255,13 @@ class Signaling {
             final docData = document.doc.data();
             if (docData != null) {
               print('Got new remote ICE candidate: $docData');
-              peerConnection!.addCandidate(
-                RTCIceCandidate(
-                  docData['candidate'],
-                  docData['sdpMid'],
-                  docData['sdpMLineIndex'],
-                ),
-              );
+              _enqueueOrAddRemoteCandidate(docData);
             }
           }
         }
       });
+
+      await _flushPendingRemoteCandidates();
     });
   }
 
@@ -283,6 +330,9 @@ class Signaling {
     remoteStream?.dispose();
     peerConnection?.dispose();
     peerConnection = null;
+    roomId = null;
+    _hasRemoteDescription = false;
+    _pendingRemoteCandidates.clear();
   }
 
   void registerPeerConnectionListeners() {
