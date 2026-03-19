@@ -7,6 +7,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:skillswap/MainPage/admin/report_dialog.dart';
+import 'package:skillswap/webrtc/video_call_screen.dart' as importWebrtc;
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
@@ -621,7 +622,7 @@ class _ChatPageState extends State<ChatPage> {
                             ],
                           ),
                         ),
-                        if (widget.mode != 'support') ...[
+                        if (widget.mode != 'support' && widget.mode != 'support_admin' && widget.mode != 'admin_view') ...[
                           IconButton(
                             icon: const Icon(Icons.warning_amber_rounded,
                                 color: Colors.red),
@@ -736,23 +737,38 @@ class _ChatPageState extends State<ChatPage> {
                                             ),
                                             const SizedBox(height: 8),
                                             ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.push(
+                                              onPressed: () async {
+                                                // 1. Join Video Call
+                                                final callDone = await Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
                                                     builder: (_) =>
-                                                        ReviewDialog(
-                                                      teacherName: userName,
-                                                      chatId: widget.chatId,
-                                                      otherUserId:
-                                                          widget.otherUserId,
-                                                      selectedSkills: [
-                                                        widget.selectedSkills
-                                                            .join(", ")
-                                                      ],
-                                                    ),
+                                                      importWebrtc.VideoCallScreen(
+                                                        specificRoomId: widget.chatId,
+                                                        isCaller: widget.mode == 'teacher', // Teacher initiates the ICE offer
+                                                      ),
                                                   ),
                                                 );
+
+                                                // 2. Show Review if call finished
+                                                if (callDone == true) {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          ReviewDialog(
+                                                        teacherName: userName,
+                                                        chatId: widget.chatId,
+                                                        otherUserId:
+                                                            widget.otherUserId,
+                                                        selectedSkills: [
+                                                          widget.selectedSkills
+                                                              .join(", ")
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
