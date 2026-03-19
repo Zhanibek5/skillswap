@@ -53,6 +53,11 @@ class _ChatPageState extends State<ChatPage> {
   bool amITeacher = false;
   bool chatLoaded = false;
 
+  bool get shouldInitiateVideoCall {
+    if (amITeacher) return true;
+    return widget.mode == 'teach' || widget.mode == 'teacher';
+  }
+
   Future<void> loadChatInfo() async {
     final chatDoc = await FirebaseFirestore.instance
         .collection('chats')
@@ -388,7 +393,9 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> checkAndSendInitialMessage() async {
-    if (widget.mode == 'support' || widget.mode == 'admin_view' || widget.mode == 'support_admin') return;
+    if (widget.mode == 'support' ||
+        widget.mode == 'admin_view' ||
+        widget.mode == 'support_admin') return;
 
     final messages = await FirebaseFirestore.instance
         .collection('chats')
@@ -559,10 +566,15 @@ class _ChatPageState extends State<ChatPage> {
 
               final userData =
                   userSnapshot.data!.data() as Map<String, dynamic>? ?? {};
-              
-              bool isSupportAgent = widget.mode == 'support' && userData['role'] == 'admin';
-              final userName = isSupportAgent ? 'Support' : (userData['firstName'] ?? 'No Name');
-              final photoUrl = isSupportAgent ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png' : (userData['photoUrl'] ?? '');
+
+              bool isSupportAgent =
+                  widget.mode == 'support' && userData['role'] == 'admin';
+              final userName = isSupportAgent
+                  ? 'Support'
+                  : (userData['firstName'] ?? 'No Name');
+              final photoUrl = isSupportAgent
+                  ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png'
+                  : (userData['photoUrl'] ?? '');
 
               return Column(
                 children: [
@@ -622,12 +634,16 @@ class _ChatPageState extends State<ChatPage> {
                             ],
                           ),
                         ),
-                        if (widget.mode != 'support' && widget.mode != 'support_admin' && widget.mode != 'admin_view') ...[
+                        if (widget.mode != 'support' &&
+                            widget.mode != 'support_admin' &&
+                            widget.mode != 'admin_view') ...[
                           IconButton(
                             icon: const Icon(Icons.warning_amber_rounded,
                                 color: Colors.red),
                             onPressed: () {
-                              ReportDialog.show(context, widget.otherUserId, 'chat', targetId: widget.chatId);
+                              ReportDialog.show(
+                                  context, widget.otherUserId, 'chat',
+                                  targetId: widget.chatId);
                             },
                           ),
                           IconButton(
@@ -739,14 +755,17 @@ class _ChatPageState extends State<ChatPage> {
                                             ElevatedButton(
                                               onPressed: () async {
                                                 // 1. Join Video Call
-                                                final callDone = await Navigator.push(
+                                                final callDone =
+                                                    await Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (_) =>
-                                                      importWebrtc.VideoCallScreen(
-                                                        specificRoomId: widget.chatId,
-                                                        isCaller: widget.mode == 'teacher', // Teacher initiates the ICE offer
-                                                      ),
+                                                    builder: (_) => importWebrtc
+                                                        .VideoCallScreen(
+                                                      specificRoomId:
+                                                          widget.chatId,
+                                                      isCaller:
+                                                          shouldInitiateVideoCall,
+                                                    ),
                                                   ),
                                                 );
 
@@ -1001,180 +1020,180 @@ class _ChatPageState extends State<ChatPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 12),
                       color: Colors.transparent,
-                    child: Row(
-                      children: [
-                        // /// Emoji / Attach button
-                        // IconButton(
-                        //   icon: const Icon(Icons.emoji_emotions_outlined,
-                        //       color: Colors.grey),
-                        //   onPressed: () {
-                        //     // Add emoji picker logic here
-                        //   },
-                        // ),
-                        // IconButton(
-                        //   icon: const Icon(Icons.attach_file, color: Colors.grey),
-                        //   onPressed: () {
-                        //     // Add file picker logic here
-                        //   },
-                        // ),
+                      child: Row(
+                        children: [
+                          // /// Emoji / Attach button
+                          // IconButton(
+                          //   icon: const Icon(Icons.emoji_emotions_outlined,
+                          //       color: Colors.grey),
+                          //   onPressed: () {
+                          //     // Add emoji picker logic here
+                          //   },
+                          // ),
+                          // IconButton(
+                          //   icon: const Icon(Icons.attach_file, color: Colors.grey),
+                          //   onPressed: () {
+                          //     // Add file picker logic here
+                          //   },
+                          // ),
 
-                        /// Text input field
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: isRecording
-                                ? ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      minHeight: 25,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
+                          /// Text input field
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              child: isRecording
+                                  ? ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        minHeight: 25,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                            formatRecordingDuration(
-                                                _recordingDuration),
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 16)),
-                                        const Spacer(),
-                                        const Text("< Влево — отмена",
-                                            style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 14)),
-                                      ],
-                                    ),
-                                  )
-                                : ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxHeight:
-                                          120, // max height for multi-line
-                                    ),
-                                    child: Scrollbar(
-                                      child: TextField(
-                                        controller: messageController,
-                                        maxLines: null,
-                                        textCapitalization:
-                                            TextCapitalization.sentences,
-                                        decoration: const InputDecoration(
-                                          hintText: "Message...",
-                                          border: InputBorder.none,
-                                          isCollapsed:
-                                              true, // remove extra padding
+                                          const SizedBox(width: 10),
+                                          Text(
+                                              formatRecordingDuration(
+                                                  _recordingDuration),
+                                              style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 16)),
+                                          const Spacer(),
+                                          const Text("< Влево — отмена",
+                                              style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 14)),
+                                        ],
+                                      ),
+                                    )
+                                  : ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxHeight:
+                                            120, // max height for multi-line
+                                      ),
+                                      child: Scrollbar(
+                                        child: TextField(
+                                          controller: messageController,
+                                          maxLines: null,
+                                          textCapitalization:
+                                              TextCapitalization.sentences,
+                                          decoration: const InputDecoration(
+                                            hintText: "Message...",
+                                            border: InputBorder.none,
+                                            isCollapsed:
+                                                true, // remove extra padding
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(width: 6),
+                          const SizedBox(width: 6),
 
-                        if (isTyping)
-                          Container(
-                            width: 45,
-                            height: 45,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF1E88E5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.send,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {
-                                sendMessage(messageController.text);
-                              },
-                            ),
-                          )
-                        else
-                          GestureDetector(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content:
-                                      Text("Аудио жазу үшін басып тұрыңыз"),
-                                  duration: Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                            onLongPressStart: (details) async {
-                              await requestMicrophonePermission();
-                              isCancelled = false;
-                              await startRecording(); // Алдымен микрофонды іске қосамыз
-                              // Микрофон іске қосылғаннан КЕЙІН ғана вибрация беріп, UI өзгертеміз:
-                              if (!isCancelled) {
-                                HapticFeedback
-                                    .vibrate(); // Телеграм сияқты діріл
-                                setState(() {
-                                  _recordingDuration = Duration.zero;
-                                  isRecording = true;
-                                });
-                              }
-                            },
-                            onLongPressMoveUpdate: (details) async {
-                              if (details.localOffsetFromOrigin.dx < -50) {
-                                if (!isCancelled && isRecording) {
-                                  isCancelled = true;
-                                  await stopRecording();
-                                  setState(() {
-                                    isRecording = false;
-                                  });
-                                }
-                              }
-                            },
-                            onLongPressEnd: (details) async {
-                              if (!isCancelled && isRecording) {
-                                int durSecs = _recordingDuration.inSeconds;
-                                String? path = await stopRecording();
-                                setState(() {
-                                  isRecording =
-                                      false; // Мгновенно убираем UI записи
-                                });
-                                if (path != null) {
-                                  // Запускаем фоновую загрузку (без await, чтобы UI не зависал)
-                                  processAndSendAudio(path, durSecs);
-                                }
-                              }
-                            },
-                            onLongPressCancel: () async {
-                              if (isRecording) {
-                                await stopRecording();
-                                setState(() {
-                                  isRecording = false;
-                                  isCancelled = true;
-                                });
-                              }
-                            },
-                            child: Container(
+                          if (isTyping)
+                            Container(
                               width: 45,
                               height: 45,
                               decoration: const BoxDecoration(
                                 color: Color(0xFF1E88E5),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.mic,
-                                color: Colors.white,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  sendMessage(messageController.text);
+                                },
+                              ),
+                            )
+                          else
+                            GestureDetector(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text("Аудио жазу үшін басып тұрыңыз"),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              onLongPressStart: (details) async {
+                                await requestMicrophonePermission();
+                                isCancelled = false;
+                                await startRecording(); // Алдымен микрофонды іске қосамыз
+                                // Микрофон іске қосылғаннан КЕЙІН ғана вибрация беріп, UI өзгертеміз:
+                                if (!isCancelled) {
+                                  HapticFeedback
+                                      .vibrate(); // Телеграм сияқты діріл
+                                  setState(() {
+                                    _recordingDuration = Duration.zero;
+                                    isRecording = true;
+                                  });
+                                }
+                              },
+                              onLongPressMoveUpdate: (details) async {
+                                if (details.localOffsetFromOrigin.dx < -50) {
+                                  if (!isCancelled && isRecording) {
+                                    isCancelled = true;
+                                    await stopRecording();
+                                    setState(() {
+                                      isRecording = false;
+                                    });
+                                  }
+                                }
+                              },
+                              onLongPressEnd: (details) async {
+                                if (!isCancelled && isRecording) {
+                                  int durSecs = _recordingDuration.inSeconds;
+                                  String? path = await stopRecording();
+                                  setState(() {
+                                    isRecording =
+                                        false; // Мгновенно убираем UI записи
+                                  });
+                                  if (path != null) {
+                                    // Запускаем фоновую загрузку (без await, чтобы UI не зависал)
+                                    processAndSendAudio(path, durSecs);
+                                  }
+                                }
+                              },
+                              onLongPressCancel: () async {
+                                if (isRecording) {
+                                  await stopRecording();
+                                  setState(() {
+                                    isRecording = false;
+                                    isCancelled = true;
+                                  });
+                                }
+                              },
+                              child: Container(
+                                width: 45,
+                                height: 45,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1E88E5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.mic,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  )
+                        ],
+                      ),
+                    )
                 ],
               );
             },

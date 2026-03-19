@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -35,17 +35,18 @@ class Signaling {
   String? roomId;
   String? currentRoomText;
   StreamStateCallback? onAddRemoteStream;
-  
+
   // Track this locally to avoid await calls in listeners
   bool _hasRemoteDescription = false;
   StreamSubscription? _roomSub;
   StreamSubscription? _callerCandidateSub;
   StreamSubscription? _calleeCandidateSub;
 
-  Future<String> createRoom(RTCVideoRenderer remoteRenderer, {String? specificRoomId}) async {
+  Future<String> createRoom(RTCVideoRenderer remoteRenderer,
+      {String? specificRoomId}) async {
     FirebaseFirestore db = FirebaseFirestore.instance;
     DocumentReference roomRef;
-    
+
     _hasRemoteDescription = false;
 
     if (specificRoomId != null) {
@@ -87,11 +88,16 @@ class Signaling {
     currentRoomText = 'Current room is $roomId - You are the caller!';
 
     peerConnection?.onTrack = (RTCTrackEvent event) {
+      if (event.streams.isEmpty) return;
+
       print('Got remote track: ${event.streams[0]}');
       event.streams[0].getTracks().forEach((track) {
         print('Add a track to the remoteStream $track');
         remoteStream?.addTrack(track);
       });
+      if (remoteStream != null) {
+        onAddRemoteStream?.call(remoteStream!);
+      }
     };
 
     _roomSub = roomRef.snapshots().listen((snapshot) async {
@@ -111,10 +117,11 @@ class Signaling {
       }
     });
 
-    _calleeCandidateSub = roomRef.collection('calleeCandidates').snapshots().listen((snapshot) {
+    _calleeCandidateSub =
+        roomRef.collection('calleeCandidates').snapshots().listen((snapshot) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
-          var data = change.doc.data() as Map<String, dynamic>?;
+          final data = change.doc.data();
           if (data != null) {
             print('Got new remote ICE candidate: ${jsonEncode(data)}');
             peerConnection!.addCandidate(
@@ -140,14 +147,15 @@ class Signaling {
     // Wait until the room actually has an offer, in case we joined slightly before caller created it
     _roomSub = roomRef.snapshots().listen((snapshot) async {
       if (!snapshot.exists) return;
-      
+
       var data = snapshot.data() as Map<String, dynamic>?;
       if (data == null || data['offer'] == null) return;
-      
+
       // Only initialize connection once
       if (peerConnection != null) return;
-      
-      print('Create PeerConnection for join with configuration: $configuration');
+
+      print(
+          'Create PeerConnection for join with configuration: $configuration');
       peerConnection = await createPeerConnection(configuration);
       registerPeerConnectionListeners();
 
@@ -157,20 +165,21 @@ class Signaling {
 
       var calleeCandidatesCollection = roomRef.collection('calleeCandidates');
       peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
-        if (candidate == null) {
-          print('onIceCandidate: complete!');
-          return;
-        }
         print('onIceCandidate: ${candidate.toMap()}');
         calleeCandidatesCollection.add(candidate.toMap());
       };
 
       peerConnection?.onTrack = (RTCTrackEvent event) {
+        if (event.streams.isEmpty) return;
+
         print('Got remote track: ${event.streams[0]}');
         event.streams[0].getTracks().forEach((track) {
           print('Add a track to the remoteStream: $track');
           remoteStream?.addTrack(track);
         });
+        if (remoteStream != null) {
+          onAddRemoteStream?.call(remoteStream!);
+        }
       };
 
       var offer = data['offer'];
@@ -188,10 +197,11 @@ class Signaling {
 
       await roomRef.update(roomWithAnswer);
 
-      _callerCandidateSub = roomRef.collection('callerCandidates').snapshots().listen((snapshot) {
+      _callerCandidateSub =
+          roomRef.collection('callerCandidates').snapshots().listen((snapshot) {
         for (var document in snapshot.docChanges) {
           if (document.type == DocumentChangeType.added) {
-            var docData = document.doc.data() as Map<String, dynamic>?;
+            final docData = document.doc.data();
             if (docData != null) {
               print('Got new remote ICE candidate: $docData');
               peerConnection!.addCandidate(
@@ -212,20 +222,19 @@ class Signaling {
     RTCVideoRenderer localVideo,
     RTCVideoRenderer remoteVideo,
   ) async {
-    var stream = await navigator.mediaDevices.getUserMedia({
-      'video': true,
-      'audio': true
-    });
+    var stream = await navigator.mediaDevices
+        .getUserMedia({'video': true, 'audio': true});
 
     localVideo.srcObject = stream;
     localStream = stream;
 
-    remoteVideo.srcObject = await createLocalMediaStream('key');
+    remoteStream = await createLocalMediaStream('key');
+    remoteVideo.srcObject = remoteStream;
   }
 
   Future<void> hangUp(RTCVideoRenderer localVideo) async {
     await stopScreenShare(localVideo);
-    
+
     _roomSub?.cancel();
     _callerCandidateSub?.cancel();
     _calleeCandidateSub?.cancel();
@@ -238,11 +247,11 @@ class Signaling {
     }
 
     if (remoteStream != null) {
-      for (var track in remoteStream!.getTracks()) { 
-        track.stop(); 
+      for (var track in remoteStream!.getTracks()) {
+        track.stop();
       }
     }
-    
+
     if (peerConnection != null) {
       peerConnection!.close();
     }
@@ -250,13 +259,19 @@ class Signaling {
     if (roomId != null) {
       var db = FirebaseFirestore.instance;
       var roomRef = db.collection('rooms').doc(roomId);
-      
-      try {
-        var calleeCandidates = await roomRef.collection('calleeCandidates').get();
-        for (var document in calleeCandidates.docs) { document.reference.delete(); }
 
-        var callerCandidates = await roomRef.collection('callerCandidates').get();
-        for (var document in callerCandidates.docs) { document.reference.delete(); }
+      try {
+        var calleeCandidates =
+            await roomRef.collection('calleeCandidates').get();
+        for (var document in calleeCandidates.docs) {
+          document.reference.delete();
+        }
+
+        var callerCandidates =
+            await roomRef.collection('callerCandidates').get();
+        for (var document in callerCandidates.docs) {
+          document.reference.delete();
+        }
 
         await roomRef.delete();
       } catch (e) {
@@ -322,11 +337,13 @@ class Signaling {
           'video': true,
         };
 
-        displayStream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
+        displayStream =
+            await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
         var displayTrack = displayStream!.getVideoTracks()[0];
 
         var senders = await peerConnection!.getSenders();
-        var videoSender = senders.firstWhere((sender) => sender.track?.kind == 'video');
+        var videoSender =
+            senders.firstWhere((sender) => sender.track?.kind == 'video');
         await videoSender.replaceTrack(displayTrack);
 
         localVideo.srcObject = displayStream;
@@ -347,11 +364,14 @@ class Signaling {
     if (!isScreenSharing) return;
 
     if (localStream != null && peerConnection != null) {
-      var cameraTrack = localStream!.getVideoTracks().isNotEmpty ? localStream!.getVideoTracks()[0] : null;
+      var cameraTrack = localStream!.getVideoTracks().isNotEmpty
+          ? localStream!.getVideoTracks()[0]
+          : null;
       if (cameraTrack != null) {
         var senders = await peerConnection!.getSenders();
         try {
-          var videoSender = senders.firstWhere((sender) => sender.track?.kind == 'video');
+          var videoSender =
+              senders.firstWhere((sender) => sender.track?.kind == 'video');
           await videoSender.replaceTrack(cameraTrack);
         } catch (e) {
           print("Error replacing screen share track back to camera: $e");
