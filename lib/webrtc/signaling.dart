@@ -38,6 +38,7 @@ class Signaling {
   String? roomId;
   String? currentRoomText;
   StreamStateCallback? onAddRemoteStream;
+  void Function(String status)? onConnectionStatusChange;
 
   // Track this locally to avoid await calls in listeners
   bool _hasRemoteDescription = false;
@@ -95,6 +96,32 @@ class Signaling {
     }
   }
 
+  Future<void> _attachLocalStream() async {
+    if (peerConnection == null || localStream == null) return;
+    await peerConnection!.addStream(localStream!);
+  }
+
+  void _handleIncomingRemoteMedia({
+    MediaStream? stream,
+    MediaStreamTrack? track,
+  }) {
+    if (stream != null) {
+      remoteStream = stream;
+      onAddRemoteStream?.call(stream);
+      return;
+    }
+
+    if (track == null || remoteStream == null) return;
+
+    final hasTrack = remoteStream!.getTracks().any(
+          (existingTrack) => existingTrack.id == track.id,
+        );
+    if (!hasTrack) {
+      remoteStream!.addTrack(track);
+    }
+    onAddRemoteStream?.call(remoteStream!);
+  }
+
   Future<String> createRoom(RTCVideoRenderer remoteRenderer,
       {String? specificRoomId}) async {
     FirebaseFirestore db = FirebaseFirestore.instance;
@@ -118,9 +145,7 @@ class Signaling {
 
     registerPeerConnectionListeners();
 
-    localStream?.getTracks().forEach((track) {
-      peerConnection?.addTrack(track, localStream!);
-    });
+    await _attachLocalStream();
 
     var callerCandidatesCollection = roomRef.collection('callerCandidates');
 
@@ -129,7 +154,10 @@ class Signaling {
       callerCandidatesCollection.add(candidate.toMap());
     };
 
-    RTCSessionDescription offer = await peerConnection!.createOffer();
+    RTCSessionDescription offer = await peerConnection!.createOffer({
+      'offerToReceiveAudio': 1,
+      'offerToReceiveVideo': 1,
+    });
     await peerConnection!.setLocalDescription(offer);
     print('Created offer: $offer');
 
@@ -138,19 +166,6 @@ class Signaling {
     await roomRef.set(roomWithOffer);
     print('New room created with SDK offer. Room ID: $roomId');
     currentRoomText = 'Current room is $roomId - You are the caller!';
-
-    peerConnection?.onTrack = (RTCTrackEvent event) {
-      if (event.streams.isEmpty) return;
-
-      print('Got remote track: ${event.streams[0]}');
-      event.streams[0].getTracks().forEach((track) {
-        print('Add a track to the remoteStream $track');
-        remoteStream?.addTrack(track);
-      });
-      if (remoteStream != null) {
-        onAddRemoteStream?.call(remoteStream!);
-      }
-    };
 
     _roomSub = roomRef.snapshots().listen((snapshot) async {
       print('Got updated room: ${snapshot.data()}');
@@ -209,9 +224,7 @@ class Signaling {
       peerConnection = await createPeerConnection(configuration);
       registerPeerConnectionListeners();
 
-      localStream?.getTracks().forEach((track) {
-        peerConnection?.addTrack(track, localStream!);
-      });
+      await _attachLocalStream();
 
       var calleeCandidatesCollection = roomRef.collection('calleeCandidates');
       peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
@@ -219,25 +232,15 @@ class Signaling {
         calleeCandidatesCollection.add(candidate.toMap());
       };
 
-      peerConnection?.onTrack = (RTCTrackEvent event) {
-        if (event.streams.isEmpty) return;
-
-        print('Got remote track: ${event.streams[0]}');
-        event.streams[0].getTracks().forEach((track) {
-          print('Add a track to the remoteStream: $track');
-          remoteStream?.addTrack(track);
-        });
-        if (remoteStream != null) {
-          onAddRemoteStream?.call(remoteStream!);
-        }
-      };
-
       var offer = data['offer'];
       await peerConnection?.setRemoteDescription(
         RTCSessionDescription(offer['sdp'], offer['type']),
       );
       _hasRemoteDescription = true;
-      var answer = await peerConnection!.createAnswer();
+      var answer = await peerConnection!.createAnswer({
+        'offerToReceiveAudio': 1,
+        'offerToReceiveVideo': 1,
+      });
       print('Created Answer $answer');
 
       await peerConnection!.setLocalDescription(answer);
@@ -308,19 +311,7 @@ class Signaling {
       var roomRef = db.collection('rooms').doc(roomId);
 
       try {
-        var calleeCandidates =
-            await roomRef.collection('calleeCandidates').get();
-        for (var document in calleeCandidates.docs) {
-          document.reference.delete();
-        }
-
-        var callerCandidates =
-            await roomRef.collection('callerCandidates').get();
-        for (var document in callerCandidates.docs) {
-          document.reference.delete();
-        }
-
-        await roomRef.delete();
+        await _clearRoom(roomRef);
       } catch (e) {
         print("Could not clean up DB on hangup: ");
       }
@@ -338,20 +329,50 @@ class Signaling {
   void registerPeerConnectionListeners() {
     peerConnection?.onIceGatheringState = (RTCIceGatheringState state) {
       print('ICE gathering state changed: $state');
+      onConnectionStatusChange?.call('ICE: $state');
+    };
+
+    peerConnection?.onIceConnectionState = (RTCIceConnectionState state) {
+      print('ICE connection state changed: $state');
+      onConnectionStatusChange?.call('ICE connection: $state');
     };
 
     peerConnection?.onConnectionState = (RTCPeerConnectionState state) {
       print('Connection state change: $state');
+      onConnectionStatusChange?.call('Connection: $state');
     };
 
     peerConnection?.onSignalingState = (RTCSignalingState state) {
       print('Signaling state change: $state');
+      onConnectionStatusChange?.call('Signaling: $state');
     };
 
     peerConnection?.onAddStream = (MediaStream stream) {
       print("Add remote stream");
-      onAddRemoteStream?.call(stream);
-      remoteStream = stream;
+      _handleIncomingRemoteMedia(stream: stream);
+    };
+
+    peerConnection?.onAddTrack = (
+      MediaStream stream,
+      MediaStreamTrack track,
+    ) {
+      print("Add remote track: ${track.kind}");
+      _handleIncomingRemoteMedia(stream: stream, track: track);
+    };
+
+    peerConnection?.onTrack = (RTCTrackEvent event) {
+      print(
+        'Track event: kind=${event.track.kind}, streams=${event.streams.length}',
+      );
+      if (event.streams.isNotEmpty) {
+        _handleIncomingRemoteMedia(
+          stream: event.streams.first,
+          track: event.track,
+        );
+        return;
+      }
+
+      _handleIncomingRemoteMedia(track: event.track);
     };
   }
 

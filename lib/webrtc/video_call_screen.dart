@@ -28,30 +28,54 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   String? roomId;
   bool callStarted = false;
   bool _isLeaving = false;
+  bool _renderersReady = false;
+  String _connectionStatus = 'Starting...';
 
   @override
   void initState() {
     super.initState();
-    _localRenderer.initialize();
-    _remoteRenderer.initialize();
-
     signaling.onAddRemoteStream = (stream) {
       _remoteRenderer.srcObject = stream;
       if (mounted) {
-        setState(() {});
+        setState(() {
+          _connectionStatus = 'Remote stream received';
+        });
       }
     };
+    signaling.onConnectionStatusChange = (status) {
+      if (mounted) {
+        setState(() {
+          _connectionStatus = status;
+        });
+      }
+    };
+    _initializeRenderers();
+  }
+
+  Future<void> _initializeRenderers() async {
+    await _localRenderer.initialize();
+    await _remoteRenderer.initialize();
+
+    if (!mounted) return;
+    setState(() {
+      _renderersReady = true;
+    });
 
     if (widget.specificRoomId != null) {
       textEditingController.text = widget.specificRoomId!;
-      _autoStartCall();
+      await _autoStartCall();
     }
   }
 
   Future<void> _autoStartCall() async {
+    if (!_renderersReady) return;
+
     await signaling.openUserMedia(_localRenderer, _remoteRenderer);
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _connectionStatus =
+            widget.isCaller ? 'Creating room...' : 'Joining room...';
+      });
     }
 
     if (widget.isCaller) {
@@ -62,6 +86,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (mounted) {
         setState(() {
           callStarted = true;
+          _connectionStatus = 'Waiting for other participant...';
         });
       }
       return;
@@ -72,6 +97,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (mounted) {
       setState(() {
         callStarted = true;
+        _connectionStatus = 'Connected to room, waiting for media...';
       });
     }
   }
@@ -119,12 +145,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         body: Column(
           children: [
             if (widget.specificRoomId == null) ...[
+              if (!_renderersReady)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
                     onPressed: () async {
+                      if (!_renderersReady) return;
                       await signaling.openUserMedia(
                         _localRenderer,
                         _remoteRenderer,
@@ -138,6 +170,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () async {
+                      if (!_renderersReady) return;
                       roomId = await signaling.createRoom(_remoteRenderer);
                       textEditingController.text = roomId!;
                       if (mounted) {
@@ -165,6 +198,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () async {
+                        if (!_renderersReady) return;
                         await signaling.joinRoom(
                           textEditingController.text,
                           _remoteRenderer,
@@ -190,6 +224,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ),
             ],
             const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                _connectionStatus,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ),
+            const SizedBox(height: 8),
             if (widget.specificRoomId == null || callStarted) ...[
               Expanded(
                 child: Row(
