@@ -42,6 +42,8 @@ class Signaling {
 
   // Track this locally to avoid await calls in listeners
   bool _hasRemoteDescription = false;
+  bool _isJoining = false;
+  bool _isApplyingAnswer = false;
   final List<RTCIceCandidate> _pendingRemoteCandidates = [];
   StreamSubscription? _roomSub;
   StreamSubscription? _callerCandidateSub;
@@ -66,10 +68,17 @@ class Signaling {
 
   Future<void> _enqueueOrAddRemoteCandidate(Map<String, dynamic> data) async {
     try {
+      final sdpMLineIndex = data['sdpMLineIndex'];
+      final parsedIndex = sdpMLineIndex is int
+          ? sdpMLineIndex
+          : (sdpMLineIndex != null
+              ? int.tryParse(sdpMLineIndex.toString())
+              : null);
+
       final candidate = RTCIceCandidate(
-        data['candidate'],
-        data['sdpMid'],
-        data['sdpMLineIndex'],
+        data['candidate']?.toString(),
+        data['sdpMid']?.toString(),
+        parsedIndex,
       );
 
       if (peerConnection == null || !_hasRemoteDescription) {
@@ -138,6 +147,8 @@ class Signaling {
     DocumentReference roomRef;
 
     _hasRemoteDescription = false;
+    _isJoining = false;
+    _isApplyingAnswer = false;
     _pendingRemoteCandidates.clear();
 
     if (specificRoomId != null) {
@@ -188,7 +199,10 @@ class Signaling {
 
         if (!snapshot.exists) return;
         var data = snapshot.data() as Map<String, dynamic>;
-        if (!_hasRemoteDescription && data['answer'] != null) {
+        if (!_hasRemoteDescription &&
+            data['answer'] != null &&
+            !_isApplyingAnswer) {
+          _isApplyingAnswer = true;
           var answer = RTCSessionDescription(
             data['answer']['sdp'],
             data['answer']['type'],
@@ -232,6 +246,8 @@ class Signaling {
     DocumentReference roomRef = db.collection('rooms').doc(roomId);
     this.roomId = roomId;
     _hasRemoteDescription = false;
+    _isJoining = false;
+    _isApplyingAnswer = false;
     _pendingRemoteCandidates.clear();
 
     // Wait until the room actually has an offer, in case we joined slightly before caller created it
@@ -243,7 +259,8 @@ class Signaling {
         if (data == null || data['offer'] == null) return;
 
         // Only initialize connection once
-        if (peerConnection != null) return;
+        if (peerConnection != null || _isJoining) return;
+        _isJoining = true;
 
         print(
             'Create PeerConnection for join with configuration: $configuration');
@@ -365,6 +382,8 @@ class Signaling {
     peerConnection = null;
     roomId = null;
     _hasRemoteDescription = false;
+    _isJoining = false;
+    _isApplyingAnswer = false;
     _pendingRemoteCandidates.clear();
   }
 
