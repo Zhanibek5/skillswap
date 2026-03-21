@@ -44,13 +44,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     },
   ];
 
-  void _nextPage() {
+  void _nextPage() async {
     if (_currentPage < _pages.length - 1) {
       _controller.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
     } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isFirstLaunch', false);
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -105,6 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // Persist selection
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('selected_language', locale.languageCode);
+        if (!mounted) return;
         Navigator.of(context).pop();
         setState(() {
           _selectedLanguage = label;

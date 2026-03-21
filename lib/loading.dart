@@ -34,6 +34,7 @@ class _ScreenState extends State<Screen> with SingleTickerProviderStateMixin {
     );
 
     Timer(const Duration(seconds: 5), () {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => SkillMainPage(),
