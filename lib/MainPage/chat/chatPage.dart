@@ -11,7 +11,14 @@ import 'package:skillswap/webrtc/video_call_screen.dart' as importWebrtc;
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 import 'package:skillswap/MainPage/reviews/review_dialog.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:swipe_to/swipe_to.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' as foundation;
 
 class ChatPage extends StatefulWidget {
   final String chatId;
@@ -52,6 +59,10 @@ class _ChatPageState extends State<ChatPage> {
   bool amILearner = false;
   bool amITeacher = false;
   bool chatLoaded = false;
+  bool isEmojiVisible = false;
+  Map<String, dynamic>? replyToMessage;
+  String? editMessageId;
+  final FocusNode focusNode = FocusNode();
 
   bool get shouldInitiateVideoCall {
     if (amITeacher) return true;
@@ -397,6 +408,16 @@ class _ChatPageState extends State<ChatPage> {
         widget.mode == 'admin_view' ||
         widget.mode == 'support_admin') return;
 
+    final chatDoc = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .get();
+        
+    final chatData = chatDoc.data();
+    if (chatData != null && chatData['initialMessageSent'] == true) {
+      return;
+    }
+
     final messages = await FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.chatId)
@@ -410,23 +431,55 @@ class _ChatPageState extends State<ChatPage> {
           : 'Сәлеметсіз бе! Мен сізге ${widget.selectedSkills.join(", ")} үйреткім келеді.';
 
       await sendMessage(text);
+      
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .update({'initialMessageSent': true});
     }
   }
 
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .collection('messages')
-        .add({
+    if (editMessageId != null) {
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .collection('messages')
+          .doc(editMessageId)
+          .update({
+        'text': text,
+        'isEdited': true,
+      });
+      setState(() {
+        editMessageId = null;
+        replyToMessage = null;
+      });
+      messageController.clear();
+      return;
+    }
+
+    final messageData = {
       'senderId': currentUserId,
       'text': text,
       'type': 'text',
       'timestamp': FieldValue.serverTimestamp(),
       'readBy': [currentUserId],
-    });
+    };
+
+    if (replyToMessage != null) {
+      messageData['replyTo'] = {
+        'text': replyToMessage!['text'] ?? 'Attachment',
+        'senderId': replyToMessage!['senderId'],
+      };
+    }
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .add(messageData);
 
     await FirebaseFirestore.instance
         .collection('chats')
@@ -437,7 +490,375 @@ class _ChatPageState extends State<ChatPage> {
       'lastType': 'text',
     });
 
+    setState(() {
+      replyToMessage = null;
+    });
     messageController.clear();
+  }
+
+  Future<void> clearChat(bool forEveryone) async {
+    final messages = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .get();
+        
+    for (var doc in messages.docs) {
+      if (forEveryone) {
+        await doc.reference.delete();
+      } else {
+        await doc.reference.update({
+          'deletedFor': FieldValue.arrayUnion([currentUserId])
+        });
+      }
+    }
+  }
+
+  Future<void> sendAttachment(String fileType, File file, String caption, {String? originalFileName, int? fileSize}) async {
+    originalFileName ??= file.path.split('/').last;
+    fileSize ??= file.lengthSync();
+
+    final docRef = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .add({
+      'senderId': currentUserId,
+      'text': 'uploading', 
+      'localPath': file.path, 
+      'type': fileType,
+      'timestamp': FieldValue.serverTimestamp(),
+      'readBy': [currentUserId],
+      'isUploading': true,
+      'caption': caption,
+      'fileName': originalFileName,
+      'fileSize': fileSize,
+    });
+
+    String fileNameStr = "${DateTime.now().millisecondsSinceEpoch}_${originalFileName}";
+    Reference ref = FirebaseStorage.instance.ref().child("chats/${widget.chatId}/$fileNameStr");
+    await ref.putFile(file);
+    String url = await ref.getDownloadURL();
+
+    await docRef.update({
+      'text': url,
+      'isUploading': false,
+    });
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .update({
+      'lastMessage': caption.isNotEmpty ? caption : (fileType == 'image' ? '📷 Изображение' : '📁 Файл'),
+      'lastTimestamp': FieldValue.serverTimestamp(),
+      'lastType': fileType,
+    });
+  }
+
+  Future<void> _showMultiMediaPreview(List<File> files, String fileType) async {
+    if (files.isEmpty) return;
+    final TextEditingController captionController = TextEditingController();
+    bool sent = false;
+
+    await showDialog(
+      context: context,
+      useSafeArea: false,
+      barrierColor: Colors.black,
+      builder: (context) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                    Text(fileType == 'image' ? 'Выбрано: ${files.length}' : 'Выбран 1 файл', style: const TextStyle(color: Colors.white, fontSize: 18)),
+                  ]
+                ),
+                Expanded(
+                  child: Center(
+                    child: fileType == 'image' 
+                      ? (files.length == 1 
+                          ? Image.file(files.first)
+                          : GridView.builder(
+                              padding: const EdgeInsets.all(8),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2, 
+                                crossAxisSpacing: 8, 
+                                mainAxisSpacing: 8
+                              ),
+                              itemCount: files.length,
+                              itemBuilder: (_, i) => Image.file(files[i], fit: BoxFit.cover),
+                            )
+                        )
+                      : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.insert_drive_file, color: Colors.blueAccent, size: 80),
+                          const SizedBox(height: 20),
+                          Text(files.first.path.split('/').last, style: const TextStyle(color: Colors.white, fontSize: 18), textAlign: TextAlign.center),
+                          Text("${(files.first.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                        ],
+                      ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  color: Colors.black,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: captionController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: "Добавить подпись...",
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                          ),
+                        )
+                      ),
+                      IconButton(
+                        icon: const CircleAvatar(
+                          backgroundColor: Colors.blueAccent,
+                          child: Icon(Icons.send, color: Colors.white, size: 20),
+                        ),
+                        onPressed: () {
+                          sent = true;
+                          Navigator.pop(context);
+                        }
+                      )
+                    ]
+                  )
+                )
+              ]
+            )
+          )
+        );
+      }
+    );
+
+    if (sent) {
+      if (files.length == 1) {
+        sendAttachment(fileType, files.first, captionController.text);
+      } else {
+        for (int i = 0; i < files.length; i++) {
+          final isLast = i == files.length - 1;
+          sendAttachment(fileType, files[i], isLast ? captionController.text : '');
+        }
+      }
+    }
+  }
+
+  void _showContextMenuForAlbum(List<DocumentSnapshot> aDocs, Map<String, dynamic> data, bool isMe) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.reply),
+                title: const Text('Ответить'),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    replyToMessage = {
+                      'text': '📷 Альбом',
+                      'senderId': data['senderId'],
+                    };
+                  });
+                  focusNode.requestFocus();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Удалить', style: TextStyle(color: Colors.red)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  for (var doc in aDocs) {
+                    await doc.reference.delete();
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  void _showContextMenu(String messageId, Map<String, dynamic> data, bool isMe) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.reply),
+                title: const Text('Ответить'),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    replyToMessage = {
+                      'text': data['text'],
+                      'senderId': data['senderId'],
+                    };
+                  });
+                  focusNode.requestFocus();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy),
+                title: const Text('Копировать'),
+                onTap: () {
+                  Navigator.pop(context);
+                  foundation.defaultTargetPlatform == foundation.TargetPlatform.iOS || foundation.defaultTargetPlatform == foundation.TargetPlatform.android 
+                    ? Clipboard.setData(ClipboardData(text: data['text'] ?? '')) 
+                    : null;
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Скопировано')));
+                },
+              ),
+              if (isMe && data['type'] == 'text')
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Изменить'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      editMessageId = messageId;
+                      messageController.text = data['text'];
+                    });
+                    focusNode.requestFocus();
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Удалить', style: TextStyle(color: Colors.red)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  // Optional: if isMe, "delete for everyone?" 
+                  // But as a simple implementation:
+                  await FirebaseFirestore.instance
+                      .collection('chats')
+                      .doc(widget.chatId)
+                      .collection('messages')
+                      .doc(messageId)
+                      .delete();
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  void _showAttachmentsMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+               _buildAttachOption(Icons.image, Colors.purple, "Gallery", () async {
+                  Navigator.pop(context);
+                  final picked = await ImagePicker().pickMultiImage();
+                  if (picked.isNotEmpty) {
+                    _showMultiMediaPreview(picked.map((e) => File(e.path)).toList(), 'image');
+                  }
+               }),
+               _buildAttachOption(Icons.camera_alt, Colors.pink, "Camera", () async {
+                  Navigator.pop(context);
+                  final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+                  if (picked != null) _showMultiMediaPreview([File(picked.path)], 'image');
+               }),
+               _buildAttachOption(Icons.insert_drive_file, Colors.orange, "File", () async {
+                  Navigator.pop(context);
+                  final picked = await FilePicker.platform.pickFiles();
+                  if (picked != null && picked.files.single.path != null) {
+                    _showMultiMediaPreview([File(picked.files.single.path!)], 'file');
+                  }
+               }),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  Widget _buildAttachOption(IconData icon, Color color, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(radius: 30, backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color, size: 28)),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageItem(Map<String, dynamic> data) {
+    final isUploading = data['isUploading'] == true;
+    final fileExists = data['localPath'] != null && File(data['localPath']).existsSync();
+
+    Widget imageWidget;
+    if (isUploading) {
+      imageWidget = Stack(
+        fit: StackFit.expand,
+        children: [
+          if (fileExists)
+            Image.file(File(data['localPath']), fit: BoxFit.cover)
+          else
+            Container(color: Colors.grey[300]),
+          ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+              child: Container(color: Colors.black.withOpacity(0.2)),
+            ),
+          ),
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
+        ],
+      );
+    } else {
+      imageWidget = Image.network(
+        data['text'],
+        fit: BoxFit.cover,
+        errorBuilder: (context, err, stack) => Container(
+          color: Colors.grey[300],
+          child: const Icon(Icons.broken_image, color: Colors.grey),
+        ),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(color: Colors.grey[300]),
+              const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+            ]
+          );
+        }
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (!isUploading) launchUrl(Uri.parse(data['text']));
+      },
+      child: imageWidget,
+    );
   }
 
   Future<void> processAndSendAudio(String filePath, int durationSecs) async {
@@ -653,6 +1074,23 @@ class _ChatPageState extends State<ChatPage> {
                               _openMeetingScheduler();
                             },
                           ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.black),
+                            onSelected: (value) {
+                              if (value == 'clear_me') clearChat(false);
+                              if (value == 'clear_all') clearChat(true);
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'clear_me',
+                                child: Text('Очистить для меня'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'clear_all',
+                                child: Text('Очистить для всех'),
+                              ),
+                            ],
+                          ),
                         ],
                       ],
                     ),
@@ -663,7 +1101,7 @@ class _ChatPageState extends State<ChatPage> {
                           .collection('chats')
                           .doc(widget.chatId)
                           .collection('messages')
-                          .orderBy('timestamp')
+                          .orderBy('timestamp', descending: true)
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
@@ -671,20 +1109,10 @@ class _ChatPageState extends State<ChatPage> {
                               child: CircularProgressIndicator());
                         }
 
-                        final messages = snapshot.data!.docs;
+                        final rawDocs = snapshot.data!.docs;
 
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (_scrollController.hasClients) {
-                            _scrollController.animateTo(
-                              _scrollController.position.maxScrollExtent,
-                              duration: Duration(milliseconds: 300),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        });
-
-                        if (messages.isNotEmpty) {
-                          final lastMsg = messages.last;
+                        if (rawDocs.isNotEmpty) {
+                          final lastMsg = rawDocs.first;
                           final lastData =
                               lastMsg.data() as Map<String, dynamic>;
                           List readBy = lastData['readBy'] ?? [];
@@ -697,13 +1125,140 @@ class _ChatPageState extends State<ChatPage> {
                           }
                         }
 
+                        List<dynamic> uiItems = [];
+                        int i = 0;
+                        while (i < rawDocs.length) {
+                          final doc = rawDocs[i];
+                          final data = doc.data() as Map<String, dynamic>;
+                          final type = data['type'];
+                          
+                          if (type == 'image') {
+                            List<DocumentSnapshot> albumDocs = [doc];
+                            int j = i + 1;
+                            while (j < rawDocs.length) {
+                              final nextDoc = rawDocs[j];
+                              final nextData = nextDoc.data() as Map<String, dynamic>;
+                              if (nextData['type'] == 'image' && nextData['senderId'] == data['senderId']) {
+                                final t1 = (doc['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+                                final t2 = (nextDoc['timestamp'] as Timestamp?)?.toDate() ?? t1;
+                                if (t1.difference(t2).inMinutes.abs() <= 15) {
+                                  albumDocs.add(nextDoc);
+                                  j++;
+                                  if (albumDocs.length == 10) break;
+                                } else {
+                                  break;
+                                }
+                              } else {
+                                break;
+                              }
+                            }
+                            if (albumDocs.length > 1) {
+                              uiItems.add({'isAlbum': true, 'docs': albumDocs, 'senderId': data['senderId']});
+                              i = j;
+                              continue;
+                            }
+                          }
+                          
+                          uiItems.add(doc);
+                          i++;
+                        }
+
                         return ListView.builder(
+                          reverse: true,
                           controller: _scrollController,
                           padding: const EdgeInsets.symmetric(vertical: 10),
-                          itemCount: messages.length,
+                          itemCount: uiItems.length,
                           itemBuilder: (context, index) {
-                            final msg = messages[index];
+                            final item = uiItems[index];
+                            final bool isAlbum = item is Map && item['isAlbum'] == true;
+
+                            if (isAlbum) {
+                              final List<DocumentSnapshot> aDocs = item['docs'];
+                              final isMe = item['senderId'] == currentUserId;
+                              final newestData = aDocs.first.data() as Map<String, dynamic>;
+                              String? albumCaption = newestData['caption'];
+
+                              return SwipeTo(
+                                onRightSwipe: (details) {
+                                  setState(() {
+                                    replyToMessage = {
+                                      'text': '📷 Альбом',
+                                      'senderId': newestData['senderId'],
+                                    };
+                                  });
+                                  focusNode.requestFocus();
+                                },
+                                child: GestureDetector(
+                                  onLongPress: () {
+                                    _showContextMenuForAlbum(aDocs, newestData, isMe);
+                                  },
+                                  child: Align(
+                                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                                child: Container(
+                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: isMe ? const Color(0xFF1E88E5) : Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: Radius.circular(isMe ? 16 : 0),
+                                      bottomRight: Radius.circular(isMe ? 0 : 16),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      GridView.builder(
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        shrinkWrap: true,
+                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: aDocs.length == 2 || aDocs.length == 4 ? 2 : 3,
+                                          crossAxisSpacing: 2,
+                                          mainAxisSpacing: 2,
+                                        ),
+                                        itemCount: aDocs.length,
+                                        itemBuilder: (context, idx) {
+                                          final doc = aDocs.reversed.toList()[idx];
+                                          final data = doc.data() as Map<String, dynamic>;
+                                          return ClipRRect(
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: _buildImageItem(data),
+                                          );
+                                        }
+                                      ),
+                                      if (albumCaption != null && albumCaption.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.all(6.0),
+                                          child: Text(
+                                            albumCaption,
+                                            style: TextStyle(
+                                              color: isMe ? Colors.white : Colors.black,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                        ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 6, bottom: 2),
+                                        child: Text(
+                                          formatTime(newestData['timestamp']),
+                                          style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                            final msg = item as DocumentSnapshot;
                             final data = msg.data() as Map<String, dynamic>;
+                            final List deletedFor = data['deletedFor'] ?? [];
+                            if (deletedFor.contains(currentUserId)) return const SizedBox();
+
                             final type = data['type'] ?? 'text';
                             if (type != null &&
                                 type.toString().startsWith('system_')) {
@@ -838,35 +1393,65 @@ class _ChatPageState extends State<ChatPage> {
                             final isMe = data['senderId'] == currentUserId;
                             List readBy = data['readBy'] ?? [];
 
-                            return Align(
-                              alignment: isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width *
-                                            0.75),
-                                margin: const EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 8),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isMe
-                                      ? const Color(0xFF1E88E5)
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(16),
-                                    topRight: const Radius.circular(16),
-                                    bottomLeft: Radius.circular(isMe ? 16 : 0),
-                                    bottomRight: Radius.circular(isMe ? 0 : 16),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    if (type == 'audio' &&
-                                        data['audioUrl'] != null)
+                            return SwipeTo(
+                              onRightSwipe: (details) {
+                                setState(() {
+                                  replyToMessage = {
+                                    'text': data['text'],
+                                    'senderId': data['senderId'],
+                                  };
+                                });
+                                focusNode.requestFocus();
+                              },
+                              child: GestureDetector(
+                                onLongPress: () {
+                                  _showContextMenu(msg.id, data, isMe);
+                                },
+                                child: Align(
+                                  alignment: isMe
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                                0.75),
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 4, horizontal: 8),
+                                    padding: type == 'image' ? const EdgeInsets.all(3) : const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: isMe
+                                          ? const Color(0xFF1E88E5)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: const Radius.circular(16),
+                                        topRight: const Radius.circular(16),
+                                        bottomLeft: Radius.circular(isMe ? 16 : 0),
+                                        bottomRight: Radius.circular(isMe ? 0 : 16),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        if (data.containsKey('replyTo'))
+                                          Container(
+                                            margin: const EdgeInsets.only(bottom: 5),
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(0.1),
+                                              border: const Border(left: BorderSide(color: Colors.white, width: 3)),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              data['replyTo']['text'] ?? '',
+                                              style: TextStyle(fontSize: 12, color: isMe ? Colors.white : Colors.black87),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        if (type == 'audio' &&
+                                            data['audioUrl'] != null)
                                       Builder(builder: (context) {
                                         final int audioDuration =
                                             data['duration'] ?? 0;
@@ -953,6 +1538,104 @@ class _ChatPageState extends State<ChatPage> {
                                           ),
                                         );
                                       })
+                                    else if (type == 'image')
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(14),
+                                            child: SizedBox(
+                                              width: 250,
+                                              height: 250,
+                                              child: _buildImageItem(data),
+                                            ),
+                                          ),
+                                          if (data['caption'] != null && data['caption'].toString().isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 6.0, left: 8.0, right: 8.0),
+                                              child: Text(
+                                                data['caption'],
+                                                style: TextStyle(
+                                                  color: isMe ? Colors.white : Colors.black,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      )
+                                    else if (type == 'file')
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              if (data['isUploading'] != true) {
+                                                launchUrl(Uri.parse(data['text']), mode: LaunchMode.externalApplication);
+                                              }
+                                            },
+                                            child: Container(
+                                              width: 200,
+                                              child: Row(
+                                                children: [
+                                                  Stack(
+                                                    alignment: Alignment.center,
+                                                    children: [
+                                                      CircleAvatar(
+                                                        radius: 24,
+                                                        backgroundColor: 
+                                                            isMe ? Colors.white24 : Colors.blueAccent.withOpacity(0.1),
+                                                      ),
+                                                      if (data['isUploading'] == true)
+                                                        const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                                      if (data['isUploading'] != true)
+                                                        Icon(Icons.insert_drive_file, 
+                                                            color: isMe ? Colors.white : Colors.blueAccent, size: 28),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          data['fileName'] ?? 'Файл',
+                                                          style: TextStyle(
+                                                            color: isMe ? Colors.white : Colors.black,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                        const SizedBox(height: 4),
+                                                        Text(
+                                                          data['fileSize'] != null 
+                                                            ? "${(data['fileSize'] / 1024 / 1024).toStringAsFixed(2)} MB"
+                                                            : '',
+                                                          style: TextStyle(
+                                                            color: isMe ? Colors.white70 : Colors.grey,
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          if (data['caption'] != null && data['caption'].toString().isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 8.0),
+                                              child: Text(
+                                                data['caption'],
+                                                style: TextStyle(
+                                                  color: isMe ? Colors.white : Colors.black,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      )
                                     else
                                       Text(
                                         data['text'] ?? '',
@@ -967,6 +1650,11 @@ class _ChatPageState extends State<ChatPage> {
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
+                                        if (data['isEdited'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.only(right: 4.0),
+                                            child: Text('изменено', style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey)),
+                                          ),
                                         Text(
                                           formatTime(msg['timestamp']),
                                           style: TextStyle(
@@ -1009,57 +1697,95 @@ class _ChatPageState extends State<ChatPage> {
                                   ],
                                 ),
                               ),
-                            );
+                            ),
+                           ),
+                           );
                           },
                         );
                       },
                     ),
                   ),
                   if (widget.mode != 'admin_view')
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      color: Colors.transparent,
-                      child: Row(
-                        children: [
-                          // /// Emoji / Attach button
-                          // IconButton(
-                          //   icon: const Icon(Icons.emoji_emotions_outlined,
-                          //       color: Colors.grey),
-                          //   onPressed: () {
-                          //     // Add emoji picker logic here
-                          //   },
-                          // ),
-                          // IconButton(
-                          //   icon: const Icon(Icons.attach_file, color: Colors.grey),
-                          //   onPressed: () {
-                          //     // Add file picker logic here
-                          //   },
-                          // ),
-
-                          /// Text input field
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: isRecording
-                                  ? ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        minHeight: 25,
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (replyToMessage != null || editMessageId != null)
+                          Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Icon(editMessageId != null ? Icons.edit : Icons.reply, color: Colors.blueAccent),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        editMessageId != null ? "Изменить сообщение" : "В ответ",
+                                        style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 10,
-                                            height: 10,
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
+                                      Text(
+                                        editMessageId != null ? messageController.text : (replyToMessage!['text'] ?? 'Вложение'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: Colors.black54),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () {
+                                    setState(() {
+                                      replyToMessage = null;
+                                      if (editMessageId != null) {
+                                        editMessageId = null;
+                                        messageController.clear();
+                                      }
+                                    });
+                                  },
+                                )
+                              ],
+                            ),
+                          ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          color: Colors.transparent,
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(isEmojiVisible ? Icons.keyboard : Icons.emoji_emotions_outlined, color: Colors.grey),
+                                onPressed: () {
+                                  setState(() {
+                                    isEmojiVisible = !isEmojiVisible;
+                                  });
+                                  if (isEmojiVisible) focusNode.unfocus();
+                                  else focusNode.requestFocus();
+                                },
+                              ),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: isRecording
+                                      ? ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            minHeight: 45,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 10,
+                                                height: 10,
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.red,
+                                                  shape: BoxShape.circle,
+                                                ),
                                           ),
                                           const SizedBox(width: 10),
                                           Text(
@@ -1081,19 +1807,30 @@ class _ChatPageState extends State<ChatPage> {
                                         maxHeight:
                                             120, // max height for multi-line
                                       ),
-                                      child: Scrollbar(
-                                        child: TextField(
-                                          controller: messageController,
-                                          maxLines: null,
-                                          textCapitalization:
-                                              TextCapitalization.sentences,
-                                          decoration: const InputDecoration(
-                                            hintText: "Message...",
-                                            border: InputBorder.none,
-                                            isCollapsed:
-                                                true, // remove extra padding
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Scrollbar(
+                                              child: TextField(
+                                                focusNode: focusNode,
+                                                controller: messageController,
+                                                maxLines: null,
+                                                textCapitalization:
+                                                    TextCapitalization.sentences,
+                                                decoration: const InputDecoration(
+                                                  hintText: "Message...",
+                                                  border: InputBorder.none,
+                                                  isCollapsed:
+                                                      true, // remove extra padding
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          IconButton(
+                                            icon: const Icon(Icons.attach_file, color: Colors.grey),
+                                            onPressed: _showAttachmentsMenu,
+                                          ),
+                                        ],
                                       ),
                                     ),
                             ),
@@ -1193,7 +1930,18 @@ class _ChatPageState extends State<ChatPage> {
                             ),
                         ],
                       ),
-                    )
+                    ),
+                    if (isEmojiVisible)
+                      SizedBox(
+                        height: 250,
+                        child: EmojiPicker(
+                          onEmojiSelected: (category, emoji) {
+                            messageController.text += emoji.emoji;
+                          },
+                        ),
+                      )
+                  ],
+                ),
                 ],
               );
             },

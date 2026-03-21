@@ -114,7 +114,19 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final chats = snapshot.data!.docs;
+                final chats = snapshot.data!.docs.toList();
+                
+                // Sort by lastTimestamp descending
+                chats.sort((a, b) {
+                  final aData = a.data() as Map<String, dynamic>;
+                  final bData = b.data() as Map<String, dynamic>;
+                  final Timestamp? aTime = aData['lastTimestamp'] as Timestamp?;
+                  final Timestamp? bTime = bData['lastTimestamp'] as Timestamp?;
+                  if (aTime == null && bTime == null) return 0;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime);
+                });
 
                 if (chats.isEmpty) {
                   return Center(
