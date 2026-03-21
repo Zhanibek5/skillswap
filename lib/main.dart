@@ -12,25 +12,85 @@ import 'package:skillswap/loginPage/delete_account_page.dart';
 import 'package:skillswap/loginPage/verify_email.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'settings_provider.dart';
 import 'loading.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io';
+import 'package:skillswap/MainPage/chat/chatPage.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print("Background message: ${message.notification?.title}");
+}
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await EasyLocalization.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   String? code = prefs.getString('selected_language');
   Locale startLocale = const Locale('en');
   if (code == 'kk') {
     startLocale = const Locale('kk');
   } else if (code == 'ru') startLocale = const Locale('ru');
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+
+  if (Platform.isAndroid) {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'fcmTokens': FieldValue.arrayUnion([newToken]),
+      }, SetOptions(merge: true));
+    });
+  }
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const DarwinInitializationSettings iosSettings =
+      DarwinInitializationSettings();
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: iosSettings,
   );
 
+  await flutterLocalNotificationsPlugin.initialize(
+    settings: initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse response) async {
+      final payload = response.payload;
+      if (payload != null && payload.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('chatIdFromNotification', payload);
+      }
+    },
+  );
+
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'skillswap_channel',
+    'SkillSwap Notifications',
+    description: 'Meeting notifications',
+    importance: Importance.high,
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  if (Platform.isAndroid) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('en'), Locale('kk'), Locale('ru')],
@@ -54,6 +114,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
@@ -86,19 +147,13 @@ class MyApp extends StatelessWidget {
         'loginPage/verify_email.dart': (_) => const VerifyEmailPage(),
         'secondPage/loading.dart': (_) => const Screen()
       },
-      initialRoute: 'MainPage/skillMain.dart',
+      //initialRoute: 'MainPage/skillMain.dart',
       // initialRoute: 'loginPage/verify_email.dart',
-      // initialRoute: 'firstPage/loadingPage.dart',
+      //initialRoute: 'firstPage/loadingPage.dart',
     );
   }
 }
 
-/// --------------------------------------------------------------
-/// 🔥 AUTH GATE — decides which screen to show:
-/// - Not logged in → LoginPage
-/// - Logged in but NOT verified → EmailVerificationPage
-/// - Logged in and verified → MainPage
-/// --------------------------------------------------------------
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -108,11 +163,98 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   bool _isFirstLaunch = true;
-
+  String? _chatIdFromNotification;
+  String? _otherUserIdFromNotification;
+  List<String>? _selectedSkillsFromNotification;
   @override
   void initState() {
     super.initState();
+
     _checkFirstLaunch();
+    setupNotifications();
+    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    //   final notification = message.notification;
+
+    //   if (notification != null) {
+    //     flutterLocalNotificationsPlugin.show(
+    //       id: 0,
+    //       title: notification.title,
+    //       body: notification.body,
+    //       notificationDetails: const NotificationDetails(
+    //         android: AndroidNotificationDetails(
+    //           'skillswap_channel',
+    //           'SkillSwap Notifications',
+    //           importance: Importance.high,
+    //           priority: Priority.high,
+    //         ),
+    //       ),
+    //       payload: message.data['chatId'], // 🔥 chatId береміз
+    //     );
+    //   }
+    // });
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null && message.data['chatId'] != null) {
+        setState(() {
+          _chatIdFromNotification = message.data['chatId'];
+          _otherUserIdFromNotification = message.data['otherUserId'] ?? '';
+          _selectedSkillsFromNotification =
+              (message.data['selectedSkills'] ?? '').split(',');
+        });
+      }
+    });
+
+    // App фоннан ашылғанда хабарламаны өңдеу
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _handleMessage(message);
+    });
+  }
+
+  void _handleMessage(RemoteMessage message) {
+    final data = message.data;
+    if (data['chatId'] != null) {
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => SkillMainPage(initialIndex: 0),
+        ),
+        (route) => false,
+      );
+
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (_) => ChatPage(
+            chatId: data['chatId'],
+            otherUserId: data['otherUserId'] ?? '',
+            selectedSkills: data['selectedSkills']?.split(",") ?? [],
+            mode: 'chat',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadNotificationChatId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final chatId = prefs.getString('chatIdFromNotification');
+    if (chatId != null && chatId.isNotEmpty) {
+      setState(() {
+        _chatIdFromNotification = chatId;
+      });
+      prefs.remove('chatIdFromNotification');
+    }
+  }
+
+  Future<void> setupNotifications() async {
+    if (Platform.isAndroid) {
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+      await messaging.requestPermission();
+
+      String? token = await messaging.getToken();
+
+      if (token != null) {
+        print("🔥 FCM TOKEN: $token");
+      }
+    }
   }
 
   Future<void> _checkFirstLaunch() async {
@@ -125,24 +267,44 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isFirstLaunch) {
-      return SplashScreen(); // ← Міне, осы жерде 3-5 секундтық анимация көрсетіледі
+    // ... (басқа тексерістер)
+
+    if (_chatIdFromNotification != null &&
+        _chatIdFromNotification!.isNotEmpty) {
+      final chatId = _chatIdFromNotification!;
+      final otherUserId = _otherUserIdFromNotification ?? '';
+      final selectedSkills = _selectedSkillsFromNotification ?? [];
+
+      _chatIdFromNotification = null;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Бұл жерде pushAndRemoveUntil қолданған абзал, стек таза болу үшін
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => SkillMainPage(initialIndex: 0)),
+          (route) => false,
+        );
+
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ChatPage(
+              chatId: chatId,
+              otherUserId: otherUserId,
+              selectedSkills: selectedSkills,
+              mode: 'chat',
+            ),
+          ),
+        );
+      });
+
+      return SkillMainPage(
+          initialIndex: 0); // Негізгі экран астында 0 боп тұрады
     }
 
-    if (_isFirstLaunch) {
-      // Егер алғаш қосылып тұрса → onboarding көрсету
-      return OnboardingScreen(); // Сенікі pageView.dart файлыңдағы
-    }
-
-    // Әйтпесе → Firebase auth бойынша бағыттау
+    // Қалыпты логин болғанда:
     final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const LoginPage();
+    if (!user.emailVerified) return const VerifyEmailPage();
 
-    if (user == null) {
-      return const LoginPage();
-    } else if (!user.emailVerified) {
-      return const VerifyEmailPage();
-    } else {
-      return const Screen();
-    }
+    return SkillMainPage(initialIndex: 1); // Дефолттық бет (Search)
   }
 }

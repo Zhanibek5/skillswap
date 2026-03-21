@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // HapticFeedback үшін
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -49,6 +49,8 @@ class _ChatPageState extends State<ChatPage> {
   bool isCancelled = false;
   bool isTyping = false;
   String playingUrl = '';
+  late String otherUserId;
+  bool isLoading = true;
 
   StreamSubscription? _recordingSubscription;
   Duration _recordingDuration = Duration.zero;
@@ -360,6 +362,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    loadChatData();
     loadChatInfo();
     messageController.addListener(() {
       if (mounted) {
@@ -862,7 +865,6 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> processAndSendAudio(String filePath, int durationSecs) async {
-    // 1. Создаем временный документ (для мгновенного отображения в UI)
     DocumentReference docRef = await FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.chatId)
@@ -962,6 +964,30 @@ class _ChatPageState extends State<ChatPage> {
     return "${dt.day}/${dt.month}/${dt.year}";
   }
 
+  Future<void> loadChatData() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .get();
+
+    final data = doc.data();
+
+    if (data != null && data['participants'] != null) {
+      List participants = data['participants'];
+
+      final currentUser = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+      otherUserId = participants.firstWhere(
+        (id) => id != currentUser,
+        orElse: () => '',
+      );
+    }
+
+    // setState(() {
+    //   isLoading = false;
+    // });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1009,7 +1035,7 @@ class _ChatPageState extends State<ChatPage> {
                           icon:
                               const Icon(Icons.arrow_back, color: Colors.black),
                           onPressed: () {
-                            Navigator.pop(context);
+                            Navigator.pop(context); // ChatsListPage сақталады
                           },
                         ),
                         CircleAvatar(

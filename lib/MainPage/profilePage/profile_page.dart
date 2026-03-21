@@ -93,7 +93,6 @@ class _ProfilePageState extends State<ProfilePage> {
     final snapshot = await doc.get();
 
     if (!snapshot.exists) {
-      // Жаңа user үшін document жасау
       await doc.set({
         'canTeach': true,
         'canLearn': true,
@@ -101,15 +100,22 @@ class _ProfilePageState extends State<ProfilePage> {
         'timeSpent': 0,
         'balance': 2,
         'ratingAverage': 0,
-        'ratingCount': 0
+        'ratingCount': 0,
+        'notificationsEnabled': true, // ✅ default ON
       });
     } else {
-      // Егер өрістер жоқ болса, қосу
       final data = snapshot.data()!;
+
       if (!data.containsKey('canTeach') || !data.containsKey('canLearn')) {
         await doc.update({
           'canTeach': true,
           'canLearn': true,
+        });
+      }
+
+      if (!data.containsKey('notificationsEnabled')) {
+        await doc.update({
+          'notificationsEnabled': true,
         });
       }
     }
@@ -150,7 +156,8 @@ class _ProfilePageState extends State<ProfilePage> {
               final String firstName = data['firstName']?.toString() ?? '';
               final String lastName = data['lastName']?.toString() ?? '';
               final String role = data['role']?.toString() ?? 'user';
-              final String adminTitle = data['adminTitle']?.toString() ?? (role == 'admin' ? 'Main Admin' : 'Moderator');
+              final String adminTitle = data['adminTitle']?.toString() ??
+                  (role == 'admin' ? 'Main Admin' : 'Moderator');
 
               return Stack(
                 fit: StackFit.expand,
@@ -220,20 +227,28 @@ class _ProfilePageState extends State<ProfilePage> {
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                    ),                                      if (role == 'admin' || role == 'moderator') ...[
-                                        SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white24,
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            adminTitle,
-                                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                          ),
+                                    ),
+                                    if (role == 'admin' ||
+                                        role == 'moderator') ...[
+                                      SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white24,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
-                                      ],                                    SizedBox(height: 4),
+                                        child: Text(
+                                          adminTitle,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                    SizedBox(height: 4),
                                   ],
                                 ),
                               ),

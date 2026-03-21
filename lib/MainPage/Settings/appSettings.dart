@@ -14,6 +14,7 @@ import 'package:skillswap/MainPage/admin/users_management_page.dart';
 import 'package:skillswap/MainPage/admin/reports_management_page.dart';
 import 'package:skillswap/MainPage/admin/admin_list_page.dart';
 import 'instructions_page.dart';
+import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -25,6 +26,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final uid = FirebaseAuth.instance.currentUser!.uid;
   String _selectedLanguage = "Қазақша";
+  bool notificationsEnabled = true;
 
   void _showLanguageDialog() async {
     showDialog(
@@ -70,6 +72,19 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       },
     );
+  }
+
+  Future<void> loadNotificationSetting() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    if (doc.exists) {
+      setState(() {
+        notificationsEnabled = doc.data()?['notificationsEnabled'] ?? true;
+      });
+    }
   }
 
   String _getCurrentLanguageLabel(BuildContext context) {
@@ -184,44 +199,44 @@ class _SettingsPageState extends State<SettingsPage> {
                       _card(
                         children: [
                           _item(
-                              Icons.manage_accounts,
-                              'Manage Users',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const UsersManagementPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _divider(),
-                            _item(
-                              Icons.report_problem,
-                              'Manage Reports',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ReportsManagementPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _divider(),
-                            _item(
-                              Icons.admin_panel_settings,
-                              'Other Admins',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const AdminListPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                            Icons.manage_accounts,
+                            'Manage Users',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const UsersManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _divider(),
+                          _item(
+                            Icons.report_problem,
+                            'Manage Reports',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ReportsManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _divider(),
+                          _item(
+                            Icons.admin_panel_settings,
+                            'Other Admins',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AdminListPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -264,6 +279,49 @@ class _SettingsPageState extends State<SettingsPage> {
                           },
                         ),
                         _divider(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 11, vertical: 0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.notifications,
+                                color: Colors.black,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  "Notification",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              Switch(
+                                value: notificationsEnabled,
+                                activeColor: Colors.white,
+                                activeTrackColor: Color(0xFF1E88E5),
+                                inactiveThumbColor: Colors.grey,
+                                inactiveTrackColor: Colors.black54,
+                                onChanged: (value) async {
+                                  setState(() {
+                                    notificationsEnabled = value;
+                                  });
+
+                                  final uid =
+                                      FirebaseAuth.instance.currentUser!.uid;
+
+                                  await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(uid)
+                                      .update({'notificationsEnabled': value});
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        _divider(),
                         _item(
                           Icons.privacy_tip_outlined,
                           'privacy_policy'.tr(),
@@ -302,7 +360,10 @@ class _SettingsPageState extends State<SettingsPage> {
                           'logout'.tr(),
                           danger: true,
                           onTap: () async {
+                            await TokenService().logout();
+
                             await FirebaseAuth.instance.signOut();
+
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(

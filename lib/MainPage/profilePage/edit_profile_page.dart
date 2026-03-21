@@ -604,60 +604,45 @@ class _EditProfilePageState extends State<EditProfilePage> {
 class TokenService {
   static final _firestore = FirebaseFirestore.instance;
 
-  // Қолданушы кіргенде токенді жаңарту
   static Future<void> updateUserToken() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    try {
-      String? token = await FirebaseMessaging.instance.getToken();
-      if (token == null) return;
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null) return;
 
-      final userDoc = _firestore.collection('users').doc(user.uid);
-
-      // Барлық ескі токендерді алып, егер токен өзгерген болса arrayRemove
-      final snapshot = await userDoc.get();
-      if (snapshot.exists) {
-        List oldTokens = snapshot.data()?['fcmTokens'] ?? [];
-        if (!oldTokens.contains(token)) {
-          // Жаңа токенді қосу
-          await userDoc.set({
-            'fcmTokens': FieldValue.arrayUnion([token]),
-            'tokenUpdatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-        }
-      } else {
-        await userDoc.set({
-          'fcmTokens': [token],
-          'tokenUpdatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      print("Error updating FCM token: $e");
-    }
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'tokenUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
-  // 3️⃣ Токен өзгергенде автоматты түрде жаңарту
   static void listenToTokenRefresh() {
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final userDoc = _firestore.collection('users').doc(user.uid);
-      final snapshot = await userDoc.get();
-      if (snapshot.exists) {
-        List oldTokens = snapshot.data()?['fcmTokens'] ?? [];
-        for (var t in oldTokens) {
-          await userDoc.update({
-            'fcmTokens': FieldValue.arrayRemove([t])
-          });
-        }
-      }
-
-      await userDoc.update({
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'fcmTokens': FieldValue.arrayUnion([newToken]),
-        'tokenUpdatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
     });
+  }
+
+  Future<void> logout() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'fcmTokens': FieldValue.arrayRemove([token]),
+      });
+    }
+
+    await FirebaseAuth.instance.signOut();
   }
 }

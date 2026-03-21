@@ -17,14 +17,16 @@ final GlobalKey<_SkillMainPageState> mainPageKey =
     GlobalKey<_SkillMainPageState>();
 
 class SkillMainPage extends StatefulWidget {
-  SkillMainPage({Key? key}) : super(key: mainPageKey);
+  final int initialIndex;
+
+  SkillMainPage({Key? key, this.initialIndex = 1}) : super(key: mainPageKey);
 
   @override
   State<SkillMainPage> createState() => _SkillMainPageState();
 }
 
 class _SkillMainPageState extends State<SkillMainPage> {
-  int _selectedIndex = 1;
+  late int _selectedIndex;
 
   void changeTab(int index) {
     setState(() {
@@ -48,10 +50,20 @@ class _SkillMainPageState extends State<SkillMainPage> {
   @override
   void initState() {
     super.initState();
-
+    _selectedIndex = widget.initialIndex;
     requestNotificationPermission();
     saveFcmToken();
     listenTokenRefresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant SkillMainPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialIndex != oldWidget.initialIndex) {
+      setState(() {
+        _selectedIndex = widget.initialIndex;
+      });
+    }
   }
 
   void listenTokenRefresh() {
@@ -88,26 +100,35 @@ class _SkillMainPageState extends State<SkillMainPage> {
     if (user == null) return const Scaffold();
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           final isBanned = data['isBanned'] ?? false;
-            final banExpiration = data['banExpiration'] as Timestamp?;
-            final banReason = data['banReason'];
-            
-            if (isBanned) {
-              if (banExpiration != null && banExpiration.toDate().isBefore(DateTime.now())) {
-                // Ban expired automatically
-                FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                  'isBanned': false,
-                  'banReason': FieldValue.delete(),
-                  'banExpiration': FieldValue.delete(),
-                });
-              } else {
-                return BannedPage(reason: banReason, expiration: banExpiration?.toDate());
-              }            }
+          final banExpiration = data['banExpiration'] as Timestamp?;
+          final banReason = data['banReason'];
+
+          if (isBanned) {
+            if (banExpiration != null &&
+                banExpiration.toDate().isBefore(DateTime.now())) {
+              // Ban expired automatically
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .update({
+                'isBanned': false,
+                'banReason': FieldValue.delete(),
+                'banExpiration': FieldValue.delete(),
+              });
+            } else {
+              return BannedPage(
+                  reason: banReason, expiration: banExpiration?.toDate());
+            }
           }
+        }
         return Scaffold(
           extendBody: true, // Blur үшін маңызды
           body: Stack(

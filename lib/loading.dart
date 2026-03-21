@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:skillswap/firstPage/pageView.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
 
 class Screen extends StatefulWidget {
@@ -10,18 +12,27 @@ class Screen extends StatefulWidget {
 }
 
 class _ScreenState extends State<Screen> with SingleTickerProviderStateMixin {
-  double _opacity = 0.0;
+  late AnimationController _controller;
+  late Animation<double> _fade;
+  late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
 
-    // Start fade-in effect after a short delay
-    Timer(const Duration(milliseconds: 10), () {
-      setState(() => _opacity = 1.0);
-    });
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    );
 
-    // Navigate to MainPage with fade transition
+    _fade = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _scale = Tween<double>(begin: 0.2, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
     Timer(const Duration(seconds: 5), () {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -32,24 +43,52 @@ class _ScreenState extends State<Screen> with SingleTickerProviderStateMixin {
               child: child,
             );
           },
-          transitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: const Duration(milliseconds: 600),
         ),
       );
     });
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedOpacity(
-        duration: const Duration(seconds: 2),
-        opacity: _opacity,
-        child: SizedBox.expand(
-          child: Image.asset(
-            'assets/IMG_5578.JPG',
-            fit: BoxFit.cover,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/ss.png',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
+          Padding(
+            padding: EdgeInsets.only(bottom: 200),
+            child: Center(
+              child: FadeTransition(
+                opacity: _fade,
+                child: ScaleTransition(
+                  scale: _scale,
+                  child: Text(
+                    'SkillSwap',
+                    style: GoogleFonts.chonburi(
+                      color: Colors.white,
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        ],
       ),
     );
   }
