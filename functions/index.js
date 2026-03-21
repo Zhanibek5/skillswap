@@ -185,11 +185,13 @@ async function sendNotification(chatId, notification, excludeUserId = null) {
 
 		if (userData.notificationsEnabled === false) continue
 
-		if (Array.isArray(userData.fcmTokens)) {
-			for (const token of userData.fcmTokens) {
-				await admin
-					.messaging()
-					.send({
+		if (Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0) {
+			const uniqueTokens = [...new Set(userData.fcmTokens)]
+			const tokensToRemove = []
+
+			for (const token of uniqueTokens) {
+				try {
+					await admin.messaging().send({
 						token: token,
 						notification: {
 							title: notification.title,
@@ -203,13 +205,35 @@ async function sendNotification(chatId, notification, excludeUserId = null) {
 						},
 						android: {
 							priority: 'high',
+							collapseKey: `chat_${chatId}`,
 							notification: {
 								channelId: 'skillswap_channel',
 								sound: 'default',
+								tag: `chat_${chatId}`,
 							},
 						},
+						apns: {
+							headers: {
+								'apns-collapse-id': `chat_${chatId}`
+							}
+						}
 					})
-					.catch(e => console.error('FCM Send Error', e))
+				} catch (e) {
+					console.error('FCM Send Error for token', token, e)
+					if (
+						e.code === 'messaging/invalid-registration-token' ||
+						e.code === 'messaging/registration-token-not-registered'
+					) {
+						tokensToRemove.push(token)
+					}
+				}
+			}
+
+			// Жарамсыз (ескі) токендерді өшіру
+			if (tokensToRemove.length > 0) {
+				await admin.firestore().collection('users').doc(userId).update({
+					fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
+				})
 			}
 		}
 	}
