@@ -67,7 +67,7 @@ class _ChatPageState extends State<ChatPage> {
   final FocusNode focusNode = FocusNode();
 
   bool get shouldInitiateVideoCall {
-    // Ұялы телефондар арасында қателік кетпеуі үшін (біреуі Caller, екіншісі Callee болуы шарт), 
+    // Ұялы телефондар арасында қателік кетпеуі үшін (біреуі Caller, екіншісі Callee болуы шарт),
     // ID-лерді салыстырып, әрқашан біреуі ғана Caller болатындай етіп жасаймыз:
     return currentUserId.compareTo(otherUserId) < 0;
   }
@@ -416,7 +416,7 @@ class _ChatPageState extends State<ChatPage> {
         .collection('chats')
         .doc(widget.chatId)
         .get();
-        
+
     final chatData = chatDoc.data();
     if (chatData != null && chatData['initialMessageSent'] == true) {
       return;
@@ -435,7 +435,7 @@ class _ChatPageState extends State<ChatPage> {
           : 'Сәлеметсіз бе! Мен сізге ${widget.selectedSkills.join(", ")} үйреткім келеді.';
 
       await sendMessage(text);
-      
+
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
@@ -506,7 +506,7 @@ class _ChatPageState extends State<ChatPage> {
         .doc(widget.chatId)
         .collection('messages')
         .get();
-        
+
     for (var doc in messages.docs) {
       if (forEveryone) {
         await doc.reference.delete();
@@ -516,15 +516,19 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     }
-    
+
     // Update the last message text in the chat root document
-    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .update({
       'lastMessage': '',
       'lastType': 'text',
     });
   }
 
-  Future<void> sendAttachment(String fileType, File file, String caption, {String? originalFileName, int? fileSize}) async {
+  Future<void> sendAttachment(String fileType, File file, String caption,
+      {String? originalFileName, int? fileSize}) async {
     originalFileName ??= file.path.split('/').last;
     fileSize ??= file.lengthSync();
 
@@ -534,8 +538,8 @@ class _ChatPageState extends State<ChatPage> {
         .collection('messages')
         .add({
       'senderId': currentUserId,
-      'text': 'uploading', 
-      'localPath': file.path, 
+      'text': 'uploading',
+      'localPath': file.path,
       'type': fileType,
       'timestamp': FieldValue.serverTimestamp(),
       'readBy': [currentUserId],
@@ -545,8 +549,11 @@ class _ChatPageState extends State<ChatPage> {
       'fileSize': fileSize,
     });
 
-    String fileNameStr = "${DateTime.now().millisecondsSinceEpoch}_${originalFileName}";
-    Reference ref = FirebaseStorage.instance.ref().child("chats/${widget.chatId}/$fileNameStr");
+    String fileNameStr =
+        "${DateTime.now().millisecondsSinceEpoch}_${originalFileName}";
+    Reference ref = FirebaseStorage.instance
+        .ref()
+        .child("chats/${widget.chatId}/$fileNameStr");
     await ref.putFile(file);
     String url = await ref.getDownloadURL();
 
@@ -559,7 +566,9 @@ class _ChatPageState extends State<ChatPage> {
         .collection('chats')
         .doc(widget.chatId)
         .update({
-      'lastMessage': caption.isNotEmpty ? caption : (fileType == 'image' ? '📷 Изображение' : '📁 Файл'),
+      'lastMessage': caption.isNotEmpty
+          ? caption
+          : (fileType == 'image' ? '📷 Изображение' : '📁 Файл'),
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': fileType,
     });
@@ -571,83 +580,87 @@ class _ChatPageState extends State<ChatPage> {
     bool sent = false;
 
     await showDialog(
-      context: context,
-      useSafeArea: false,
-      barrierColor: Colors.black,
-      builder: (context) {
-        return Scaffold(
-          backgroundColor: Colors.black,
-          body: SafeArea(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-                    Text(fileType == 'image' ? 'Выбрано: ${files.length}' : 'Выбран 1 файл', style: const TextStyle(color: Colors.white, fontSize: 18)),
-                  ]
-                ),
+        context: context,
+        useSafeArea: false,
+        barrierColor: Colors.black,
+        builder: (context) {
+          return Scaffold(
+              backgroundColor: Colors.black,
+              body: SafeArea(
+                  child: Column(children: [
+                Row(children: [
+                  IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context)),
+                  Text(
+                      fileType == 'image'
+                          ? 'Выбрано: ${files.length}'
+                          : 'Выбран 1 файл',
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 18)),
+                ]),
                 Expanded(
                   child: Center(
-                    child: fileType == 'image' 
-                      ? (files.length == 1 
-                          ? Image.file(files.first)
-                          : GridView.builder(
-                              padding: const EdgeInsets.all(8),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2, 
-                                crossAxisSpacing: 8, 
-                                mainAxisSpacing: 8
-                              ),
-                              itemCount: files.length,
-                              itemBuilder: (_, i) => Image.file(files[i], fit: BoxFit.cover),
-                            )
-                        )
-                      : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.insert_drive_file, color: Colors.blueAccent, size: 80),
-                          const SizedBox(height: 20),
-                          Text(files.first.path.split('/').last, style: const TextStyle(color: Colors.white, fontSize: 18), textAlign: TextAlign.center),
-                          Text("${(files.first.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB", style: const TextStyle(color: Colors.white54, fontSize: 14)),
-                        ],
-                      ),
+                    child: fileType == 'image'
+                        ? (files.length == 1
+                            ? Image.file(files.first)
+                            : GridView.builder(
+                                padding: const EdgeInsets.all(8),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 8,
+                                        mainAxisSpacing: 8),
+                                itemCount: files.length,
+                                itemBuilder: (_, i) =>
+                                    Image.file(files[i], fit: BoxFit.cover),
+                              ))
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.insert_drive_file,
+                                  color: Colors.blueAccent, size: 80),
+                              const SizedBox(height: 20),
+                              Text(files.first.path.split('/').last,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 18),
+                                  textAlign: TextAlign.center),
+                              Text(
+                                  "${(files.first.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB",
+                                  style: const TextStyle(
+                                      color: Colors.white54, fontSize: 14)),
+                            ],
+                          ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  color: Colors.black,
-                  child: Row(
-                    children: [
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    color: Colors.black,
+                    child: Row(children: [
                       Expanded(
-                        child: TextField(
-                          controller: captionController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            hintText: "Добавить подпись...",
-                            hintStyle: TextStyle(color: Colors.white54),
-                            border: InputBorder.none,
-                          ),
-                        )
-                      ),
-                      IconButton(
-                        icon: const CircleAvatar(
-                          backgroundColor: Colors.blueAccent,
-                          child: Icon(Icons.send, color: Colors.white, size: 20),
+                          child: TextField(
+                        controller: captionController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          hintText: "Добавить подпись...",
+                          hintStyle: TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
                         ),
-                        onPressed: () {
-                          sent = true;
-                          Navigator.pop(context);
-                        }
-                      )
-                    ]
-                  )
-                )
-              ]
-            )
-          )
-        );
-      }
-    );
+                      )),
+                      IconButton(
+                          icon: const CircleAvatar(
+                            backgroundColor: Colors.blueAccent,
+                            child:
+                                Icon(Icons.send, color: Colors.white, size: 20),
+                          ),
+                          onPressed: () {
+                            sent = true;
+                            Navigator.pop(context);
+                          })
+                    ]))
+              ])));
+        });
 
     if (sent) {
       if (files.length == 1) {
@@ -655,222 +668,258 @@ class _ChatPageState extends State<ChatPage> {
       } else {
         for (int i = 0; i < files.length; i++) {
           final isLast = i == files.length - 1;
-          sendAttachment(fileType, files[i], isLast ? captionController.text : '');
+          sendAttachment(
+              fileType, files[i], isLast ? captionController.text : '');
         }
       }
     }
   }
 
-  void _showContextMenuForAlbum(List<DocumentSnapshot> aDocs, Map<String, dynamic> data, bool isMe) {
+  void _showContextMenuForAlbum(
+      List<DocumentSnapshot> aDocs, Map<String, dynamic> data, bool isMe) {
     showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.reply),
-                title: const Text('Ответить'),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    replyToMessage = {
-                      'text': '📷 Альбом',
-                      'senderId': data['senderId'],
-                    };
-                  });
-                  focusNode.requestFocus();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Удалить', style: TextStyle(color: Colors.red)),
-                onTap: () async {
-                  Navigator.pop(context);
-                  for (var doc in aDocs) {
-                    await doc.reference.delete();
-                  }
-                  
-                  // Fetch the latest message remaining to update the chat room's lastMessage
-                  final lastMessageQuery = await FirebaseFirestore.instance
-                      .collection('chats')
-                      .doc(widget.chatId)
-                      .collection('messages')
-                      .orderBy('timestamp', descending: true)
-                      .limit(1)
-                      .get();
-
-                  String newLastMessage = '';
-                  String newLastType = 'text';
-                  
-                  if (lastMessageQuery.docs.isNotEmpty) {
-                    final data = lastMessageQuery.docs.first.data();
-                    newLastMessage = data.containsKey('text') ? data['text'] : '';
-                    newLastType = data.containsKey('type') ? data['type'] : 'text';
-                    
-                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
-                      'lastMessage': newLastMessage,
-                      'lastType': newLastType,
-                      if (data['timestamp'] != null) 'lastTimestamp': data['timestamp'],
-                    });
-                  } else {
-                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
-                      'lastMessage': '',
-                      'lastType': 'text',
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      }
-    );
-  }
-
-  void _showContextMenu(String messageId, Map<String, dynamic> data, bool isMe) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.reply),
-                title: const Text('Ответить'),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    replyToMessage = {
-                      'text': data['text'],
-                      'senderId': data['senderId'],
-                    };
-                  });
-                  focusNode.requestFocus();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.copy),
-                title: const Text('Копировать'),
-                onTap: () {
-                  Navigator.pop(context);
-                  foundation.defaultTargetPlatform == foundation.TargetPlatform.iOS || foundation.defaultTargetPlatform == foundation.TargetPlatform.android 
-                    ? Clipboard.setData(ClipboardData(text: data['text'] ?? '')) 
-                    : null;
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Скопировано')));
-                },
-              ),
-              if (isMe && data['type'] == 'text')
+        context: context,
+        builder: (context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 ListTile(
-                  leading: const Icon(Icons.edit),
-                  title: const Text('Изменить'),
+                  leading: const Icon(Icons.reply),
+                  title: const Text('Ответить'),
                   onTap: () {
                     Navigator.pop(context);
                     setState(() {
-                      editMessageId = messageId;
-                      messageController.text = data['text'];
+                      replyToMessage = {
+                        'text': '📷 Альбом',
+                        'senderId': data['senderId'],
+                      };
                     });
                     focusNode.requestFocus();
                   },
                 ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Удалить', style: TextStyle(color: Colors.red)),
-                onTap: () async {
-                  Navigator.pop(context);
-                  // 1. Delete the message
-                  await FirebaseFirestore.instance
-                      .collection('chats')
-                      .doc(widget.chatId)
-                      .collection('messages')
-                      .doc(messageId)
-                      .delete();
-                      
-                  // 2. Fetch the latest message remaining to update the chat room's lastMessage
-                  final lastMessageQuery = await FirebaseFirestore.instance
-                      .collection('chats')
-                      .doc(widget.chatId)
-                      .collection('messages')
-                      .orderBy('timestamp', descending: true)
-                      .limit(1)
-                      .get();
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Удалить',
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    for (var doc in aDocs) {
+                      await doc.reference.delete();
+                    }
 
-                  String newLastMessage = '';
-                  String newLastType = 'text';
-                  
-                  if (lastMessageQuery.docs.isNotEmpty) {
-                    final data = lastMessageQuery.docs.first.data();
-                    newLastMessage = data.containsKey('text') ? data['text'] : '';
-                    newLastType = data.containsKey('type') ? data['type'] : 'text';
-                    
-                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
-                      'lastMessage': newLastMessage,
-                      'lastType': newLastType,
-                      if (data['timestamp'] != null) 'lastTimestamp': data['timestamp'],
+                    // Fetch the latest message remaining to update the chat room's lastMessage
+                    final lastMessageQuery = await FirebaseFirestore.instance
+                        .collection('chats')
+                        .doc(widget.chatId)
+                        .collection('messages')
+                        .orderBy('timestamp', descending: true)
+                        .limit(1)
+                        .get();
+
+                    String newLastMessage = '';
+                    String newLastType = 'text';
+
+                    if (lastMessageQuery.docs.isNotEmpty) {
+                      final data = lastMessageQuery.docs.first.data();
+                      newLastMessage =
+                          data.containsKey('text') ? data['text'] : '';
+                      newLastType =
+                          data.containsKey('type') ? data['type'] : 'text';
+
+                      await FirebaseFirestore.instance
+                          .collection('chats')
+                          .doc(widget.chatId)
+                          .update({
+                        'lastMessage': newLastMessage,
+                        'lastType': newLastType,
+                        if (data['timestamp'] != null)
+                          'lastTimestamp': data['timestamp'],
+                      });
+                    } else {
+                      await FirebaseFirestore.instance
+                          .collection('chats')
+                          .doc(widget.chatId)
+                          .update({
+                        'lastMessage': '',
+                        'lastType': 'text',
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          );
+        });
+  }
+
+  void _showContextMenu(
+      String messageId, Map<String, dynamic> data, bool isMe) {
+    showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.reply),
+                  title: const Text('Ответить'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      replyToMessage = {
+                        'text': data['text'],
+                        'senderId': data['senderId'],
+                      };
                     });
-                  } else {
-                    // Chat is empty now
-                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
-                      'lastMessage': '',
-                      'lastType': 'text',
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      }
-    );
+                    focusNode.requestFocus();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.copy),
+                  title: const Text('Копировать'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    foundation.defaultTargetPlatform ==
+                                foundation.TargetPlatform.iOS ||
+                            foundation.defaultTargetPlatform ==
+                                foundation.TargetPlatform.android
+                        ? Clipboard.setData(
+                            ClipboardData(text: data['text'] ?? ''))
+                        : null;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Скопировано')));
+                  },
+                ),
+                if (isMe && data['type'] == 'text')
+                  ListTile(
+                    leading: const Icon(Icons.edit),
+                    title: const Text('Изменить'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        editMessageId = messageId;
+                        messageController.text = data['text'];
+                      });
+                      focusNode.requestFocus();
+                    },
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Удалить',
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    // 1. Delete the message
+                    await FirebaseFirestore.instance
+                        .collection('chats')
+                        .doc(widget.chatId)
+                        .collection('messages')
+                        .doc(messageId)
+                        .delete();
+
+                    // 2. Fetch the latest message remaining to update the chat room's lastMessage
+                    final lastMessageQuery = await FirebaseFirestore.instance
+                        .collection('chats')
+                        .doc(widget.chatId)
+                        .collection('messages')
+                        .orderBy('timestamp', descending: true)
+                        .limit(1)
+                        .get();
+
+                    String newLastMessage = '';
+                    String newLastType = 'text';
+
+                    if (lastMessageQuery.docs.isNotEmpty) {
+                      final data = lastMessageQuery.docs.first.data();
+                      newLastMessage =
+                          data.containsKey('text') ? data['text'] : '';
+                      newLastType =
+                          data.containsKey('type') ? data['type'] : 'text';
+
+                      await FirebaseFirestore.instance
+                          .collection('chats')
+                          .doc(widget.chatId)
+                          .update({
+                        'lastMessage': newLastMessage,
+                        'lastType': newLastType,
+                        if (data['timestamp'] != null)
+                          'lastTimestamp': data['timestamp'],
+                      });
+                    } else {
+                      // Chat is empty now
+                      await FirebaseFirestore.instance
+                          .collection('chats')
+                          .doc(widget.chatId)
+                          .update({
+                        'lastMessage': '',
+                        'lastType': 'text',
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          );
+        });
   }
 
   void _showAttachmentsMenu() {
     showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-               _buildAttachOption(Icons.image, Colors.purple, "Gallery", () async {
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildAttachOption(Icons.image, Colors.purple, "Gallery",
+                    () async {
                   Navigator.pop(context);
                   final picked = await ImagePicker().pickMultiImage();
                   if (picked.isNotEmpty) {
-                    _showMultiMediaPreview(picked.map((e) => File(e.path)).toList(), 'image');
+                    _showMultiMediaPreview(
+                        picked.map((e) => File(e.path)).toList(), 'image');
                   }
-               }),
-               _buildAttachOption(Icons.camera_alt, Colors.pink, "Camera", () async {
+                }),
+                _buildAttachOption(Icons.camera_alt, Colors.pink, "Camera",
+                    () async {
                   Navigator.pop(context);
-                  final picked = await ImagePicker().pickImage(source: ImageSource.camera);
-                  if (picked != null) _showMultiMediaPreview([File(picked.path)], 'image');
-               }),
-               _buildAttachOption(Icons.insert_drive_file, Colors.orange, "File", () async {
+                  final picked =
+                      await ImagePicker().pickImage(source: ImageSource.camera);
+                  if (picked != null)
+                    _showMultiMediaPreview([File(picked.path)], 'image');
+                }),
+                _buildAttachOption(
+                    Icons.insert_drive_file, Colors.orange, "File", () async {
                   Navigator.pop(context);
                   final picked = await FilePicker.platform.pickFiles();
                   if (picked != null && picked.files.single.path != null) {
-                    _showMultiMediaPreview([File(picked.files.single.path!)], 'file');
+                    _showMultiMediaPreview(
+                        [File(picked.files.single.path!)], 'file');
                   }
-               }),
-            ],
-          ),
-        );
-      }
-    );
+                }),
+              ],
+            ),
+          );
+        });
   }
 
-  Widget _buildAttachOption(IconData icon, Color color, String label, VoidCallback onTap) {
+  Widget _buildAttachOption(
+      IconData icon, Color color, String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 30, backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color, size: 28)),
+          CircleAvatar(
+              radius: 30,
+              backgroundColor: color.withOpacity(0.1),
+              child: Icon(icon, color: color, size: 28)),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(fontSize: 12)),
         ],
@@ -880,7 +929,8 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildImageItem(Map<String, dynamic> data) {
     final isUploading = data['isUploading'] == true;
-    final fileExists = data['localPath'] != null && File(data['localPath']).existsSync();
+    final fileExists =
+        data['localPath'] != null && File(data['localPath']).existsSync();
 
     Widget imageWidget;
     if (isUploading) {
@@ -901,24 +951,20 @@ class _ChatPageState extends State<ChatPage> {
         ],
       );
     } else {
-      imageWidget = Image.network(
-        data['text'],
-        fit: BoxFit.cover,
-        errorBuilder: (context, err, stack) => Container(
-          color: Colors.grey[300],
-          child: const Icon(Icons.broken_image, color: Colors.grey),
-        ),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
+      imageWidget = Image.network(data['text'],
+          fit: BoxFit.cover,
+          errorBuilder: (context, err, stack) => Container(
+                color: Colors.grey[300],
+                child: const Icon(Icons.broken_image, color: Colors.grey),
+              ),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Stack(fit: StackFit.expand, children: [
               Container(color: Colors.grey[300]),
-              const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
-            ]
-          );
-        }
-      );
+              const Center(
+                  child: CircularProgressIndicator(color: Colors.blueAccent)),
+            ]);
+          });
     }
 
     return GestureDetector(
@@ -1160,8 +1206,7 @@ class _ChatPageState extends State<ChatPage> {
                             icon: const Icon(Icons.warning_amber_rounded,
                                 color: Colors.red),
                             onPressed: () {
-                              ReportDialog.show(
-                                  context, otherUserId, 'chat',
+                              ReportDialog.show(context, otherUserId, 'chat',
                                   targetId: widget.chatId);
                             },
                           ),
@@ -1173,7 +1218,8 @@ class _ChatPageState extends State<ChatPage> {
                             },
                           ),
                           PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: Colors.black),
+                            icon: const Icon(Icons.more_vert,
+                                color: Colors.black),
                             onSelected: (value) {
                               if (value == 'clear_me') clearChat(false);
                               if (value == 'clear_all') clearChat(true);
@@ -1229,16 +1275,22 @@ class _ChatPageState extends State<ChatPage> {
                           final doc = rawDocs[i];
                           final data = doc.data() as Map<String, dynamic>;
                           final type = data['type'];
-                          
+
                           if (type == 'image') {
                             List<DocumentSnapshot> albumDocs = [doc];
                             int j = i + 1;
                             while (j < rawDocs.length) {
                               final nextDoc = rawDocs[j];
-                              final nextData = nextDoc.data() as Map<String, dynamic>;
-                              if (nextData['type'] == 'image' && nextData['senderId'] == data['senderId']) {
-                                final t1 = (doc['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-                                final t2 = (nextDoc['timestamp'] as Timestamp?)?.toDate() ?? t1;
+                              final nextData =
+                                  nextDoc.data() as Map<String, dynamic>;
+                              if (nextData['type'] == 'image' &&
+                                  nextData['senderId'] == data['senderId']) {
+                                final t1 = (doc['timestamp'] as Timestamp?)
+                                        ?.toDate() ??
+                                    DateTime.now();
+                                final t2 = (nextDoc['timestamp'] as Timestamp?)
+                                        ?.toDate() ??
+                                    t1;
                                 if (t1.difference(t2).inMinutes.abs() <= 15) {
                                   albumDocs.add(nextDoc);
                                   j++;
@@ -1251,12 +1303,16 @@ class _ChatPageState extends State<ChatPage> {
                               }
                             }
                             if (albumDocs.length > 1) {
-                              uiItems.add({'isAlbum': true, 'docs': albumDocs, 'senderId': data['senderId']});
+                              uiItems.add({
+                                'isAlbum': true,
+                                'docs': albumDocs,
+                                'senderId': data['senderId']
+                              });
                               i = j;
                               continue;
                             }
                           }
-                          
+
                           uiItems.add(doc);
                           i++;
                         }
@@ -1268,12 +1324,14 @@ class _ChatPageState extends State<ChatPage> {
                           itemCount: uiItems.length,
                           itemBuilder: (context, index) {
                             final item = uiItems[index];
-                            final bool isAlbum = item is Map && item['isAlbum'] == true;
+                            final bool isAlbum =
+                                item is Map && item['isAlbum'] == true;
 
                             if (isAlbum) {
                               final List<DocumentSnapshot> aDocs = item['docs'];
                               final isMe = item['senderId'] == currentUserId;
-                              final newestData = aDocs.first.data() as Map<String, dynamic>;
+                              final newestData =
+                                  aDocs.first.data() as Map<String, dynamic>;
                               String? albumCaption = newestData['caption'];
 
                               return SwipeTo(
@@ -1288,74 +1346,106 @@ class _ChatPageState extends State<ChatPage> {
                                 },
                                 child: GestureDetector(
                                   onLongPress: () {
-                                    _showContextMenuForAlbum(aDocs, newestData, isMe);
+                                    _showContextMenuForAlbum(
+                                        aDocs, newestData, isMe);
                                   },
                                   child: Align(
-                                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                                child: Container(
-                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: isMe ? const Color(0xFF1E88E5) : Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(16),
-                                      topRight: const Radius.circular(16),
-                                      bottomLeft: Radius.circular(isMe ? 16 : 0),
-                                      bottomRight: Radius.circular(isMe ? 0 : 16),
+                                    alignment: isMe
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: Container(
+                                      constraints: BoxConstraints(
+                                          maxWidth: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.75),
+                                      margin: const EdgeInsets.symmetric(
+                                          vertical: 4, horizontal: 8),
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        color: isMe
+                                            ? const Color(0xFF1E88E5)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: const Radius.circular(16),
+                                          topRight: const Radius.circular(16),
+                                          bottomLeft:
+                                              Radius.circular(isMe ? 16 : 0),
+                                          bottomRight:
+                                              Radius.circular(isMe ? 0 : 16),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          GridView.builder(
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              shrinkWrap: true,
+                                              gridDelegate:
+                                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                                crossAxisCount:
+                                                    aDocs.length == 2 ||
+                                                            aDocs.length == 4
+                                                        ? 2
+                                                        : 3,
+                                                crossAxisSpacing: 2,
+                                                mainAxisSpacing: 2,
+                                              ),
+                                              itemCount: aDocs.length,
+                                              itemBuilder: (context, idx) {
+                                                final doc = aDocs.reversed
+                                                    .toList()[idx];
+                                                final data = doc.data()
+                                                    as Map<String, dynamic>;
+                                                return ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  child: _buildImageItem(data),
+                                                );
+                                              }),
+                                          if (albumCaption != null &&
+                                              albumCaption.isNotEmpty)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(6.0),
+                                              child: Text(
+                                                albumCaption,
+                                                style: TextStyle(
+                                                  color: isMe
+                                                      ? Colors.white
+                                                      : Colors.black,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 6, bottom: 2),
+                                            child: Text(
+                                              formatTime(
+                                                  newestData['timestamp']),
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: isMe
+                                                      ? Colors.white70
+                                                      : Colors.grey),
+                                            ),
+                                          )
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      GridView.builder(
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        shrinkWrap: true,
-                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: aDocs.length == 2 || aDocs.length == 4 ? 2 : 3,
-                                          crossAxisSpacing: 2,
-                                          mainAxisSpacing: 2,
-                                        ),
-                                        itemCount: aDocs.length,
-                                        itemBuilder: (context, idx) {
-                                          final doc = aDocs.reversed.toList()[idx];
-                                          final data = doc.data() as Map<String, dynamic>;
-                                          return ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: _buildImageItem(data),
-                                          );
-                                        }
-                                      ),
-                                      if (albumCaption != null && albumCaption.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.all(6.0),
-                                          child: Text(
-                                            albumCaption,
-                                            style: TextStyle(
-                                              color: isMe ? Colors.white : Colors.black,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(right: 6, bottom: 2),
-                                        child: Text(
-                                          formatTime(newestData['timestamp']),
-                                          style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey),
-                                        ),
-                                      )
-                                    ],
-                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        }
+                              );
+                            }
 
                             final msg = item as DocumentSnapshot;
                             final data = msg.data() as Map<String, dynamic>;
                             final List deletedFor = data['deletedFor'] ?? [];
-                            if (deletedFor.contains(currentUserId)) return const SizedBox();
+                            if (deletedFor.contains(currentUserId))
+                              return const SizedBox();
 
                             final type = data['type'] ?? 'text';
                             if (type != null &&
@@ -1432,7 +1522,7 @@ class _ChatPageState extends State<ChatPage> {
                                                         teacherName: userName,
                                                         chatId: widget.chatId,
                                                         otherUserId:
-                                                            widget.otherUserId,
+                                                            otherUserId,
                                                         selectedSkills: [
                                                           widget.selectedSkills
                                                               .join(", ")
@@ -1516,8 +1606,10 @@ class _ChatPageState extends State<ChatPage> {
                                                 0.75),
                                     margin: const EdgeInsets.symmetric(
                                         vertical: 4, horizontal: 8),
-                                    padding: type == 'image' ? const EdgeInsets.all(3) : const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 10),
+                                    padding: type == 'image'
+                                        ? const EdgeInsets.all(3)
+                                        : const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 10),
                                     decoration: BoxDecoration(
                                       color: isMe
                                           ? const Color(0xFF1E88E5)
@@ -1525,279 +1617,363 @@ class _ChatPageState extends State<ChatPage> {
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(16),
                                         topRight: const Radius.circular(16),
-                                        bottomLeft: Radius.circular(isMe ? 16 : 0),
-                                        bottomRight: Radius.circular(isMe ? 0 : 16),
+                                        bottomLeft:
+                                            Radius.circular(isMe ? 16 : 0),
+                                        bottomRight:
+                                            Radius.circular(isMe ? 0 : 16),
                                       ),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         if (data.containsKey('replyTo'))
                                           Container(
-                                            margin: const EdgeInsets.only(bottom: 5),
+                                            margin: const EdgeInsets.only(
+                                                bottom: 5),
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
-                                              color: Colors.black.withOpacity(0.1),
-                                              border: const Border(left: BorderSide(color: Colors.white, width: 3)),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color:
+                                                  Colors.black.withOpacity(0.1),
+                                              border: const Border(
+                                                  left: BorderSide(
+                                                      color: Colors.white,
+                                                      width: 3)),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               data['replyTo']['text'] ?? '',
-                                              style: TextStyle(fontSize: 12, color: isMe ? Colors.white : Colors.black87),
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isMe
+                                                      ? Colors.white
+                                                      : Colors.black87),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         if (type == 'audio' &&
                                             data['audioUrl'] != null)
-                                      Builder(builder: (context) {
-                                        final int audioDuration =
-                                            data['duration'] ?? 0;
-                                        final bool isPlaying =
-                                            playingUrl == data['audioUrl'];
-                                        final bool isUploading =
-                                            data['audioUrl'] == 'uploading';
+                                          Builder(builder: (context) {
+                                            final int audioDuration =
+                                                data['duration'] ?? 0;
+                                            final bool isPlaying =
+                                                playingUrl == data['audioUrl'];
+                                            final bool isUploading =
+                                                data['audioUrl'] == 'uploading';
 
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 2),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                width: 44,
-                                                height: 44,
-                                                decoration: BoxDecoration(
-                                                  color: isMe
-                                                      ? Colors.white
-                                                      : const Color(0xFF1E88E5),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: isUploading
-                                                    ? Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(12),
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                          strokeWidth: 2.5,
-                                                          color: isMe
-                                                              ? const Color(
-                                                                  0xFF1E88E5)
-                                                              : Colors.white,
-                                                        ),
-                                                      )
-                                                    : GestureDetector(
-                                                        onTap: () => playAudio(
-                                                            data['audioUrl'],
-                                                            audioDuration),
-                                                        child: Icon(
-                                                          isPlaying
-                                                              ? Icons.pause
-                                                              : Icons
-                                                                  .play_arrow,
-                                                          color: isMe
-                                                              ? const Color(
-                                                                  0xFF1E88E5)
-                                                              : Colors.white,
-                                                          size: 28,
-                                                        ),
-                                                      ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 2),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  buildWaveform(
-                                                      data['audioUrl'],
-                                                      isMe,
-                                                      audioDuration),
-                                                  const SizedBox(height: 6),
-                                                  Text(
-                                                    isPlaying
-                                                        ? formatAudioDuration(
-                                                            _playbackPosition
-                                                                .inSeconds)
-                                                        : formatAudioDuration(
-                                                            audioDuration),
-                                                    style: TextStyle(
-                                                      fontSize: 12,
+                                                  Container(
+                                                    width: 44,
+                                                    height: 44,
+                                                    decoration: BoxDecoration(
                                                       color: isMe
                                                           ? Colors.white
-                                                              .withOpacity(0.8)
-                                                          : Colors
-                                                              .grey.shade600,
+                                                          : const Color(
+                                                              0xFF1E88E5),
+                                                      shape: BoxShape.circle,
                                                     ),
+                                                    child: isUploading
+                                                        ? Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(12),
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              strokeWidth: 2.5,
+                                                              color: isMe
+                                                                  ? const Color(
+                                                                      0xFF1E88E5)
+                                                                  : Colors
+                                                                      .white,
+                                                            ),
+                                                          )
+                                                        : GestureDetector(
+                                                            onTap: () => playAudio(
+                                                                data[
+                                                                    'audioUrl'],
+                                                                audioDuration),
+                                                            child: Icon(
+                                                              isPlaying
+                                                                  ? Icons.pause
+                                                                  : Icons
+                                                                      .play_arrow,
+                                                              color: isMe
+                                                                  ? const Color(
+                                                                      0xFF1E88E5)
+                                                                  : Colors
+                                                                      .white,
+                                                              size: 28,
+                                                            ),
+                                                          ),
                                                   ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      })
-                                    else if (type == 'image')
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(14),
-                                            child: SizedBox(
-                                              width: 250,
-                                              height: 250,
-                                              child: _buildImageItem(data),
-                                            ),
-                                          ),
-                                          if (data['caption'] != null && data['caption'].toString().isNotEmpty)
-                                            Padding(
-                                              padding: const EdgeInsets.only(top: 6.0, left: 8.0, right: 8.0),
-                                              child: Text(
-                                                data['caption'],
-                                                style: TextStyle(
-                                                  color: isMe ? Colors.white : Colors.black,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      )
-                                    else if (type == 'file')
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              if (data['isUploading'] != true) {
-                                                launchUrl(Uri.parse(data['text']), mode: LaunchMode.externalApplication);
-                                              }
-                                            },
-                                            child: Container(
-                                              width: 200,
-                                              child: Row(
-                                                children: [
-                                                  Stack(
-                                                    alignment: Alignment.center,
+                                                  const SizedBox(width: 10),
+                                                  Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
-                                                      CircleAvatar(
-                                                        radius: 24,
-                                                        backgroundColor: 
-                                                            isMe ? Colors.white24 : Colors.blueAccent.withOpacity(0.1),
+                                                      buildWaveform(
+                                                          data['audioUrl'],
+                                                          isMe,
+                                                          audioDuration),
+                                                      const SizedBox(height: 6),
+                                                      Text(
+                                                        isPlaying
+                                                            ? formatAudioDuration(
+                                                                _playbackPosition
+                                                                    .inSeconds)
+                                                            : formatAudioDuration(
+                                                                audioDuration),
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: isMe
+                                                              ? Colors.white
+                                                                  .withOpacity(
+                                                                      0.8)
+                                                              : Colors.grey
+                                                                  .shade600,
+                                                        ),
                                                       ),
-                                                      if (data['isUploading'] == true)
-                                                        const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                                      if (data['isUploading'] != true)
-                                                        Icon(Icons.insert_drive_file, 
-                                                            color: isMe ? Colors.white : Colors.blueAccent, size: 28),
                                                     ],
                                                   ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          data['fileName'] ?? 'Файл',
-                                                          style: TextStyle(
-                                                            color: isMe ? Colors.white : Colors.black,
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow.ellipsis,
-                                                        ),
-                                                        const SizedBox(height: 4),
-                                                        Text(
-                                                          data['fileSize'] != null 
-                                                            ? "${(data['fileSize'] / 1024 / 1024).toStringAsFixed(2)} MB"
-                                                            : '',
-                                                          style: TextStyle(
-                                                            color: isMe ? Colors.white70 : Colors.grey,
-                                                            fontSize: 12,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
                                                 ],
                                               ),
-                                            ),
-                                          ),
-                                          if (data['caption'] != null && data['caption'].toString().isNotEmpty)
-                                            Padding(
-                                              padding: const EdgeInsets.only(top: 8.0),
-                                              child: Text(
-                                                data['caption'],
-                                                style: TextStyle(
-                                                  color: isMe ? Colors.white : Colors.black,
-                                                  fontSize: 15,
+                                            );
+                                          })
+                                        else if (type == 'image')
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                child: SizedBox(
+                                                  width: 250,
+                                                  height: 250,
+                                                  child: _buildImageItem(data),
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      )
-                                    else
-                                      Text(
-                                        data['text'] ?? '',
-                                        style: TextStyle(
-                                          color: isMe
-                                              ? Colors.white
-                                              : Colors.black,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    const SizedBox(height: 5),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (data['isEdited'] == true)
-                                          Padding(
-                                            padding: const EdgeInsets.only(right: 4.0),
-                                            child: Text('изменено', style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey)),
-                                          ),
-                                        Text(
-                                          formatTime(msg['timestamp']),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: isMe
-                                                ? Colors.white70
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        if (isMe)
-                                          SizedBox(
-                                            width: 20,
-                                            height: 16,
-                                            child: Stack(
-                                              children: [
-                                                Positioned(
-                                                  left: 0,
-                                                  child: Icon(
-                                                    Icons.done,
-                                                    size: 16,
-                                                    color: Colors.white70,
-                                                  ),
-                                                ),
-                                                if (readBy.contains(
-                                                    widget.otherUserId))
-                                                  Positioned(
-                                                    left: 5,
-                                                    child: Icon(
-                                                      Icons.done,
-                                                      size: 16,
-                                                      color: Colors.white70,
+                                              if (data['caption'] != null &&
+                                                  data['caption']
+                                                      .toString()
+                                                      .isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 6.0,
+                                                          left: 8.0,
+                                                          right: 8.0),
+                                                  child: Text(
+                                                    data['caption'],
+                                                    style: TextStyle(
+                                                      color: isMe
+                                                          ? Colors.white
+                                                          : Colors.black,
+                                                      fontSize: 15,
                                                     ),
                                                   ),
-                                              ],
+                                                ),
+                                            ],
+                                          )
+                                        else if (type == 'file')
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () {
+                                                  if (data['isUploading'] !=
+                                                      true) {
+                                                    launchUrl(
+                                                        Uri.parse(data['text']),
+                                                        mode: LaunchMode
+                                                            .externalApplication);
+                                                  }
+                                                },
+                                                child: Container(
+                                                  width: 200,
+                                                  child: Row(
+                                                    children: [
+                                                      Stack(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        children: [
+                                                          CircleAvatar(
+                                                            radius: 24,
+                                                            backgroundColor: isMe
+                                                                ? Colors.white24
+                                                                : Colors
+                                                                    .blueAccent
+                                                                    .withOpacity(
+                                                                        0.1),
+                                                          ),
+                                                          if (data[
+                                                                  'isUploading'] ==
+                                                              true)
+                                                            const CircularProgressIndicator(
+                                                                color: Colors
+                                                                    .white,
+                                                                strokeWidth: 2),
+                                                          if (data[
+                                                                  'isUploading'] !=
+                                                              true)
+                                                            Icon(
+                                                                Icons
+                                                                    .insert_drive_file,
+                                                                color: isMe
+                                                                    ? Colors
+                                                                        .white
+                                                                    : Colors
+                                                                        .blueAccent,
+                                                                size: 28),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              data['fileName'] ??
+                                                                  'Файл',
+                                                              style: TextStyle(
+                                                                color: isMe
+                                                                    ? Colors
+                                                                        .white
+                                                                    : Colors
+                                                                        .black,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 4),
+                                                            Text(
+                                                              data['fileSize'] !=
+                                                                      null
+                                                                  ? "${(data['fileSize'] / 1024 / 1024).toStringAsFixed(2)} MB"
+                                                                  : '',
+                                                              style: TextStyle(
+                                                                color: isMe
+                                                                    ? Colors
+                                                                        .white70
+                                                                    : Colors
+                                                                        .grey,
+                                                                fontSize: 12,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                              if (data['caption'] != null &&
+                                                  data['caption']
+                                                      .toString()
+                                                      .isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 8.0),
+                                                  child: Text(
+                                                    data['caption'],
+                                                    style: TextStyle(
+                                                      color: isMe
+                                                          ? Colors.white
+                                                          : Colors.black,
+                                                      fontSize: 15,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          )
+                                        else
+                                          Text(
+                                            data['text'] ?? '',
+                                            style: TextStyle(
+                                              color: isMe
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                              fontSize: 15,
                                             ),
                                           ),
+                                        const SizedBox(height: 5),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (data['isEdited'] == true)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    right: 4.0),
+                                                child: Text('изменено',
+                                                    style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: isMe
+                                                            ? Colors.white70
+                                                            : Colors.grey)),
+                                              ),
+                                            Text(
+                                              formatTime(msg['timestamp']),
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isMe
+                                                    ? Colors.white70
+                                                    : Colors.grey,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            if (isMe)
+                                              SizedBox(
+                                                width: 20,
+                                                height: 16,
+                                                child: Stack(
+                                                  children: [
+                                                    Positioned(
+                                                      left: 0,
+                                                      child: Icon(
+                                                        Icons.done,
+                                                        size: 16,
+                                                        color: Colors.white70,
+                                                      ),
+                                                    ),
+                                                    if (readBy
+                                                        .contains(otherUserId))
+                                                      Positioned(
+                                                        left: 5,
+                                                        child: Icon(
+                                                          Icons.done,
+                                                          size: 16,
+                                                          color: Colors.white70,
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        )
                                       ],
-                                    )
-                                  ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                           ),
-                           );
+                            );
                           },
                         );
                       },
@@ -1810,25 +1986,40 @@ class _ChatPageState extends State<ChatPage> {
                         if (replyToMessage != null || editMessageId != null)
                           Container(
                             color: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                             child: Row(
                               children: [
-                                Icon(editMessageId != null ? Icons.edit : Icons.reply, color: Colors.blueAccent),
+                                Icon(
+                                    editMessageId != null
+                                        ? Icons.edit
+                                        : Icons.reply,
+                                    color: Colors.blueAccent),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        editMessageId != null ? "Изменить сообщение" : "В ответ",
-                                        style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                                        editMessageId != null
+                                            ? "Изменить сообщение"
+                                            : "В ответ",
+                                        style: const TextStyle(
+                                            color: Colors.blueAccent,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12),
                                       ),
                                       Text(
-                                        editMessageId != null ? messageController.text : (replyToMessage!['text'] ?? 'Вложение'),
+                                        editMessageId != null
+                                            ? messageController.text
+                                            : (replyToMessage!['text'] ??
+                                                'Вложение'),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(color: Colors.black54),
+                                        style: const TextStyle(
+                                            color: Colors.black54),
                                       ),
                                     ],
                                   ),
@@ -1849,23 +2040,31 @@ class _ChatPageState extends State<ChatPage> {
                             ),
                           ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
                           color: Colors.transparent,
                           child: Row(
                             children: [
                               IconButton(
-                                icon: Icon(isEmojiVisible ? Icons.keyboard : Icons.emoji_emotions_outlined, color: Colors.grey),
+                                icon: Icon(
+                                    isEmojiVisible
+                                        ? Icons.keyboard
+                                        : Icons.emoji_emotions_outlined,
+                                    color: Colors.grey),
                                 onPressed: () {
                                   setState(() {
                                     isEmojiVisible = !isEmojiVisible;
                                   });
-                                  if (isEmojiVisible) focusNode.unfocus();
-                                  else focusNode.requestFocus();
+                                  if (isEmojiVisible)
+                                    focusNode.unfocus();
+                                  else
+                                    focusNode.requestFocus();
                                 },
                               ),
                               Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(25),
@@ -1884,162 +2083,167 @@ class _ChatPageState extends State<ChatPage> {
                                                   color: Colors.red,
                                                   shape: BoxShape.circle,
                                                 ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                  formatRecordingDuration(
+                                                      _recordingDuration),
+                                                  style: const TextStyle(
+                                                      color: Colors.black,
+                                                      fontSize: 16)),
+                                              const Spacer(),
+                                              const Text("< Влево — отмена",
+                                                  style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 14)),
+                                            ],
                                           ),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                              formatRecordingDuration(
-                                                  _recordingDuration),
-                                              style: const TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 16)),
-                                          const Spacer(),
-                                          const Text("< Влево — отмена",
-                                              style: TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 14)),
-                                        ],
-                                      ),
-                                    )
-                                  : ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxHeight:
-                                            120, // max height for multi-line
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Scrollbar(
-                                              child: TextField(
-                                                focusNode: focusNode,
-                                                controller: messageController,
-                                                maxLines: null,
-                                                textCapitalization:
-                                                    TextCapitalization.sentences,
-                                                decoration: const InputDecoration(
-                                                  hintText: "Message...",
-                                                  border: InputBorder.none,
-                                                  isCollapsed:
-                                                      true, // remove extra padding
+                                        )
+                                      : ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxHeight:
+                                                120, // max height for multi-line
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Scrollbar(
+                                                  child: TextField(
+                                                    focusNode: focusNode,
+                                                    controller:
+                                                        messageController,
+                                                    maxLines: null,
+                                                    textCapitalization:
+                                                        TextCapitalization
+                                                            .sentences,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      hintText: "Message...",
+                                                      border: InputBorder.none,
+                                                      isCollapsed:
+                                                          true, // remove extra padding
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                              IconButton(
+                                                icon: const Icon(
+                                                    Icons.attach_file,
+                                                    color: Colors.grey),
+                                                onPressed: _showAttachmentsMenu,
+                                              ),
+                                            ],
                                           ),
-                                          IconButton(
-                                            icon: const Icon(Icons.attach_file, color: Colors.grey),
-                                            onPressed: _showAttachmentsMenu,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 6),
-
-                          if (isTyping)
-                            Container(
-                              width: 45,
-                              height: 45,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1E88E5),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.send,
-                                  color: Colors.white,
+                                        ),
                                 ),
-                                onPressed: () {
-                                  sendMessage(messageController.text);
-                                },
                               ),
-                            )
-                          else
-                            GestureDetector(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text("Аудио жазу үшін басып тұрыңыз"),
-                                    duration: Duration(seconds: 1),
+                              const SizedBox(width: 6),
+                              if (isTyping)
+                                Container(
+                                  width: 45,
+                                  height: 45,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF1E88E5),
+                                    shape: BoxShape.circle,
                                   ),
-                                );
-                              },
-                              onLongPressStart: (details) async {
-                                await requestMicrophonePermission();
-                                isCancelled = false;
-                                await startRecording(); // Алдымен микрофонды іске қосамыз
-                                // Микрофон іске қосылғаннан КЕЙІН ғана вибрация беріп, UI өзгертеміз:
-                                if (!isCancelled) {
-                                  HapticFeedback
-                                      .vibrate(); // Телеграм сияқты діріл
-                                  setState(() {
-                                    _recordingDuration = Duration.zero;
-                                    isRecording = true;
-                                  });
-                                }
-                              },
-                              onLongPressMoveUpdate: (details) async {
-                                if (details.localOffsetFromOrigin.dx < -50) {
-                                  if (!isCancelled && isRecording) {
-                                    isCancelled = true;
-                                    await stopRecording();
-                                    setState(() {
-                                      isRecording = false;
-                                    });
-                                  }
-                                }
-                              },
-                              onLongPressEnd: (details) async {
-                                if (!isCancelled && isRecording) {
-                                  int durSecs = _recordingDuration.inSeconds;
-                                  String? path = await stopRecording();
-                                  setState(() {
-                                    isRecording =
-                                        false; // Мгновенно убираем UI записи
-                                  });
-                                  if (path != null) {
-                                    // Запускаем фоновую загрузку (без await, чтобы UI не зависал)
-                                    processAndSendAudio(path, durSecs);
-                                  }
-                                }
-                              },
-                              onLongPressCancel: () async {
-                                if (isRecording) {
-                                  await stopRecording();
-                                  setState(() {
-                                    isRecording = false;
-                                    isCancelled = true;
-                                  });
-                                }
-                              },
-                              child: Container(
-                                width: 45,
-                                height: 45,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF1E88E5),
-                                  shape: BoxShape.circle,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.send,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      sendMessage(messageController.text);
+                                    },
+                                  ),
+                                )
+                              else
+                                GestureDetector(
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            "Аудио жазу үшін басып тұрыңыз"),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  onLongPressStart: (details) async {
+                                    await requestMicrophonePermission();
+                                    isCancelled = false;
+                                    await startRecording(); // Алдымен микрофонды іске қосамыз
+                                    // Микрофон іске қосылғаннан КЕЙІН ғана вибрация беріп, UI өзгертеміз:
+                                    if (!isCancelled) {
+                                      HapticFeedback
+                                          .vibrate(); // Телеграм сияқты діріл
+                                      setState(() {
+                                        _recordingDuration = Duration.zero;
+                                        isRecording = true;
+                                      });
+                                    }
+                                  },
+                                  onLongPressMoveUpdate: (details) async {
+                                    if (details.localOffsetFromOrigin.dx <
+                                        -50) {
+                                      if (!isCancelled && isRecording) {
+                                        isCancelled = true;
+                                        await stopRecording();
+                                        setState(() {
+                                          isRecording = false;
+                                        });
+                                      }
+                                    }
+                                  },
+                                  onLongPressEnd: (details) async {
+                                    if (!isCancelled && isRecording) {
+                                      int durSecs =
+                                          _recordingDuration.inSeconds;
+                                      String? path = await stopRecording();
+                                      setState(() {
+                                        isRecording =
+                                            false; // Мгновенно убираем UI записи
+                                      });
+                                      if (path != null) {
+                                        // Запускаем фоновую загрузку (без await, чтобы UI не зависал)
+                                        processAndSendAudio(path, durSecs);
+                                      }
+                                    }
+                                  },
+                                  onLongPressCancel: () async {
+                                    if (isRecording) {
+                                      await stopRecording();
+                                      setState(() {
+                                        isRecording = false;
+                                        isCancelled = true;
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    width: 45,
+                                    height: 45,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF1E88E5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.mic,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.mic,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (isEmojiVisible)
-                      SizedBox(
-                        height: 250,
-                        child: EmojiPicker(
-                          onEmojiSelected: (category, emoji) {
-                            messageController.text += emoji.emoji;
-                          },
+                            ],
+                          ),
                         ),
-                      )
-                  ],
-                ),
+                        if (isEmojiVisible)
+                          SizedBox(
+                            height: 250,
+                            child: EmojiPicker(
+                              onEmojiSelected: (category, emoji) {
+                                messageController.text += emoji.emoji;
+                              },
+                            ),
+                          )
+                      ],
+                    ),
                 ],
               );
             },
