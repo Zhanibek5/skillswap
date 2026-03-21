@@ -67,8 +67,9 @@ class _ChatPageState extends State<ChatPage> {
   final FocusNode focusNode = FocusNode();
 
   bool get shouldInitiateVideoCall {
-    if (amITeacher) return true;
-    return widget.mode == 'teach' || widget.mode == 'teacher';
+    // Ұялы телефондар арасында қателік кетпеуі үшін (біреуі Caller, екіншісі Callee болуы шарт), 
+    // ID-лерді салыстырып, әрқашан біреуі ғана Caller болатындай етіп жасаймыз:
+    return currentUserId.compareTo(widget.otherUserId) < 0;
   }
 
   Future<void> loadChatInfo() async {
@@ -515,6 +516,12 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     }
+    
+    // Update the last message text in the chat root document
+    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+      'lastMessage': '',
+      'lastType': 'text',
+    });
   }
 
   Future<void> sendAttachment(String fileType, File file, String caption, {String? originalFileName, int? fileSize}) async {
@@ -684,6 +691,35 @@ class _ChatPageState extends State<ChatPage> {
                   for (var doc in aDocs) {
                     await doc.reference.delete();
                   }
+                  
+                  // Fetch the latest message remaining to update the chat room's lastMessage
+                  final lastMessageQuery = await FirebaseFirestore.instance
+                      .collection('chats')
+                      .doc(widget.chatId)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: true)
+                      .limit(1)
+                      .get();
+
+                  String newLastMessage = '';
+                  String newLastType = 'text';
+                  
+                  if (lastMessageQuery.docs.isNotEmpty) {
+                    final data = lastMessageQuery.docs.first.data();
+                    newLastMessage = data.containsKey('text') ? data['text'] : '';
+                    newLastType = data.containsKey('type') ? data['type'] : 'text';
+                    
+                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+                      'lastMessage': newLastMessage,
+                      'lastType': newLastType,
+                      if (data['timestamp'] != null) 'lastTimestamp': data['timestamp'],
+                    });
+                  } else {
+                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+                      'lastMessage': '',
+                      'lastType': 'text',
+                    });
+                  }
                 },
               ),
             ],
@@ -744,14 +780,43 @@ class _ChatPageState extends State<ChatPage> {
                 title: const Text('Удалить', style: TextStyle(color: Colors.red)),
                 onTap: () async {
                   Navigator.pop(context);
-                  // Optional: if isMe, "delete for everyone?" 
-                  // But as a simple implementation:
+                  // 1. Delete the message
                   await FirebaseFirestore.instance
                       .collection('chats')
                       .doc(widget.chatId)
                       .collection('messages')
                       .doc(messageId)
                       .delete();
+                      
+                  // 2. Fetch the latest message remaining to update the chat room's lastMessage
+                  final lastMessageQuery = await FirebaseFirestore.instance
+                      .collection('chats')
+                      .doc(widget.chatId)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: true)
+                      .limit(1)
+                      .get();
+
+                  String newLastMessage = '';
+                  String newLastType = 'text';
+                  
+                  if (lastMessageQuery.docs.isNotEmpty) {
+                    final data = lastMessageQuery.docs.first.data();
+                    newLastMessage = data.containsKey('text') ? data['text'] : '';
+                    newLastType = data.containsKey('type') ? data['type'] : 'text';
+                    
+                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+                      'lastMessage': newLastMessage,
+                      'lastType': newLastType,
+                      if (data['timestamp'] != null) 'lastTimestamp': data['timestamp'],
+                    });
+                  } else {
+                    // Chat is empty now
+                    await FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+                      'lastMessage': '',
+                      'lastType': 'text',
+                    });
+                  }
                 },
               ),
             ],

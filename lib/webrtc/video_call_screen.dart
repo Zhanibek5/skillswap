@@ -1,8 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-
+import 'package:permission_handler/permission_handler.dart';
 import 'signaling.dart';
 
 class VideoCallScreen extends StatefulWidget {
@@ -71,6 +70,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (!_renderersReady) return;
 
     try {
+      await [Permission.camera, Permission.microphone].request();
+      
       await signaling.openUserMedia(_localRenderer, _remoteRenderer);
       if (mounted) {
         setState(() {
@@ -113,7 +114,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (_isLeaving) return;
     _isLeaving = true;
 
-    await signaling.hangUp(_localRenderer);
+    await signaling.hangUp();
 
     if (!mounted) return;
     Navigator.pop(context, callFinished);
@@ -123,7 +124,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   void dispose() {
     if (!_isLeaving) {
       _isLeaving = true;
-      unawaited(signaling.hangUp(_localRenderer));
+      unawaited(signaling.hangUp());
     }
 
     textEditingController.dispose();
@@ -165,6 +166,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     onPressed: () async {
                       if (!_renderersReady) return;
                       try {
+                        await [Permission.camera, Permission.microphone].request();
                         await signaling.openUserMedia(
                           _localRenderer,
                           _remoteRenderer,

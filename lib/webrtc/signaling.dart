@@ -7,24 +7,18 @@ typedef void StreamStateCallback(MediaStream stream);
 
 class Signaling {
   Map<String, dynamic> configuration = {
-    'iceCandidatePoolSize': 10,
     'iceServers': [
       {
         'urls': [
-          'stun:stun.l.google.com:19302',
           'stun:stun1.l.google.com:19302',
-          'stun:stun2.l.google.com:19302',
-          'stun:stun3.l.google.com:19302',
-          'stun:stun4.l.google.com:19302',
+          'stun:stun2.l.google.com:19302'
         ]
       },
       {
         'urls': [
           'turn:openrelay.metered.ca:80',
-          'turn:openrelay.metered.ca:80?transport=tcp',
           'turn:openrelay.metered.ca:443',
-          'turn:openrelay.metered.ca:443?transport=tcp',
-          'turns:openrelay.metered.ca:443?transport=tcp',
+          'turn:openrelay.metered.ca:443?transport=tcp'
         ],
         'username': 'openrelayproject',
         'credential': 'openrelayproject'
@@ -117,7 +111,9 @@ class Signaling {
 
   Future<void> _attachLocalStream() async {
     if (peerConnection == null || localStream == null) return;
-    await peerConnection!.addStream(localStream!);
+    localStream!.getTracks().forEach((track) {
+      peerConnection!.addTrack(track, localStream!);
+    });
   }
 
   void _handleIncomingRemoteMedia({
@@ -332,37 +328,49 @@ class Signaling {
     RTCVideoRenderer remoteVideo,
   ) async {
     var stream = await navigator.mediaDevices
-        .getUserMedia({'video': true, 'audio': true});
+        .getUserMedia({
+          'video': {
+            'facingMode': 'user'
+          },
+          'audio': true
+        });
 
     localVideo.srcObject = stream;
     localStream = stream;
 
-    remoteStream = await createLocalMediaStream('key');
+    // Use a unified remote stream
+    remoteStream = await createLocalMediaStream('remoteStream');
     remoteVideo.srcObject = remoteStream;
   }
 
-  Future<void> hangUp(RTCVideoRenderer localVideo) async {
-    await stopScreenShare(localVideo);
+  Future<void> hangUp() async {
+    // If you need screen share stop logic, use internal streams
+    if (isScreenSharing && displayStream != null) {
+      for (var track in displayStream!.getTracks()) {
+         track.stop();
+      }
+      isScreenSharing = false;
+      displayStream = null;
+    }
 
     _roomSub?.cancel();
     _callerCandidateSub?.cancel();
     _calleeCandidateSub?.cancel();
 
-    List<MediaStreamTrack>? tracks = localVideo.srcObject?.getTracks();
-    if (tracks != null) {
-      for (var track in tracks) {
-        track.stop();
+    if (localStream != null) {
+      for (var track in localStream!.getTracks()) {
+        try { track.stop(); } catch (e) {}
       }
     }
 
     if (remoteStream != null) {
       for (var track in remoteStream!.getTracks()) {
-        track.stop();
+        try { track.stop(); } catch (e) {}
       }
     }
 
     if (peerConnection != null) {
-      peerConnection!.close();
+      try { await peerConnection!.close(); } catch (e) {}
     }
 
     if (roomId != null) {
@@ -372,13 +380,16 @@ class Signaling {
       try {
         await _clearRoom(roomRef);
       } catch (e) {
-        print("Could not clean up DB on hangup: ");
+        print("Could not clean up DB on hangup: $e");
       }
     }
 
-    localStream?.dispose();
-    remoteStream?.dispose();
-    peerConnection?.dispose();
+    try { await localStream?.dispose(); } catch (e) {}
+    try { await remoteStream?.dispose(); } catch (e) {}
+    try { await peerConnection?.dispose(); } catch (e) {}
+    
+    localStream = null;
+    remoteStream = null;
     peerConnection = null;
     roomId = null;
     _hasRemoteDescription = false;
