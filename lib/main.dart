@@ -174,26 +174,6 @@ class _AuthGateState extends State<AuthGate> {
 
     _checkFirstLaunch();
     setupNotifications();
-    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    //   final notification = message.notification;
-
-    //   if (notification != null) {
-    //     flutterLocalNotificationsPlugin.show(
-    //       id: 0,
-    //       title: notification.title,
-    //       body: notification.body,
-    //       notificationDetails: const NotificationDetails(
-    //         android: AndroidNotificationDetails(
-    //           'skillswap_channel',
-    //           'SkillSwap Notifications',
-    //           importance: Importance.high,
-    //           priority: Priority.high,
-    //         ),
-    //       ),
-    //       payload: message.data['chatId'], // 🔥 chatId береміз
-    //     );
-    //   }
-    // });
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null && message.data['chatId'] != null) {
         setState(() {

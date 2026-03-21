@@ -4,20 +4,14 @@ const admin = require('firebase-admin')
 
 admin.initializeApp()
 
-/**
- * 1. КЕЗДЕСУ ЖАСАЛҒАНДА (Meeting Created)
- * Бұл функция тек 'system_meeting_created' типіндегі хабарламаларды ұстайды.
- */
+// 🔹 1. КЕЗДЕСУ ЖАСАЛҒАНДА (Тек кездесу хабарламасын өңдейді)
 exports.onMeetingCreated = onDocumentCreated(
 	'chats/{chatId}/messages/{messageId}',
 	async event => {
 		const data = event.data.data()
 		if (!data || data.type !== 'system_meeting_created') return
 
-		const chatId = event.params.chatId
-		if (!chatId) return
-
-		await sendNotification(chatId, {
+		await sendNotification(event.params.chatId, {
 			title: '📅 Жаңа кездесу',
 			body: 'Кездесу жоспарланды',
 			type: 'meeting',
@@ -25,31 +19,37 @@ exports.onMeetingCreated = onDocumentCreated(
 	}
 )
 
-/**
- * 2. ЖАЙ ХАБАРЛАМАЛАР ҮШІН (Text, Audio, Image)
- * Пайдаланушы біреуге хат жазғанда іске қосылады.
- */
+// 🔹 2. ЖАЙ ХАБАРЛАМАЛАР (Тек текст, аудио, сурет үшін)
 exports.onMessageCreated = onDocumentCreated(
 	'chats/{chatId}/messages/{messageId}',
 	async event => {
 		const data = event.data.data()
 		if (!data) return
 
-		// Егер бұл жүйелік (meeting) хабарлама болса, оны өткізіп жібереміз
-		if (data.type && data.type.startsWith('system_')) return
+		const userMessageTypes = ['text', 'audio', 'image']
+		// Егер бұл жай хабарлама болмаса, тоқтатамыз (дубликат болмауы үшін)
+		if (!userMessageTypes.includes(data.type)) return
 
 		const chatId = event.params.chatId
 		const senderId = data.senderId
 
-		// Жіберушінің атын алу
 		const senderDoc = await admin
 			.firestore()
 			.collection('users')
 			.doc(senderId)
 			.get()
-		const senderName = senderDoc.exists
-			? senderDoc.data().firstName
-			: 'Хабарлама'
+		const senderData = senderDoc.data()
+		const senderName = senderDoc.exists ? senderData.firstName : 'Хабарлама'
+
+		// Скриншоттағыдай "Zhanibek • Flutter" форматында шығару үшін:
+		const chatDoc = await admin
+			.firestore()
+			.collection('chats')
+			.doc(chatId)
+			.get()
+		const skill = chatDoc.data()?.lastSkill
+			? ` • ${chatDoc.data().lastSkill}`
+			: ''
 
 		let bodyText = ''
 		switch (data.type) {
@@ -62,32 +62,23 @@ exports.onMessageCreated = onDocumentCreated(
 			case 'image':
 				bodyText = '📷 Сурет жіберілді'
 				break
-			default:
-				bodyText = 'Сізге жаңа хабарлама келді'
 		}
 
-		// Хабарламаны тек алушыға жіберу үшін senderId-ді excludeUserId ретінде береміз
 		await sendNotification(
 			chatId,
 			{
-				title: senderName,
+				title: `${senderName}${skill}`,
 				body: bodyText,
 				type: 'chat',
 			},
 			senderId
-		)
+		) // Жіберушіні алып тастаймыз
 	}
 )
 
-/**
- * 3. ЖОСПАРЛЫ ТЕКСЕРУ (Scheduler - Every 1 Minute)
- * 10 минут қалғанда және басталғанда уведомление жібереді.
- */
+// 🔹 3. SCHEDULER (Бұрынғыша қалдырамыз)
 exports.sendMeetingNotifications = onSchedule(
-	{
-		schedule: 'every 1 minutes',
-		timeZone: 'Asia/Almaty',
-	},
+	{ schedule: 'every 1 minutes', timeZone: 'Asia/Almaty' },
 	async () => {
 		const now = Date.now()
 		const chatsSnapshot = await admin.firestore().collection('chats').get()
@@ -110,14 +101,12 @@ exports.sendMeetingNotifications = onSchedule(
 				const meetingTime = meetingData.meetingTime.toDate().getTime()
 				const diffMs = meetingTime - now
 
-				// ⏰ 10 минут қалғанда
 				if (diffMs > 0 && diffMs <= 10 * 60 * 1000) {
 					const exists = await messagesRef
 						.where('type', '==', 'system_meeting_10min')
 						.where('meetingTime', '==', meetingData.meetingTime)
 						.limit(1)
 						.get()
-
 					if (exists.empty) {
 						await messagesRef.add({
 							senderId: 'system',
@@ -133,20 +122,17 @@ exports.sendMeetingNotifications = onSchedule(
 						)
 						await sendNotification(chatId, {
 							title: '⏰ 10 минут қалды',
-							body: 'Кездесу жақын арада басталады',
+							body: 'Кездесу басталуына аз қалды',
 							type: 'meeting',
 						})
 					}
 				}
-
-				// 🔔 Басталғанда
 				if (diffMs <= 0 && diffMs > -60 * 1000) {
 					const exists = await messagesRef
 						.where('type', '==', 'system_meeting_started')
 						.where('meetingTime', '==', meetingData.meetingTime)
 						.limit(1)
 						.get()
-
 					if (exists.empty) {
 						await messagesRef.add({
 							senderId: 'system',
@@ -172,9 +158,6 @@ exports.sendMeetingNotifications = onSchedule(
 	}
 )
 
-/**
- * КӨМЕКШІ ФУНКЦИЯЛАР
- */
 async function updateChatLastMessage(chatId, lastMessage, lastType) {
 	await admin.firestore().collection('chats').doc(chatId).update({
 		lastMessage,
@@ -183,13 +166,11 @@ async function updateChatLastMessage(chatId, lastMessage, lastType) {
 	})
 }
 
+// 🔹 БІРЫҢҒАЙ ХАБАРЛАМА ЖІБЕРУ ФУНКЦИЯСЫ
 async function sendNotification(chatId, notification, excludeUserId = null) {
 	const chatDoc = await admin.firestore().collection('chats').doc(chatId).get()
-	if (!chatDoc.exists) return
-
 	const chatData = chatDoc.data()
 	const participants = chatData.participants || []
-	const lastSkill = chatData.lastSkill || ''
 
 	for (const userId of participants) {
 		if (excludeUserId && userId === excludeUserId) continue
@@ -200,41 +181,35 @@ async function sendNotification(chatId, notification, excludeUserId = null) {
 			.doc(userId)
 			.get()
 		if (!userDoc.exists) continue
-
 		const userData = userDoc.data()
-		const isEnabled =
-			userData.notificationsEnabled === undefined
-				? true
-				: userData.notificationsEnabled === true
-		if (!isEnabled) continue
 
-		const otherUserIdForReceiver = participants.find(id => id !== userId) || ''
+		if (userData.notificationsEnabled === false) continue
 
 		if (Array.isArray(userData.fcmTokens)) {
-			const messages = userData.fcmTokens.map(token => ({
-				token: token,
-				notification: { title: notification.title, body: notification.body },
-				data: {
-					type: notification.type, // 'meeting' немесе 'chat'
-					chatId: chatId,
-					otherUserId: String(otherUserIdForReceiver),
-					selectedSkills: String(lastSkill),
-				},
-				android: {
-					priority: 'high',
-					notification: { channelId: 'skillswap_channel', sound: 'default' },
-				},
-			}))
-
-			if (messages.length > 0) {
-				await Promise.all(
-					messages.map(msg =>
-						admin
-							.messaging()
-							.send(msg)
-							.catch(e => console.error('FCM Error', e))
-					)
-				)
+			for (const token of userData.fcmTokens) {
+				await admin
+					.messaging()
+					.send({
+						token: token,
+						notification: {
+							title: notification.title,
+							body: notification.body,
+						},
+						data: {
+							type: notification.type,
+							chatId: chatId,
+							otherUserId: String(participants.find(id => id !== userId) || ''),
+							selectedSkills: String(chatData.lastSkill || ''),
+						},
+						android: {
+							priority: 'high',
+							notification: {
+								channelId: 'skillswap_channel',
+								sound: 'default',
+							},
+						},
+					})
+					.catch(e => console.error('FCM Send Error', e))
 			}
 		}
 	}
