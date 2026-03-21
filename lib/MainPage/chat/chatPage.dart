@@ -49,7 +49,7 @@ class _ChatPageState extends State<ChatPage> {
   bool isCancelled = false;
   bool isTyping = false;
   String playingUrl = '';
-  late String otherUserId;
+  late String otherUserId = widget.otherUserId;
   bool isLoading = true;
 
   StreamSubscription? _recordingSubscription;
@@ -69,7 +69,7 @@ class _ChatPageState extends State<ChatPage> {
   bool get shouldInitiateVideoCall {
     // Ұялы телефондар арасында қателік кетпеуі үшін (біреуі Caller, екіншісі Callee болуы шарт), 
     // ID-лерді салыстырып, әрқашан біреуі ғана Caller болатындай етіп жасаймыз:
-    return currentUserId.compareTo(widget.otherUserId) < 0;
+    return currentUserId.compareTo(otherUserId) < 0;
   }
 
   Future<void> loadChatInfo() async {
@@ -1042,10 +1042,17 @@ class _ChatPageState extends State<ChatPage> {
 
       final currentUser = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-      otherUserId = participants.firstWhere(
+      final newOtherUserId = participants.firstWhere(
         (id) => id != currentUser,
         orElse: () => '',
       );
+      if (newOtherUserId.isNotEmpty && newOtherUserId != otherUserId) {
+        if (mounted) {
+          setState(() {
+            otherUserId = newOtherUserId;
+          });
+        }
+      }
     }
 
     // setState(() {
@@ -1069,7 +1076,7 @@ class _ChatPageState extends State<ChatPage> {
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')
-                .doc(widget.otherUserId)
+                .doc(otherUserId)
                 .snapshots(),
             builder: (context, userSnapshot) {
               if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
@@ -1154,7 +1161,7 @@ class _ChatPageState extends State<ChatPage> {
                                 color: Colors.red),
                             onPressed: () {
                               ReportDialog.show(
-                                  context, widget.otherUserId, 'chat',
+                                  context, otherUserId, 'chat',
                                   targetId: widget.chatId);
                             },
                           ),
