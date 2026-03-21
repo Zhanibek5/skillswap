@@ -32,13 +32,6 @@ class _SkillMainPageState extends State<SkillMainPage> {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    EasyLocalization.of(context)!.locale;
-    setState(() {});
-  }
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
