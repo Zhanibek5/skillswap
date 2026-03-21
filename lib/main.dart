@@ -30,6 +30,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await EasyLocalization.ensureInitialized();
 
   runApp(
     EasyLocalization(
@@ -86,7 +87,7 @@ class MyApp extends StatelessWidget {
         'loginPage/verify_email.dart': (_) => const VerifyEmailPage(),
         'secondPage/loading.dart': (_) => const Screen()
       },
-      initialRoute: 'MainPage/skillMain.dart',
+      // initialRoute: 'MainPage/skillMain.dart',
       // initialRoute: 'loginPage/verify_email.dart',
       // initialRoute: 'firstPage/loadingPage.dart',
     );
