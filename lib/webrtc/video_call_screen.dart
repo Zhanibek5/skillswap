@@ -48,6 +48,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         });
       }
     };
+    signaling.onScreenShareStateChange = () {
+      if (mounted) {
+        setState(() {});
+      }
+    };
     _initializeRenderers();
   }
 
@@ -273,16 +278,52 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          const Text("Me"),
+                          Text(signaling.isScreenSharing ? "My Screen" : "Me"),
                           Expanded(
                             child: Container(
                               margin: const EdgeInsets.all(5),
                               decoration: const BoxDecoration(
                                 color: Colors.black,
                               ),
-                              child: RTCVideoView(
-                                _localRenderer,
-                                mirror: true,
+                              child: Stack(
+                                children: [
+                                  if (signaling.isScreenSharing)
+                                    const Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.screen_share, color: Colors.white, size: 40),
+                                          SizedBox(height: 10),
+                                          Text("You are sharing\nyour screen", style: TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    RTCVideoView(
+                                      _localRenderer,
+                                      mirror: true,
+                                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                    ),
+                                  if (signaling.isScreenSharing)
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.screen_share, color: Colors.white, size: 16),
+                                            SizedBox(width: 4),
+                                            Text("Sharing...", style: TextStyle(color: Colors.white, fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                ],
                               ),
                             ),
                           ),
@@ -299,7 +340,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               decoration: const BoxDecoration(
                                 color: Colors.black,
                               ),
-                              child: RTCVideoView(_remoteRenderer),
+                              child: RTCVideoView(
+                                _remoteRenderer,
+                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+                              ),
                             ),
                           ),
                         ],
@@ -346,7 +390,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     ),
                     GestureDetector(
                       onTap: () async {
-                        await signaling.toggleScreenShare(_localRenderer);
+                        try {
+                          await signaling.toggleScreenShare(_localRenderer);
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Could not share screen: ${e.toString().split('\n').first}")),
+                            );
+                          }
+                        }
                         if (mounted) {
                           setState(() {});
                         }

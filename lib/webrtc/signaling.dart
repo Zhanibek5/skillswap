@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -469,12 +471,26 @@ class Signaling {
 
   bool isScreenSharing = false;
   MediaStream? displayStream;
+  Function? onScreenShareStateChange;
 
   Future<void> toggleScreenShare(RTCVideoRenderer localVideo) async {
     if (peerConnection == null) return;
 
     if (!isScreenSharing) {
       try {
+        if (Platform.isAndroid) {
+          bool isInitialized = FlutterBackground.isBackgroundExecutionEnabled;
+          if (!isInitialized) {
+            await FlutterBackground.initialize(androidConfig: const FlutterBackgroundAndroidConfig(
+              notificationTitle: "Screen Sharing",
+              notificationText: "Skillswap is sharing your screen.",
+              notificationImportance: AndroidNotificationImportance.normal,
+              notificationIcon: AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
+            ));
+            await FlutterBackground.enableBackgroundExecution();
+          }
+        }
+
         final Map<String, dynamic> mediaConstraints = {
           'audio': false,
           'video': true,
@@ -489,14 +505,20 @@ class Signaling {
             senders.firstWhere((sender) => sender.track?.kind == 'video');
         await videoSender.replaceTrack(displayTrack);
 
-        localVideo.srcObject = displayStream;
+        localVideo.srcObject = null; // Отключаем локальный рендер, чтобы избежать бесконечного зеркала экрана и ANR
         isScreenSharing = true;
 
         displayTrack.onEnded = () async {
           await stopScreenShare(localVideo);
         };
+        onScreenShareStateChange?.call();
       } catch (e) {
-        print("Error sharing screen: ");
+        print("Error sharing screen: $e");
+        displayStream?.dispose();
+        displayStream = null;
+        isScreenSharing = false;
+        onScreenShareStateChange?.call();
+        throw e;
       }
     } else {
       await stopScreenShare(localVideo);
@@ -527,5 +549,14 @@ class Signaling {
     displayStream?.dispose();
     displayStream = null;
     isScreenSharing = false;
+    onScreenShareStateChange?.call();
+
+    if (Platform.isAndroid) {
+      try {
+        await FlutterBackground.disableBackgroundExecution();
+      } catch (e) {
+        print("Error disabling background execution: $e");
+      }
+    }
   }
 }
