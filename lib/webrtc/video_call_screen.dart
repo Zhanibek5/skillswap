@@ -146,14 +146,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         return false;
       },
       child: Scaffold(
+        backgroundColor: Colors.black,
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () => _leaveCall(),
           ),
-          title: const Text("Кездесу / Meeting"),
+          title: const Text("Кездесу / Meeting", style: TextStyle(color: Colors.white, fontSize: 18)),
           centerTitle: true,
-          backgroundColor: Colors.blueAccent,
+          backgroundColor: Colors.grey.shade900,
+          elevation: 0,
         ),
         body: Column(
           children: [
@@ -253,9 +255,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(),
+                      CircularProgressIndicator(color: Colors.white),
                       SizedBox(height: 16),
-                      Text("Қосылуда... / Connecting..."),
+                      Text("Қосылуда... / Connecting...", style: TextStyle(color: Colors.white)),
                     ],
                   ),
                 ),
@@ -267,94 +269,109 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               child: Text(
                 _connectionStatus,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
               ),
             ),
             const SizedBox(height: 8),
             if (widget.specificRoomId == null || callStarted) ...[
               Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+                child: signaling.isScreenSharing
+                    ? Stack(
                         children: [
-                          Text(signaling.isScreenSharing ? "My Screen" : "Me"),
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.screen_share, color: Colors.white, size: 60),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      "You are sharing\nyour screen",
+                                      style: TextStyle(color: Colors.white, fontSize: 18),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            width: 120,
+                            height: 160,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade800),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: RTCVideoView(
+                                  _remoteRenderer,
+                                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
                           Expanded(
                             child: Container(
-                              margin: const EdgeInsets.all(5),
-                              decoration: const BoxDecoration(
-                                color: Colors.black,
-                              ),
+                              margin: const EdgeInsets.only(bottom: 2),
+                              color: Colors.black,
                               child: Stack(
                                 children: [
-                                  if (signaling.isScreenSharing)
-                                    const Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.screen_share, color: Colors.white, size: 40),
-                                          SizedBox(height: 10),
-                                          Text("You are sharing\nyour screen", style: TextStyle(color: Colors.white), textAlign: TextAlign.center),
-                                        ],
-                                      ),
-                                    )
-                                  else
-                                    RTCVideoView(
-                                      _localRenderer,
-                                      mirror: true,
-                                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                  RTCVideoView(
+                                    _remoteRenderer,
+                                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                  ),
+                                  const Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: Text(
+                                      "Other",
+                                      style: TextStyle(color: Colors.white, backgroundColor: Colors.black45),
                                     ),
-                                  if (signaling.isScreenSharing)
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.redAccent,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: const Row(
-                                          children: [
-                                            Icon(Icons.screen_share, color: Colors.white, size: 16),
-                                            SizedBox(width: 4),
-                                            Text("Sharing...", style: TextStyle(color: Colors.white, fontSize: 12)),
-                                          ],
-                                        ),
-                                      ),
-                                    )
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 2),
+                              color: Colors.black,
+                              child: Stack(
+                                children: [
+                                  RTCVideoView(
+                                    _localRenderer,
+                                    mirror: true,
+                                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                  ),
+                                  const Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: Text(
+                                      "Me",
+                                      style: TextStyle(color: Colors.white, backgroundColor: Colors.black45),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          const Text("Others"),
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.all(5),
-                              decoration: const BoxDecoration(
-                                color: Colors.black,
-                              ),
-                              child: RTCVideoView(
-                                _remoteRenderer,
-                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                color: Colors.grey.shade100,
+                color: Colors.grey.shade900,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -369,22 +386,34 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: signaling.isMicOn
-                              ? Colors.grey.shade300
-                              : Colors.red.withOpacity(0.8),
-                          boxShadow: [
-                            if (!signaling.isMicOn)
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.4),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                          ],
+                              ? Colors.grey.shade800
+                              : Colors.redAccent,
                         ),
                         child: Icon(
                           signaling.isMicOn ? Icons.mic : Icons.mic_off,
-                          color:
-                              signaling.isMicOn ? Colors.black87 : Colors.white,
-                          size: 28,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        signaling.toggleCamera();
+                        setState(() {});
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: signaling.isCameraOn
+                              ? Colors.grey.shade800
+                              : Colors.redAccent,
+                        ),
+                        child: Icon(
+                          signaling.isCameraOn ? Icons.videocam : Icons.videocam_off,
+                          color: Colors.white,
+                          size: 24,
                         ),
                       ),
                     ),
@@ -410,69 +439,76 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           shape: BoxShape.circle,
                           color: signaling.isScreenSharing
                               ? Colors.blueAccent
-                              : Colors.grey.shade300,
-                          boxShadow: [
-                            if (signaling.isScreenSharing)
-                              BoxShadow(
-                                color: Colors.blueAccent.withOpacity(0.4),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                          ],
+                              : Colors.grey.shade800,
                         ),
                         child: Icon(
-                          signaling.isScreenSharing
-                              ? Icons.stop_screen_share
-                              : Icons.screen_share,
-                          color: signaling.isScreenSharing
-                              ? Colors.white
-                              : Colors.black87,
-                          size: 28,
+                          signaling.isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
+                          color: Colors.white,
+                          size: 24,
                         ),
-                      ),
-                    ),
-                    FloatingActionButton(
-                      backgroundColor: Colors.red,
-                      elevation: 5,
-                      onPressed: () => _leaveCall(callFinished: true),
-                      child: const Icon(
-                        Icons.call_end,
-                        color: Colors.white,
-                        size: 30,
                       ),
                     ),
                     GestureDetector(
                       onTap: () {
-                        signaling.toggleCamera();
-                        setState(() {});
+                        showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.grey.shade900,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (context) {
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text("Участники / Participants", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  const SizedBox(height: 16),
+                                  ListTile(
+                                    leading: const CircleAvatar(child: Icon(Icons.person)),
+                                    title: const Text("Me (Сіз / Вы)", style: TextStyle(color: Colors.white)),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(signaling.isMicOn ? Icons.mic : Icons.mic_off, color: signaling.isMicOn ? Colors.green : Colors.redAccent, size: 20),
+                                        const SizedBox(width: 8),
+                                        Icon(signaling.isCameraOn ? Icons.videocam : Icons.videocam_off, color: signaling.isCameraOn ? Colors.green : Colors.redAccent, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                  const ListTile(
+                                    leading: CircleAvatar(child: Icon(Icons.person_outline)),
+                                    title: Text("Other Participant", style: TextStyle(color: Colors.white)),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.mic, color: Colors.green, size: 20),
+                                        SizedBox(width: 8),
+                                        Icon(Icons.videocam, color: Colors.green, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: signaling.isCameraOn
-                              ? Colors.grey.shade300
-                              : Colors.red.withOpacity(0.8),
-                          boxShadow: [
-                            if (!signaling.isCameraOn)
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.4),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                          ],
+                          color: Colors.grey.shade800,
                         ),
-                        child: Icon(
-                          signaling.isCameraOn
-                              ? Icons.videocam
-                              : Icons.videocam_off,
-                          color: signaling.isCameraOn
-                              ? Colors.black87
-                              : Colors.white,
-                          size: 28,
-                        ),
+                        child: const Icon(Icons.people, color: Colors.white, size: 24),
                       ),
+                    ),
+                    FloatingActionButton(
+                      backgroundColor: Colors.redAccent,
+                      elevation: 0,
+                      onPressed: () => _leaveCall(callFinished: true),
+                      child: const Icon(Icons.call_end, color: Colors.white, size: 28),
                     ),
                   ],
                 ),
