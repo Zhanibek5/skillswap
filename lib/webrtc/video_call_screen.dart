@@ -143,26 +143,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   Future<void> _initializeRenderers() async {
-    // Включаем конфигурацию AudioSession специально для видеозвонков (WebRTC)
+    // Освобождаем аудио-сессию от плеера голосовых сообщений (chatPage)
+    // чтобы flutter_webrtc смог настроить аппаратное эхоподавление и микрофон
     try {
       final session = await AudioSession.instance;
-      await session.configure(AudioSessionConfiguration(
-        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-        avAudioSessionCategoryOptions:
-            AVAudioSessionCategoryOptions.allowBluetooth |
-                AVAudioSessionCategoryOptions.defaultToSpeaker,
-        avAudioSessionMode: AVAudioSessionMode.videoChat,
-        avAudioSessionRouteSharingPolicy:
-            AVAudioSessionRouteSharingPolicy.defaultPolicy,
-        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
-        androidAudioAttributes: AndroidAudioAttributes(
-          contentType: AndroidAudioContentType.speech,
-          flags: AndroidAudioFlags.none,
-          usage: AndroidAudioUsage.voiceCommunication,
-        ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-        androidWillPauseWhenDucked: true,
-      ));
+      await session.setActive(false);
     } catch (e) {
       print("AudioSession configuration error: $e");
     }
@@ -235,23 +220,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     try {
       final session = await AudioSession.instance;
-      await session.configure(AudioSessionConfiguration(
-        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-        avAudioSessionCategoryOptions:
-            AVAudioSessionCategoryOptions.allowBluetooth |
-                AVAudioSessionCategoryOptions.defaultToSpeaker,
-        avAudioSessionMode: AVAudioSessionMode.defaultMode,
-        avAudioSessionRouteSharingPolicy:
-            AVAudioSessionRouteSharingPolicy.defaultPolicy,
-        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
-        androidAudioAttributes: AndroidAudioAttributes(
-          contentType: AndroidAudioContentType.speech,
-          flags: AndroidAudioFlags.none,
-          usage: AndroidAudioUsage.media,
-        ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransient,
-        androidWillPauseWhenDucked: true,
-      ));
+      await session.setActive(false);
     } catch (e) {
       print("Error resetting AudioSession: $e");
     }

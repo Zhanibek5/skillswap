@@ -329,24 +329,40 @@ class Signaling {
     RTCVideoRenderer localVideo,
     RTCVideoRenderer remoteVideo,
   ) async {
-    var stream = await navigator.mediaDevices
-        .getUserMedia({
-          'video': {
-            'facingMode': 'user'
-          },
-          'audio': true
-        });
+    var stream = await navigator.mediaDevices.getUserMedia({
+      'video': {'facingMode': 'user'},
+      'audio': {
+        'mandatory': {
+          'googEchoCancellation': 'true',
+          'googAutoGainControl': 'true',
+          'googNoiseSuppression': 'true',
+          'googHighpassFilter': 'true',
+        },
+        'optional': [],
+      }
+    });
 
     localVideo.srcObject = stream;
     localStream = stream;
 
-    // Включаем динамик (Speakerphone) по умолчанию, чтобы было слышно громко
+    // Включаем динамик (Speakerphone) по умолчанию
     if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) {
       try {
         Helper.setSpeakerphoneOn(true);
       } catch (e) {
         print("Error setting speakerphone: $e");
       }
+    }
+
+    // Убедиться, что микрофон точно активен (иногда аппаратно мутится)
+    try {
+      var audioTracks = localStream!.getAudioTracks();
+      if (audioTracks.isNotEmpty) {
+        Helper.setMicrophoneMute(false, audioTracks[0]);
+        audioTracks[0].enableSpeakerphone(true);
+      }
+    } catch (e) {
+      print("Error setting microphone mute state: $e");
     }
 
     // Use a unified remote stream
@@ -358,7 +374,7 @@ class Signaling {
     // If you need screen share stop logic, use internal streams
     if (isScreenSharing && displayStream != null) {
       for (var track in displayStream!.getTracks()) {
-         track.stop();
+        track.stop();
       }
       isScreenSharing = false;
       displayStream = null;
@@ -370,18 +386,24 @@ class Signaling {
 
     if (localStream != null) {
       for (var track in localStream!.getTracks()) {
-        try { track.stop(); } catch (e) {}
+        try {
+          track.stop();
+        } catch (e) {}
       }
     }
 
     if (remoteStream != null) {
       for (var track in remoteStream!.getTracks()) {
-        try { track.stop(); } catch (e) {}
+        try {
+          track.stop();
+        } catch (e) {}
       }
     }
 
     if (peerConnection != null) {
-      try { await peerConnection!.close(); } catch (e) {}
+      try {
+        await peerConnection!.close();
+      } catch (e) {}
     }
 
     if (roomId != null) {
@@ -395,10 +417,16 @@ class Signaling {
       }
     }
 
-    try { await localStream?.dispose(); } catch (e) {}
-    try { await remoteStream?.dispose(); } catch (e) {}
-    try { await peerConnection?.dispose(); } catch (e) {}
-    
+    try {
+      await localStream?.dispose();
+    } catch (e) {}
+    try {
+      await remoteStream?.dispose();
+    } catch (e) {}
+    try {
+      await peerConnection?.dispose();
+    } catch (e) {}
+
     localStream = null;
     remoteStream = null;
     peerConnection = null;
@@ -490,11 +518,13 @@ class Signaling {
         if (Platform.isAndroid) {
           bool isInitialized = FlutterBackground.isBackgroundExecutionEnabled;
           if (!isInitialized) {
-            await FlutterBackground.initialize(androidConfig: const FlutterBackgroundAndroidConfig(
+            await FlutterBackground.initialize(
+                androidConfig: const FlutterBackgroundAndroidConfig(
               notificationTitle: "Screen Sharing",
               notificationText: "Skillswap is sharing your screen.",
               notificationImportance: AndroidNotificationImportance.normal,
-              notificationIcon: AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
+              notificationIcon:
+                  AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
             ));
             await FlutterBackground.enableBackgroundExecution();
           }
@@ -514,7 +544,8 @@ class Signaling {
             senders.firstWhere((sender) => sender.track?.kind == 'video');
         await videoSender.replaceTrack(displayTrack);
 
-        localVideo.srcObject = null; // Отключаем локальный рендер, чтобы избежать бесконечного зеркала экрана и ANR
+        localVideo.srcObject =
+            null; // Отключаем локальный рендер, чтобы избежать бесконечного зеркала экрана и ANR
         isScreenSharing = true;
 
         displayTrack.onEnded = () async {
