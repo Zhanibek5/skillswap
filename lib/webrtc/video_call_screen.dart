@@ -146,7 +146,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     // Включаем конфигурацию AudioSession специально для видеозвонков (WebRTC)
     try {
       final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration(
+      await session.configure(AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
         avAudioSessionCategoryOptions:
             AVAudioSessionCategoryOptions.allowBluetooth |
@@ -235,7 +235,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     try {
       final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration(
+      await session.configure(AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
         avAudioSessionCategoryOptions:
             AVAudioSessionCategoryOptions.allowBluetooth |
