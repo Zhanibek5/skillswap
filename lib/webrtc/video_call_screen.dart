@@ -4,6 +4,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:audio_session/audio_session.dart';
 import 'signaling.dart';
 
 class VideoCallScreen extends StatefulWidget {
@@ -78,7 +79,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Future<void> _fetchUsersData() async {
     final currId = FirebaseAuth.instance.currentUser?.uid;
     if (currId != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(currId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currId)
+          .get();
       if (doc.exists && mounted) {
         setState(() {
           myUserName = doc.data()?['name'] ?? "Me";
@@ -87,7 +91,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
     }
     if (widget.otherUserId != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.otherUserId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.otherUserId)
+          .get();
       if (doc.exists && mounted) {
         setState(() {
           otherUserName = doc.data()?['name'] ?? "Other Participant";
@@ -99,12 +106,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   void _listenToRoomStatus() {
     if (widget.specificRoomId != null) {
-      _roomSub = FirebaseFirestore.instance.collection('rooms').doc(widget.specificRoomId).snapshots().listen((snap) {
+      _roomSub = FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.specificRoomId)
+          .snapshots()
+          .listen((snap) {
         if (snap.exists && mounted) {
           final data = snap.data()!;
           String myRole = widget.isCaller ? 'caller' : 'callee';
           String otherRole = widget.isCaller ? 'callee' : 'caller';
-          
+
           if (data.containsKey('status_$otherRole')) {
             setState(() {
               otherMicOn = data['status_$otherRole']['mic'] ?? true;
@@ -119,16 +130,43 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   void _updateMyMediaStatus() async {
     if (widget.specificRoomId != null) {
       String myRole = widget.isCaller ? 'caller' : 'callee';
-      await FirebaseFirestore.instance.collection('rooms').doc(widget.specificRoomId).set({
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.specificRoomId)
+          .set({
         'status_$myRole': {
           'mic': signaling.isMicOn,
           'cam': signaling.isCameraOn,
         }
       }, SetOptions(merge: true));
     }
-  }  
+  }
 
   Future<void> _initializeRenderers() async {
+    // Включаем конфигурацию AudioSession специально для видеозвонков (WebRTC)
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.allowBluetooth |
+                AVAudioSessionCategoryOptions.defaultToSpeaker,
+        avAudioSessionMode: AVAudioSessionMode.videoChat,
+        avAudioSessionRouteSharingPolicy:
+            AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          flags: AndroidAudioFlags.none,
+          usage: AndroidAudioUsage.voiceCommunication,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        androidWillPauseWhenDucked: true,
+      ));
+    } catch (e) {
+      print("AudioSession configuration error: $e");
+    }
+
     await _localRenderer.initialize();
     await _remoteRenderer.initialize();
 
@@ -148,7 +186,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     try {
       await [Permission.camera, Permission.microphone].request();
-      
+
       await signaling.openUserMedia(_localRenderer, _remoteRenderer);
       if (mounted) {
         setState(() {
@@ -195,6 +233,29 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       Navigator.pop(context, callFinished);
     }
 
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.allowBluetooth |
+                AVAudioSessionCategoryOptions.defaultToSpeaker,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        avAudioSessionRouteSharingPolicy:
+            AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          flags: AndroidAudioFlags.none,
+          usage: AndroidAudioUsage.media,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransient,
+        androidWillPauseWhenDucked: true,
+      ));
+    } catch (e) {
+      print("Error resetting AudioSession: $e");
+    }
+
     unawaited(signaling.hangUp());
   }
 
@@ -226,7 +287,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () => _leaveCall(),
           ),
-          title: const Text("Кездесу / Meeting", style: TextStyle(color: Colors.white, fontSize: 18)),
+          title: const Text("Кездесу / Meeting",
+              style: TextStyle(color: Colors.white, fontSize: 18)),
           centerTitle: true,
           backgroundColor: Colors.grey.shade900,
           elevation: 0,
@@ -247,7 +309,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     onPressed: () async {
                       if (!_renderersReady) return;
                       try {
-                        await [Permission.camera, Permission.microphone].request();
+                        await [Permission.camera, Permission.microphone]
+                            .request();
                         await signaling.openUserMedia(
                           _localRenderer,
                           _remoteRenderer,
@@ -331,7 +394,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     children: [
                       CircularProgressIndicator(color: Colors.white),
                       SizedBox(height: 16),
-                      Text("Қосылуда... / Connecting...", style: TextStyle(color: Colors.white)),
+                      Text("Қосылуда... / Connecting...",
+                          style: TextStyle(color: Colors.white)),
                     ],
                   ),
                 ),
@@ -360,11 +424,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.screen_share, color: Colors.white, size: 60),
+                                    Icon(Icons.screen_share,
+                                        color: Colors.white, size: 60),
                                     SizedBox(height: 16),
                                     Text(
                                       "You are sharing\nyour screen",
-                                      style: TextStyle(color: Colors.white, fontSize: 18),
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 18),
                                       textAlign: TextAlign.center,
                                     ),
                                   ],
@@ -372,7 +438,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               )
                             : RTCVideoView(
                                 _remoteRenderer,
-                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                objectFit: RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitCover,
                               ),
                       ),
                       // PIP layer (bottom right)
@@ -400,7 +467,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               child: RTCVideoView(
                                 _localRenderer,
                                 mirror: true,
-                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                objectFit: RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitCover,
                               ),
                             ),
                           ),
@@ -428,7 +496,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               borderRadius: BorderRadius.circular(12),
                               child: RTCVideoView(
                                 _remoteRenderer,
-                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                objectFit: RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitCover,
                               ),
                             ),
                           ),
@@ -443,7 +512,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                      GestureDetector(
+                    GestureDetector(
                       onTap: () {
                         signaling.toggleMic();
                         _updateMyMediaStatus();
@@ -481,7 +550,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               : Colors.redAccent,
                         ),
                         child: Icon(
-                          signaling.isCameraOn ? Icons.videocam : Icons.videocam_off,
+                          signaling.isCameraOn
+                              ? Icons.videocam
+                              : Icons.videocam_off,
                           color: Colors.white,
                           size: 24,
                         ),
@@ -494,7 +565,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Could not share screen: ${e.toString().split('\n').first}")),
+                              SnackBar(
+                                  content: Text(
+                                      "Could not share screen: ${e.toString().split('\n').first}")),
                             );
                           }
                         }
@@ -512,7 +585,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               : Colors.grey.shade800,
                         ),
                         child: Icon(
-                          signaling.isScreenSharing ? Icons.stop_screen_share : Icons.screen_share,
+                          signaling.isScreenSharing
+                              ? Icons.stop_screen_share
+                              : Icons.screen_share,
                           color: Colors.white,
                           size: 24,
                         ),
@@ -524,7 +599,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           context: context,
                           backgroundColor: Colors.grey.shade900,
                           shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(20)),
                           ),
                           builder: (context) {
                             return Container(
@@ -532,35 +608,80 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text("Участники / Participants", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  const Text("Участники / Participants",
+                                      style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white)),
                                   const SizedBox(height: 16),
                                   ListTile(
                                     leading: CircleAvatar(
-                                      backgroundImage: myUserAvatar.isNotEmpty ? NetworkImage(myUserAvatar) : null,
-                                      child: myUserAvatar.isEmpty ? const Icon(Icons.person) : null,
+                                      backgroundImage: myUserAvatar.isNotEmpty
+                                          ? NetworkImage(myUserAvatar)
+                                          : null,
+                                      child: myUserAvatar.isEmpty
+                                          ? const Icon(Icons.person)
+                                          : null,
                                     ),
-                                    title: Text("$myUserName (Me)", style: const TextStyle(color: Colors.white)),
+                                    title: Text("$myUserName (Me)",
+                                        style: const TextStyle(
+                                            color: Colors.white)),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(signaling.isMicOn ? Icons.mic : Icons.mic_off, color: signaling.isMicOn ? Colors.green : Colors.redAccent, size: 20),
+                                        Icon(
+                                            signaling.isMicOn
+                                                ? Icons.mic
+                                                : Icons.mic_off,
+                                            color: signaling.isMicOn
+                                                ? Colors.green
+                                                : Colors.redAccent,
+                                            size: 20),
                                         const SizedBox(width: 8),
-                                        Icon(signaling.isCameraOn ? Icons.videocam : Icons.videocam_off, color: signaling.isCameraOn ? Colors.green : Colors.redAccent, size: 20),
+                                        Icon(
+                                            signaling.isCameraOn
+                                                ? Icons.videocam
+                                                : Icons.videocam_off,
+                                            color: signaling.isCameraOn
+                                                ? Colors.green
+                                                : Colors.redAccent,
+                                            size: 20),
                                       ],
                                     ),
                                   ),
                                   ListTile(
                                     leading: CircleAvatar(
-                                      backgroundImage: otherUserAvatar.isNotEmpty ? NetworkImage(otherUserAvatar) : null,
-                                      child: otherUserAvatar.isEmpty ? const Icon(Icons.person_outline) : null,
+                                      backgroundImage:
+                                          otherUserAvatar.isNotEmpty
+                                              ? NetworkImage(otherUserAvatar)
+                                              : null,
+                                      child: otherUserAvatar.isEmpty
+                                          ? const Icon(Icons.person_outline)
+                                          : null,
                                     ),
-                                    title: Text(otherUserName, style: const TextStyle(color: Colors.white)),
+                                    title: Text(otherUserName,
+                                        style: const TextStyle(
+                                            color: Colors.white)),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(otherMicOn ? Icons.mic : Icons.mic_off, color: otherMicOn ? Colors.green : Colors.redAccent, size: 20),
+                                        Icon(
+                                            otherMicOn
+                                                ? Icons.mic
+                                                : Icons.mic_off,
+                                            color: otherMicOn
+                                                ? Colors.green
+                                                : Colors.redAccent,
+                                            size: 20),
                                         const SizedBox(width: 8),
-                                        Icon(otherCamOn ? Icons.videocam : Icons.videocam_off, color: otherCamOn ? Colors.green : Colors.redAccent, size: 20),
+                                        Icon(
+                                            otherCamOn
+                                                ? Icons.videocam
+                                                : Icons.videocam_off,
+                                            color: otherCamOn
+                                                ? Colors.green
+                                                : Colors.redAccent,
+                                            size: 20),
                                       ],
                                     ),
                                   ),
@@ -577,14 +698,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           shape: BoxShape.circle,
                           color: Colors.grey.shade800,
                         ),
-                        child: const Icon(Icons.people, color: Colors.white, size: 24),
+                        child: const Icon(Icons.people,
+                            color: Colors.white, size: 24),
                       ),
                     ),
                     FloatingActionButton(
                       backgroundColor: Colors.redAccent,
                       elevation: 0,
                       onPressed: () => _leaveCall(callFinished: true),
-                      child: const Icon(Icons.call_end, color: Colors.white, size: 28),
+                      child: const Icon(Icons.call_end,
+                          color: Colors.white, size: 28),
                     ),
                   ],
                 ),
