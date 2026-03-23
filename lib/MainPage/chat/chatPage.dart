@@ -1508,6 +1508,7 @@ class _ChatPageState extends State<ChatPage> {
                                                           widget.chatId,
                                                       isCaller:
                                                           shouldInitiateVideoCall,
+                                                      otherUserId: otherUserId,
                                                     ),
                                                   ),
                                                 );

@@ -2,16 +2,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'signaling.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String? specificRoomId;
   final bool isCaller;
+  final String? otherUserId;
 
   const VideoCallScreen({
     super.key,
     this.specificRoomId,
     this.isCaller = false,
+    this.otherUserId,
   });
 
   @override
@@ -30,9 +34,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _renderersReady = false;
   String _connectionStatus = 'Starting...';
 
+  String otherUserName = "Other Participant";
+  String otherUserAvatar = "";
+  String myUserName = "Me";
+  String myUserAvatar = "";
+
+  bool otherMicOn = true;
+  bool otherCamOn = true;
+
+  StreamSubscription? _roomSub;
+
   @override
   void initState() {
     super.initState();
+    _fetchUsersData();
+    _listenToRoomStatus();
     signaling.onAddRemoteStream = (stream) {
       _remoteRenderer.srcObject = stream;
       if (mounted) {
@@ -54,7 +70,63 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
     };
     _initializeRenderers();
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) _updateMyMediaStatus();
+    });
   }
+
+  Future<void> _fetchUsersData() async {
+    final currId = FirebaseAuth.instance.currentUser?.uid;
+    if (currId != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(currId).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          myUserName = doc.data()?['name'] ?? "Me";
+          myUserAvatar = doc.data()?['profilePic'] ?? "";
+        });
+      }
+    }
+    if (widget.otherUserId != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.otherUserId).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          otherUserName = doc.data()?['name'] ?? "Other Participant";
+          otherUserAvatar = doc.data()?['profilePic'] ?? "";
+        });
+      }
+    }
+  }
+
+  void _listenToRoomStatus() {
+    if (widget.specificRoomId != null) {
+      _roomSub = FirebaseFirestore.instance.collection('rooms').doc(widget.specificRoomId).snapshots().listen((snap) {
+        if (snap.exists && mounted) {
+          final data = snap.data()!;
+          String myRole = widget.isCaller ? 'caller' : 'callee';
+          String otherRole = widget.isCaller ? 'callee' : 'caller';
+          
+          if (data.containsKey('status_$otherRole')) {
+            setState(() {
+              otherMicOn = data['status_$otherRole']['mic'] ?? true;
+              otherCamOn = data['status_$otherRole']['cam'] ?? true;
+            });
+          }
+        }
+      });
+    }
+  }
+
+  void _updateMyMediaStatus() async {
+    if (widget.specificRoomId != null) {
+      String myRole = widget.isCaller ? 'caller' : 'callee';
+      await FirebaseFirestore.instance.collection('rooms').doc(widget.specificRoomId).set({
+        'status_$myRole': {
+          'mic': signaling.isMicOn,
+          'cam': signaling.isCameraOn,
+        }
+      }, SetOptions(merge: true));
+    }
+  }  
 
   Future<void> _initializeRenderers() async {
     await _localRenderer.initialize();
@@ -119,10 +191,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (_isLeaving) return;
     _isLeaving = true;
 
-    await signaling.hangUp();
+    if (mounted) {
+      Navigator.pop(context, callFinished);
+    }
 
-    if (!mounted) return;
-    Navigator.pop(context, callFinished);
+    unawaited(signaling.hangUp());
   }
 
   @override
@@ -132,6 +205,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       unawaited(signaling.hangUp());
     }
 
+    _roomSub?.cancel();
     textEditingController.dispose();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
@@ -275,13 +349,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             const SizedBox(height: 8),
             if (widget.specificRoomId == null || callStarted) ...[
               Expanded(
-                child: signaling.isScreenSharing
-                    ? Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Container(
-                              color: Colors.black,
-                              child: const Center(
+                child: Container(
+                  color: Colors.black,
+                  child: Stack(
+                    children: [
+                      // Full screen layer
+                      Positioned.fill(
+                        child: signaling.isScreenSharing
+                            ? const Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -294,80 +369,73 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                                     ),
                                   ],
                                 ),
+                              )
+                            : RTCVideoView(
+                                _remoteRenderer,
+                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 16,
-                            right: 16,
-                            width: 120,
-                            height: 160,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade800),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: RTCVideoView(
-                                  _remoteRenderer,
-                                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 2),
-                              color: Colors.black,
-                              child: Stack(
-                                children: [
-                                  RTCVideoView(
-                                    _remoteRenderer,
-                                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                                  ),
-                                  const Positioned(
-                                    bottom: 8,
-                                    left: 8,
-                                    child: Text(
-                                      "Other",
-                                      style: TextStyle(color: Colors.white, backgroundColor: Colors.black45),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(top: 2),
-                              color: Colors.black,
-                              child: Stack(
-                                children: [
-                                  RTCVideoView(
-                                    _localRenderer,
-                                    mirror: true,
-                                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                                  ),
-                                  const Positioned(
-                                    bottom: 8,
-                                    left: 8,
-                                    child: Text(
-                                      "Me",
-                                      style: TextStyle(color: Colors.white, backgroundColor: Colors.black45),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
+                      // PIP layer (bottom right)
+                      if (!signaling.isScreenSharing)
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          width: 120,
+                          height: 160,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade800),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black54,
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                )
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: RTCVideoView(
+                                _localRenderer,
+                                mirror: true,
+                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (signaling.isScreenSharing)
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          width: 120,
+                          height: 160,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade800),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black54,
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                )
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: RTCVideoView(
+                                _remoteRenderer,
+                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 20),
@@ -375,9 +443,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    GestureDetector(
+                      GestureDetector(
                       onTap: () {
                         signaling.toggleMic();
+                        _updateMyMediaStatus();
                         setState(() {});
                       },
                       child: AnimatedContainer(
@@ -399,6 +468,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     GestureDetector(
                       onTap: () {
                         signaling.toggleCamera();
+                        _updateMyMediaStatus();
                         setState(() {});
                       },
                       child: AnimatedContainer(
@@ -465,8 +535,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                                   const Text("Участники / Participants", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                                   const SizedBox(height: 16),
                                   ListTile(
-                                    leading: const CircleAvatar(child: Icon(Icons.person)),
-                                    title: const Text("Me (Сіз / Вы)", style: TextStyle(color: Colors.white)),
+                                    leading: CircleAvatar(
+                                      backgroundImage: myUserAvatar.isNotEmpty ? NetworkImage(myUserAvatar) : null,
+                                      child: myUserAvatar.isEmpty ? const Icon(Icons.person) : null,
+                                    ),
+                                    title: Text("$myUserName (Me)", style: const TextStyle(color: Colors.white)),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -476,15 +549,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                                       ],
                                     ),
                                   ),
-                                  const ListTile(
-                                    leading: CircleAvatar(child: Icon(Icons.person_outline)),
-                                    title: Text("Other Participant", style: TextStyle(color: Colors.white)),
+                                  ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: otherUserAvatar.isNotEmpty ? NetworkImage(otherUserAvatar) : null,
+                                      child: otherUserAvatar.isEmpty ? const Icon(Icons.person_outline) : null,
+                                    ),
+                                    title: Text(otherUserName, style: const TextStyle(color: Colors.white)),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.mic, color: Colors.green, size: 20),
-                                        SizedBox(width: 8),
-                                        Icon(Icons.videocam, color: Colors.green, size: 20),
+                                        Icon(otherMicOn ? Icons.mic : Icons.mic_off, color: otherMicOn ? Colors.green : Colors.redAccent, size: 20),
+                                        const SizedBox(width: 8),
+                                        Icon(otherCamOn ? Icons.videocam : Icons.videocam_off, color: otherCamOn ? Colors.green : Colors.redAccent, size: 20),
                                       ],
                                     ),
                                   ),

@@ -340,6 +340,15 @@ class Signaling {
     localVideo.srcObject = stream;
     localStream = stream;
 
+    // Включаем динамик (Speakerphone) по умолчанию, чтобы было слышно громко
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) {
+      try {
+        Helper.setSpeakerphoneOn(true);
+      } catch (e) {
+        print("Error setting speakerphone: $e");
+      }
+    }
+
     // Use a unified remote stream
     remoteStream = await createLocalMediaStream('remoteStream');
     remoteVideo.srcObject = remoteStream;
