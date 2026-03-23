@@ -358,7 +358,6 @@ class Signaling {
     try {
       var audioTracks = localStream!.getAudioTracks();
       if (audioTracks.isNotEmpty) {
-        Helper.setMicrophoneMute(false, audioTracks[0]);
         audioTracks[0].enableSpeakerphone(true);
       }
     } catch (e) {
