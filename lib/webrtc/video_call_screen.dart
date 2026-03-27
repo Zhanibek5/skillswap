@@ -74,27 +74,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         });
         if (status.contains('IceConnectionStateConnected')) {
           if (!_callActuallyStarted) {
-             _callActuallyStarted = true;
-             _secondsRemaining = widget.expectedDurationMinutes * 60;
-             _secondsSpent = 0;
-             _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-               if (!mounted) { timer.cancel(); return; }
-               setState(() {
-                 if (_secondsRemaining > 0) _secondsRemaining--;
-                 _secondsSpent++;
-               });
-               
-               if (_secondsRemaining == 5 * 60) {
-                 _showWarning('5 минут қалды / 5 minutes left');
-               } else if (_secondsRemaining == 60) {
-                 _showWarning('1 минут қалды / 1 minute left');
-               } else if (_secondsRemaining == 10) {
-                 _showWarning('10 секунд қалды / 10 seconds left');
-               } else if (_secondsRemaining == 0) {
-                 _leaveCall(callFinished: true);
-                 timer.cancel();
-               }
-             });
+            _callActuallyStarted = true;
+            _secondsRemaining = widget.expectedDurationMinutes * 60;
+            _secondsSpent = 0;
+            _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+              if (!mounted) {
+                timer.cancel();
+                return;
+              }
+              setState(() {
+                if (_secondsRemaining > 0) _secondsRemaining--;
+                _secondsSpent++;
+              });
+
+              if (_secondsRemaining == 5 * 60) {
+                _showWarning('5 минут қалды / 5 minutes left');
+              } else if (_secondsRemaining == 60) {
+                _showWarning('1 минут қалды / 1 minute left');
+              } else if (_secondsRemaining == 10) {
+                _showWarning('10 секунд қалды / 10 seconds left');
+              } else if (_secondsRemaining == 0) {
+                _leaveCall(callFinished: true);
+                timer.cancel();
+              }
+            });
           }
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -270,7 +273,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   void _showWarning(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(msg,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         duration: const Duration(seconds: 3),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
@@ -282,26 +287,28 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (_isLeaving) return;
     _isLeaving = true;
     _callTimer?.cancel();
-    
+
     // Balance calculation
     if (_secondsSpent > 0 && widget.role != null) {
       int minutesSpent = (_secondsSpent / 60).ceil();
       if (minutesSpent > widget.expectedDurationMinutes) {
-          minutesSpent = widget.expectedDurationMinutes;
+        minutesSpent = widget.expectedDurationMinutes;
       }
       if (minutesSpent > 0) {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null) {
-          final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+          final userRef =
+              FirebaseFirestore.instance.collection('users').doc(uid);
           try {
-            await FirebaseFirestore.instance.runTransaction((transaction) async {
+            await FirebaseFirestore.instance
+                .runTransaction((transaction) async {
               final snap = await transaction.get(userRef);
               if (snap.exists) {
                 final data = snap.data()!;
                 int bal = data['balance'] ?? 120;
                 int earn = data['timeEarned'] ?? 0;
                 int spent = data['timeSpent'] ?? 0;
-                
+
                 if (widget.role == 'teach') {
                   bal += minutesSpent;
                   earn += minutesSpent;
@@ -316,7 +323,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 });
               }
             });
-          } catch(e) {
+          } catch (e) {
             print("Error updating balance: $e");
           }
         }
@@ -451,30 +458,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
             ],
 
-            // 3. User name at top      
+            // 3. User name at top
             if (isVideoActive)
               Positioned(
                   top: 60,
                   left: 0,
                   right: 0,
                   child: Column(children: [
-                    if (_callActuallyStarted)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
-                          style: TextStyle(
-                            color: _secondsRemaining <= 60 ? Colors.redAccent : Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 10),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Row(
@@ -487,20 +477,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                             ),
                             Row(children: [
                               IconButton(
-                                icon: const Icon(Icons.flip_camera_ios,
+                                icon: const Icon(Icons.screen_share,
                                     color: Colors.white),
                                 onPressed: () async {
-                                  if (signaling.localStream != null) {
-                                    try {
-                                      final videoTrack = signaling.localStream!
-                                          .getVideoTracks()
-                                          .firstWhere(
-                                              (track) => track.kind == 'video');
-                                      await Helper.switchCamera(videoTrack);
-                                    } catch (e) {
-                                      print("Error switching camera: $e");
+                                  try {
+                                    await signaling
+                                        .toggleScreenShare(_localRenderer);
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                "Could not share screen: ${e.toString().split('\n').first}")),
+                                      );
                                     }
                                   }
+                                  if (mounted) setState(() {});
                                 },
                               ),
                               IconButton(
@@ -512,6 +505,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               ),
                             ])
                           ]),
+                    ),
+                    Text(
+                      otherUserName,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w500),
                     ),
                   ])),
 
@@ -527,24 +527,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   children: [
                     _buildBottomControl(
                       onTap: () async {
-                        try {
-                          await signaling.toggleScreenShare(_localRenderer);
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      "Could not share screen: ${e.toString().split('\n').first}")),
-                            );
+                        if (signaling.localStream != null) {
+                          try {
+                            final videoTrack = signaling.localStream!
+                                .getVideoTracks()
+                                .firstWhere((track) => track.kind == 'video');
+                            await Helper.switchCamera(videoTrack);
+                          } catch (e) {
+                            print("Error switching camera: $e");
                           }
                         }
-                        if (mounted) setState(() {});
                       },
-                      icon: signaling.isScreenSharing
-                          ? Icons.stop_screen_share
-                          : Icons.screen_share,
-                      label: "Share",
-                      isActive: !signaling.isScreenSharing,
+                      icon: Icons.flip_camera_ios,
+                      label: "Повернуть",
+                      isActive: true,
                     ),
                     _buildBottomControl(
                       onTap: () {
@@ -578,7 +574,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           child: const Icon(Icons.call_end,
                               color: Colors.white, size: 28),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         const Text("Завершить",
                             style:
                                 TextStyle(color: Colors.white, fontSize: 12)),
@@ -619,7 +615,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               },
                               child: const Text("Open camera & mic"),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             ElevatedButton(
                               onPressed: () async {
                                 if (!_renderersReady) return;
@@ -636,7 +632,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(
@@ -652,7 +648,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               ElevatedButton(
                                 onPressed: () async {
                                   if (!_renderersReady) return;
@@ -702,7 +698,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 color: isActive ? Colors.white : Colors.black, size: 28),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
       ],
     );
@@ -726,7 +722,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.white)),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               ListTile(
                 leading: CircleAvatar(
                   backgroundImage: myUserAvatar.isNotEmpty
@@ -743,7 +739,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         color:
                             signaling.isMicOn ? Colors.green : Colors.redAccent,
                         size: 20),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Icon(
                         signaling.isCameraOn
                             ? Icons.videocam
@@ -772,7 +768,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     Icon(otherMicOn ? Icons.mic : Icons.mic_off,
                         color: otherMicOn ? Colors.green : Colors.redAccent,
                         size: 20),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Icon(otherCamOn ? Icons.videocam : Icons.videocam_off,
                         color: otherCamOn ? Colors.green : Colors.redAccent,
                         size: 20),

@@ -50,8 +50,8 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(25),
             ),
@@ -179,19 +179,19 @@ class _ProfilePageState extends State<ProfilePage> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF1A73E8),
-                                Color(0xFF4A90E2),
-                              ],
+                              colors: Theme.of(context).brightness == Brightness.dark
+                                  ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)] // Elegant dark gradient
+                                  : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.white
-                                    .withOpacity(0.4), // soft white glow
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.black.withOpacity(0.6) 
+                                    : Colors.white.withOpacity(0.4),       
                                 blurRadius: 20,
                                 spreadRadius: 2,
                                 offset: const Offset(0, 0),
@@ -202,13 +202,13 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                                 backgroundImage:
                                     photoUrl != null && photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
                                         : null,
                                 child: photoUrl == null || photoUrl.isEmpty
-                                    ? const Icon(Icons.person, size: 70)
+                                    ? Icon(Icons.person, size: 70)
                                     : null,
                               ),
                               const SizedBox(width: 16),
@@ -227,7 +227,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   .isNotEmpty)
                                           ? (firstName).trim()
                                           : 'username'.tr(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -246,7 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         ),
                                         child: Text(
                                           adminTitle,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold),
@@ -267,7 +267,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                                   foregroundColor: Color(0xFF1E88E5),
                                 ),
                                 child: Text('edit'.tr()),
@@ -287,12 +287,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
 
                         // ===== MY SKILLS =====
                         _sectionTitle('my_skills'.tr()),
                         Container(
-                          decoration: _boxDecoration(),
+                          decoration: _boxDecoration(context),
                           child: Column(
                             children: [
                               skillsList(skillsTeach),
@@ -305,7 +305,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         // ===== WANT TO LEARN =====
                         _sectionTitle('want_to_learn'.tr()),
                         Container(
-                          decoration: _boxDecoration(),
+                          decoration: _boxDecoration(context),
                           child: Column(
                             children: [
                               skillsList(skillsLearn),
@@ -319,7 +319,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         _sectionTitle('time_bank'.tr()),
                         Container(
                             padding: const EdgeInsets.all(16),
-                            decoration: _boxDecoration(),
+                            decoration: _boxDecoration(context),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -329,7 +329,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     const SizedBox(width: 4),
                                     Text('earned'.tr()),
                                     const SizedBox(width: 4),
-                                    Text('\h \m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                                   ],
                                 ),
                                 Row(
@@ -338,7 +338,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     const SizedBox(width: 4),
                                     Text('spent'.tr()),
                                     const SizedBox(width: 4),
-                                    Text('\h \m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                                   ],
                                 ),
                                 Row(
@@ -347,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     const SizedBox(width: 4),
                                     Text('balance:'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 4),
-                                    Text('\h \m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88E5))),
+                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88E5))),
                                   ],
                                 ),
                               ],
@@ -358,17 +358,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
+                          decoration: _boxDecoration(context),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -473,7 +463,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           margin: const EdgeInsets.symmetric(vertical: 10),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -505,11 +495,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               const SizedBox(height: 10),
 
                               /// DESCRIPTION
-                              const Text(
-                                "See what other users wrote about you.",
+                              Text(
+                                "See what other users wrote about you.",        
                                 style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 14,
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
                                 ),
                               ),
 
@@ -678,7 +667,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Column(
@@ -859,17 +848,19 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  static BoxDecoration _boxDecoration() {
+  static BoxDecoration _boxDecoration(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
+          color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.05),
+          blurRadius: 12,
           offset: const Offset(0, 4),
         ),
       ],
+      border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
     );
   }
 }

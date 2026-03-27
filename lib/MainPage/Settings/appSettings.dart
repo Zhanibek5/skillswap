@@ -15,6 +15,8 @@ import 'package:skillswap/MainPage/admin/reports_management_page.dart';
 import 'package:skillswap/MainPage/admin/admin_list_page.dart';
 import 'instructions_page.dart';
 import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
+import 'package:provider/provider.dart';
+import '../../settings_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -32,17 +34,21 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: Colors.white,
-          title: Text('select_language'.tr()),
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          title: Text(
+            'select_language'.tr(),
+            style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+          ),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _languageOption(Locale('en')),
-              _languageOption(Locale('kk')),
-              _languageOption(Locale('ru')),
+              _languageOption(const Locale('en')),
+              _languageOption(const Locale('kk')),
+              _languageOption(const Locale('ru')),
             ],
           ),
         );
@@ -145,7 +151,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         CircleAvatar(
                           radius: 65,
-                          backgroundColor: Colors.white,
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF1E1E1E)
+                                  : Colors.white,
                           backgroundImage:
                               photoUrl != null && photoUrl.isNotEmpty
                                   ? NetworkImage(photoUrl)
@@ -154,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ? const Icon(Icons.person, size: 80)
                               : null,
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Text(
                           displayName,
                           style: const TextStyle(
@@ -163,12 +172,12 @@ class _SettingsPageState extends State<SettingsPage> {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        SizedBox(height: 5),
                         Text(
                           FirebaseAuth.instance.currentUser!.email ?? '',
                           style: TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        // const SizedBox(height: 10),
+                        // SizedBox(height: 10),
 
                         /// ✏️ EDIT PROFILE BUTTON
                         // OutlinedButton(
@@ -192,7 +201,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     /// 👮 ADMIN CARD
                     if (role == 'admin' || role == 'moderator') ...[
@@ -238,7 +247,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                     ],
 
                     /// ⚙️ GENERAL SETTINGS CARD
@@ -279,48 +288,92 @@ class _SettingsPageState extends State<SettingsPage> {
                           },
                         ),
                         _divider(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 11, vertical: 0),
-                          child: Row(
+                        Consumer<SettingsProvider>(
+                            builder: (context, settingsProvider, child) {
+                          bool isDarkMode =
+                              Theme.of(context).brightness == Brightness.dark;
+                          Color iconColor =
+                              isDarkMode ? Colors.white : Colors.black;
+                          return Column(
                             children: [
-                              Icon(
-                                Icons.notifications,
-                                color: Colors.black,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "Notification",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                  ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.notifications,
+                                      color: iconColor,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        "Notification",
+                                        style: TextStyle(
+                                          color: iconColor,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    Switch(
+                                      value:
+                                          settingsProvider.notificationsEnabled,
+                                      activeThumbColor: Colors.white,
+                                      activeTrackColor: const Color(0xFF1E88E5),
+                                      inactiveThumbColor: Colors.grey,
+                                      inactiveTrackColor: Colors.black54,
+                                      onChanged: (value) async {
+                                        settingsProvider
+                                            .setNotifications(value);
+                                        final uid = FirebaseAuth
+                                            .instance.currentUser!.uid;
+                                        await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(uid)
+                                            .update({
+                                          'notificationsEnabled': value
+                                        });
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
-                              Switch(
-                                value: notificationsEnabled,
-                                activeColor: Colors.white,
-                                activeTrackColor: Color(0xFF1E88E5),
-                                inactiveThumbColor: Colors.grey,
-                                inactiveTrackColor: Colors.black54,
-                                onChanged: (value) async {
-                                  setState(() {
-                                    notificationsEnabled = value;
-                                  });
-
-                                  final uid =
-                                      FirebaseAuth.instance.currentUser!.uid;
-
-                                  await FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(uid)
-                                      .update({'notificationsEnabled': value});
-                                },
+                              _divider(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.dark_mode,
+                                      color: iconColor,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                          "dark_mode".tr(),
+                                        style: TextStyle(
+                                          color: iconColor,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    Switch(
+                                      value: settingsProvider.isDarkMode,
+                                      activeThumbColor: Colors.white,
+                                      activeTrackColor: const Color(0xFF1E88E5),
+                                      inactiveThumbColor: Colors.grey,
+                                      inactiveTrackColor: Colors.black54,
+                                      onChanged: (value) async {
+                                        settingsProvider.setDarkMode(value);
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
-                          ),
-                        ),
+                          );
+                        }),
                         _divider(),
                         _item(
                           Icons.privacy_tip_outlined,
@@ -350,7 +403,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
 
                     /// ⚠️ ACCOUNT CARD
                     _card(
@@ -404,18 +457,20 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// 📦 CARD
   Widget _card({required List<Widget> children}) {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.06),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
         ],
+        border: isDarkMode ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
       ),
       child: Column(children: children),
     );
@@ -428,18 +483,21 @@ class _SettingsPageState extends State<SettingsPage> {
     bool danger = false,
     VoidCallback? onTap,
   }) {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    Color textColor =
+        danger ? Colors.red : (isDarkMode ? Colors.white : Colors.black);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
         child: Row(
           children: [
-            Icon(icon, color: danger ? Colors.red : Colors.black),
-            const SizedBox(width: 12),
+            Icon(icon, color: textColor),
+            SizedBox(width: 12),
             Text(
               text,
               style: TextStyle(
-                color: danger ? Colors.red : Colors.black,
+                color: textColor,
                 fontSize: 15,
               ),
             ),

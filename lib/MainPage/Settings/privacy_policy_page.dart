@@ -56,31 +56,31 @@ class PrivacyPolicyPage extends StatelessWidget {
                         color: Color(0xFF203068),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     _buildSectionTitle('1. Introduction'),
                     _buildSectionContent(
                         'Welcome to SkillSwap. We value your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our application to exchange skills.'),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     _buildSectionTitle('2. Information We Collect'),
                     _buildSectionContent(
                         'We collect information you provide directly to us, such as when you create an account, update your profile, and list skills you can teach or want to learn. This includes your name, email address, profile picture, and communication within the app.'),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     _buildSectionTitle('3. How We Use Your Information'),
                     _buildSectionContent(
                         'The information we collect is used to matched you with other users for skill exchange, maintain your account, improve our services, and communicate with you about updates and community guidelines.'),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     _buildSectionTitle('4. Data Sharing and Disclosure'),
                     _buildSectionContent(
                         'SkillSwap does not sell your personal data. We may share your public profile information (such as your name and listed skills) with other users to facilitate skill exchanges.'),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     _buildSectionTitle('5. Data Security'),
                     _buildSectionContent(
                         'We implement appropriate security measures to protect your personal information against unauthorized access, alteration, and destruction. However, no data transmission over the Internet can be guaranteed to be 100% secure.'),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     _buildSectionTitle('6. Your Rights'),
                     _buildSectionContent(
                         'You have the right to access, update, or delete your account information at any time within the app settings. You can also contact us for any privacy-related inquiries.'),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     Center(
                       child: Text(
                         'Last updated: ${DateTime.now().year}',

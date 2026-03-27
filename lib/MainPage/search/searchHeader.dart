@@ -44,7 +44,7 @@ class _SearchHeaderState extends State<SearchHeader> {
             ),
           ),
 
-          const SizedBox(height: 15),
+          SizedBox(height: 15),
 
           Row(
             children: [
@@ -63,7 +63,7 @@ class _SearchHeaderState extends State<SearchHeader> {
                   ),
                 ),
               ),
-              const SizedBox(width: 15),
+              SizedBox(width: 15),
               GestureDetector(
                 onTap: widget.onFilterTap,
                 child: const Icon(

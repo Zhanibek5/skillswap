@@ -5,6 +5,7 @@ import 'searchHeader.dart';
 import 'userCard.dart';
 import 'filter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -86,47 +87,34 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: [
-            0.0,
-            0.4,
-            0.75,
-            1.0,
-          ],
-          colors: [
-            Color(0xFF1565C0),
-            Color(0xFF1E88E5),
-            Color(0xFFE3F2FD),
-            Colors.white,
-          ],
-        )),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              SearchHeader(
-                onSearchChanged: (value) {
-                  setState(() => searchQuery = value);
-                },
-                onModeChanged: (value) {
-                  setState(() => mode = value);
-                },
-                onFilterTap: openFilter,
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: query.snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const Backgroundcolor(),
+          SafeArea(
+            child: Column(
+              children: [
+                SizedBox(height: 20),
+                SearchHeader(
+                  onSearchChanged: (value) {
+                    setState(() => searchQuery = value);
+                  },
+                  onModeChanged: (value) {
+                    setState(() => mode = value);
+                  },
+                  onFilterTap: openFilter,
+                ),
+                SizedBox(height: 20),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: query.snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
 
                     final users = snapshot.data!.docs;
 
@@ -134,7 +122,7 @@ class _SearchPageState extends State<SearchPage> {
                       if (doc.id == currentUid) return false;
 
                       final data = doc.data() as Map<String, dynamic>;
-                      
+
                       final role = data['role'] ?? 'user';
                       if (role == 'admin' || role == 'moderator') return false;
 
@@ -237,7 +225,7 @@ class _SearchPageState extends State<SearchPage> {
                           ),
                         );
                       },
-                      separatorBuilder: (_, __) => const SizedBox(height: 40),
+                      separatorBuilder: (_, __) => SizedBox(height: 40),
                     );
                   },
                 ),
@@ -245,6 +233,7 @@ class _SearchPageState extends State<SearchPage> {
             ],
           ),
         ),
+        ],
       ),
     );
   }

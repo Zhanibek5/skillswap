@@ -85,13 +85,13 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                   children: [
                     const Icon(Icons.email_outlined,
                         size: 80, color: Color(0xFF203068)),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Text(
                       'verification_email_sent'.tr(),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 18, color: Color(0xFF203068)),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Text(
                       FirebaseAuth.instance.currentUser!.email ?? "",
                       style: const TextStyle(

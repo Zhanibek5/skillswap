@@ -80,7 +80,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     Center(
                       child: SizedBox(
@@ -92,7 +92,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
                     Text(
                       'delete_account_warning'.tr(),
@@ -102,7 +102,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // EMAIL FIELD
                     TextFormField(
@@ -142,7 +142,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // PASSWORD FIELD
                     TextFormField(
@@ -197,7 +197,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // ERROR MESSAGE
                     if (errorMessage.isNotEmpty)
@@ -209,7 +209,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                         ),
                       ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // DELETE ACCOUNT BUTTON
                     SizedBox(
@@ -237,7 +237,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 75),
+                    SizedBox(height: 75),
                     Center(
                       child: Text(
                         "SkillSwap",
@@ -246,7 +246,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
                   ],
                 ),
               ),

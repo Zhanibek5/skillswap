@@ -9,8 +9,6 @@ import 'search/searchPage.dart';
 import 'admin/banned_page.dart';
 import 'dart:ui';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 final GlobalKey<_SkillMainPageState> mainPageKey =
@@ -141,7 +139,7 @@ class _SkillMainPageState extends State<SkillMainPage> {
                 left: 20,
                 right: 20,
                 bottom: 15,
-                child: _buildCustomNavBar(),
+                child: _buildCustomNavBar(context),
               ),
             ],
           ),
@@ -150,16 +148,17 @@ class _SkillMainPageState extends State<SkillMainPage> {
     );
   }
 
-  Widget _buildCustomNavBar() {
+  Widget _buildCustomNavBar(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.15),
             blurRadius: 25,
             spreadRadius: 5,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -170,16 +169,16 @@ class _SkillMainPageState extends State<SkillMainPage> {
           child: Container(
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF1A1A1A).withOpacity(0.85) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(40),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _navItem(Icons.chat, 'chat'.tr(), 0),
-                _navItem(Icons.search, 'search'.tr(), 1),
-                _navItem(Icons.settings, 'settings'.tr(), 2),
-                _navItem(Icons.person_outline, 'profile'.tr(), 3),
+                _navItem(context, Icons.chat, 'chat'.tr(), 0),
+                _navItem(context, Icons.search, 'search'.tr(), 1),
+                _navItem(context, Icons.settings, 'settings'.tr(), 2),
+                _navItem(context, Icons.person_outline, 'profile'.tr(), 3),
               ],
             ),
           ),
@@ -188,8 +187,10 @@ class _SkillMainPageState extends State<SkillMainPage> {
     );
   }
 
-  Widget _navItem(IconData icon, String label, int index) {
+  Widget _navItem(BuildContext context, IconData icon, String label, int index) {
     bool isSelected = _selectedIndex == index;
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    Color primaryColor = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
       onTap: () {
@@ -198,29 +199,47 @@ class _SkillMainPageState extends State<SkillMainPage> {
         });
       },
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 250),
-        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color:
-              isSelected ? Color(0xFF1E88E5) : Colors.white.withOpacity(0.05),
+          color: isSelected 
+              ? primaryColor 
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(25),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                color:
-                    isSelected ? Colors.white : Color(0xFF1E88E5) // Black icons
-                ),
-            if (isSelected)
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+              child: Icon(
+                icon,
+                key: ValueKey<bool>(isSelected),
+                color: isSelected 
+                    ? Colors.white 
+                    : (isDark ? Colors.white70 : const Color(0xFF1E88E5)),
+                size: isSelected ? 24 : 22,
               ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: isSelected
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),

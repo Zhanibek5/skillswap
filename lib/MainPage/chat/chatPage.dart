@@ -260,14 +260,14 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showConfirmDialog(DateTime meetingTime) {
-    int _selectedDuration = 60; // Default 1 hour
+    int selectedDuration = 60; // Default 1 hour
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
               title: const Text("Confirm Meeting"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -282,24 +282,24 @@ class _ChatPageState extends State<ChatPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: _selectedDuration > 5
+                        onPressed: selectedDuration > 5
                             ? () {
                                 setState(() {
-                                  _selectedDuration -= 5;
+                                  selectedDuration -= 5;
                                 });
                               }
                             : null,
                       ),
                       Text(
-                        "$_selectedDuration min",
+                        "$selectedDuration min",
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.add_circle_outline),
-                        onPressed: _selectedDuration < 180
+                        onPressed: selectedDuration < 180
                             ? () {
                                 setState(() {
-                                  _selectedDuration += 5;
+                                  selectedDuration += 5;
                                 });
                               }
                             : null,
@@ -307,14 +307,14 @@ class _ChatPageState extends State<ChatPage> {
                     ],
                   ),
                   Slider(
-                    value: _selectedDuration.toDouble(),
+                    value: selectedDuration.toDouble(),
                     min: 5,
                     max: 180,
                     divisions: 35,
                     activeColor: const Color(0xFF1E88E5),
                     onChanged: (double value) {
                       setState(() {
-                        _selectedDuration = value.toInt();
+                        selectedDuration = value.toInt();
                       });
                     },
                   )
@@ -331,7 +331,7 @@ class _ChatPageState extends State<ChatPage> {
                 OutlinedButton(
                   onPressed: () async {
                     Navigator.pop(context);
-                    await _sendMeetingMessage(meetingTime, _selectedDuration);
+                    await _sendMeetingMessage(meetingTime, selectedDuration);
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E88E5),
@@ -373,7 +373,7 @@ class _ChatPageState extends State<ChatPage> {
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
-            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
+            dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
           ),
           child: child!,
         );
@@ -388,8 +388,8 @@ class _ChatPageState extends State<ChatPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            timePickerTheme: const TimePickerThemeData(
-              backgroundColor: Colors.white,
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
             ),
             colorScheme: const ColorScheme.light(
               primary: Color(0xFF1E88E5),
@@ -465,7 +465,9 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> checkAndSendInitialMessage() async {
     if (widget.mode == 'support' ||
         widget.mode == 'admin_view' ||
-        widget.mode == 'support_admin') return;
+        widget.mode == 'support_admin') {
+      return;
+    }
 
     final chatDoc = await FirebaseFirestore.instance
         .collection('chats')
@@ -605,7 +607,7 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     String fileNameStr =
-        "${DateTime.now().millisecondsSinceEpoch}_${originalFileName}";
+        "${DateTime.now().millisecondsSinceEpoch}_$originalFileName";
     Reference ref = FirebaseStorage.instance
         .ref()
         .child("chats/${widget.chatId}/$fileNameStr");
@@ -652,7 +654,7 @@ class _ChatPageState extends State<ChatPage> {
                           ? 'Выбрано: ${files.length}'
                           : 'Выбран 1 файл',
                       style:
-                          const TextStyle(color: Colors.white, fontSize: 18)),
+                          TextStyle(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white, fontSize: 18)),
                 ]),
                 Expanded(
                   child: Center(
@@ -677,12 +679,12 @@ class _ChatPageState extends State<ChatPage> {
                                   color: Colors.blueAccent, size: 80),
                               const SizedBox(height: 20),
                               Text(files.first.path.split('/').last,
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 18),
+                                  style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white, fontSize: 18),
                                   textAlign: TextAlign.center),
                               Text(
                                   "${(files.first.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB",
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: Colors.white54, fontSize: 14)),
                             ],
                           ),
@@ -691,7 +693,7 @@ class _ChatPageState extends State<ChatPage> {
                 Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    color: Colors.black,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                     child: Row(children: [
                       Expanded(
                           child: TextField(
@@ -704,10 +706,10 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       )),
                       IconButton(
-                          icon: const CircleAvatar(
+                          icon: CircleAvatar(
                             backgroundColor: Colors.blueAccent,
                             child:
-                                Icon(Icons.send, color: Colors.white, size: 20),
+                                Icon(Icons.send, color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white, size: 20),
                           ),
                           onPressed: () {
                             sent = true;
@@ -946,8 +948,9 @@ class _ChatPageState extends State<ChatPage> {
                   Navigator.pop(context);
                   final picked =
                       await ImagePicker().pickImage(source: ImageSource.camera);
-                  if (picked != null)
+                  if (picked != null) {
                     _showMultiMediaPreview([File(picked.path)], 'image');
+                  }
                 }),
                 _buildAttachOption(
                     Icons.insert_drive_file, Colors.orange, "File", () async {
@@ -1167,10 +1170,21 @@ class _ChatPageState extends State<ChatPage> {
       body: Stack(
         children: [
           Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/back.png"),
-                fit: BoxFit.cover,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : null,
+            child: Opacity(
+              opacity: Theme.of(context).brightness == Brightness.dark ? 0.08 : 1.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage("assets/back.png"),
+                    fit: BoxFit.cover,
+                    colorFilter: Theme.of(context).brightness == Brightness.dark
+                        ? const ColorFilter.mode(Colors.white, BlendMode.srcIn)
+                        : null,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1201,19 +1215,19 @@ class _ChatPageState extends State<ChatPage> {
                   Container(
                     padding: const EdgeInsets.only(
                         top: 50, left: 5, right: 16, bottom: 12),
-                    color: Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF161616) : Colors.white,
                     child: Row(
                       children: [
                         IconButton(
                           icon:
-                              const Icon(Icons.arrow_back, color: Colors.black),
+                              Icon(Icons.arrow_back, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                           onPressed: () {
                             Navigator.pop(context); // ChatsListPage сақталады
                           },
                         ),
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                           child: ClipOval(
                             child: photoUrl.isNotEmpty
                                 ? Image.network(
@@ -1235,8 +1249,8 @@ class _ChatPageState extends State<ChatPage> {
                             children: [
                               Text(
                                 userName,
-                                style: const TextStyle(
-                                    color: Colors.black,
+                                style: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
                               ),
@@ -1246,8 +1260,8 @@ class _ChatPageState extends State<ChatPage> {
                                     : amILearner
                                         ? "Teacher: ${widget.selectedSkills.join(", ")}"
                                         : "Learner: ${widget.selectedSkills.join(", ")}",
-                                style: const TextStyle(
-                                  color: Colors.black38,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black38,
                                   fontSize: 13,
                                 ),
                               ),
@@ -1266,15 +1280,15 @@ class _ChatPageState extends State<ChatPage> {
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.calendar_month,
-                                color: Colors.black),
+                            icon: Icon(Icons.calendar_month,
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                             onPressed: () {
                               _openMeetingScheduler();
                             },
                           ),
                           PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert,
-                                color: Colors.black),
+                            icon: Icon(Icons.more_vert,
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                             onSelected: (value) {
                               if (value == 'clear_me') clearChat(false);
                               if (value == 'clear_all') clearChat(true);
@@ -1372,6 +1386,47 @@ class _ChatPageState extends State<ChatPage> {
                           i++;
                         }
 
+                        if (uiItems.isEmpty) {
+                          return Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 40),
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                  ? const Color(0xFF2C2538).withOpacity(0.85) // Telegram like purplish dark grey
+                                  : Colors.white.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    "Здесь пока ничего нет...",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    "Отправьте сообщение или нажмите на приветствие ниже.",
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+                                      fontSize: 14,
+                                      height: 1.3,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Text("👋", style: TextStyle(fontSize: 48)),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
                         return ListView.builder(
                           reverse: true,
                           controller: _scrollController,
@@ -1420,7 +1475,7 @@ class _ChatPageState extends State<ChatPage> {
                                       decoration: BoxDecoration(
                                         color: isMe
                                             ? const Color(0xFF1E88E5)
-                                            : Colors.white,
+                                            : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF232530) : Colors.white),
                                         borderRadius: BorderRadius.only(
                                           topLeft: const Radius.circular(16),
                                           topRight: const Radius.circular(16),
@@ -1470,7 +1525,7 @@ class _ChatPageState extends State<ChatPage> {
                                                 style: TextStyle(
                                                   color: isMe
                                                       ? Colors.white
-                                                      : Colors.black,
+                                                      : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                                                   fontSize: 15,
                                                 ),
                                               ),
@@ -1499,8 +1554,9 @@ class _ChatPageState extends State<ChatPage> {
                             final msg = item as DocumentSnapshot;
                             final data = msg.data() as Map<String, dynamic>;
                             final List deletedFor = data['deletedFor'] ?? [];
-                            if (deletedFor.contains(currentUserId))
+                            if (deletedFor.contains(currentUserId)) {
                               return const SizedBox();
+                            }
 
                             final type = data['type'] ?? 'text';
                             if (type != null &&
@@ -1518,7 +1574,7 @@ class _ChatPageState extends State<ChatPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
+                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF232530).withOpacity(0.9) : Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Stack(
@@ -1705,7 +1761,7 @@ class _ChatPageState extends State<ChatPage> {
                                     decoration: BoxDecoration(
                                       color: isMe
                                           ? const Color(0xFF1E88E5)
-                                          : Colors.white,
+                                          : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF232530) : Colors.white),
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(16),
                                         topRight: const Radius.circular(16),
@@ -1727,9 +1783,9 @@ class _ChatPageState extends State<ChatPage> {
                                             decoration: BoxDecoration(
                                               color:
                                                   Colors.black.withOpacity(0.1),
-                                              border: const Border(
+                                              border: Border(
                                                   left: BorderSide(
-                                                      color: Colors.white,
+                                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
                                                       width: 3)),
                                               borderRadius:
                                                   BorderRadius.circular(4),
@@ -1740,7 +1796,7 @@ class _ChatPageState extends State<ChatPage> {
                                                   fontSize: 12,
                                                   color: isMe
                                                       ? Colors.white
-                                                      : Colors.black87),
+                                                      : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87)),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -1890,7 +1946,7 @@ class _ChatPageState extends State<ChatPage> {
                                                             .externalApplication);
                                                   }
                                                 },
-                                                child: Container(
+                                                child: SizedBox(
                                                   width: 200,
                                                   child: Row(
                                                     children: [
@@ -1942,8 +1998,7 @@ class _ChatPageState extends State<ChatPage> {
                                                                 color: isMe
                                                                     ? Colors
                                                                         .white
-                                                                    : Colors
-                                                                        .black,
+                                                                    : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -2002,7 +2057,7 @@ class _ChatPageState extends State<ChatPage> {
                                             style: TextStyle(
                                               color: isMe
                                                   ? Colors.white
-                                                  : Colors.black,
+                                                  : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                                               fontSize: 15,
                                             ),
                                           ),
@@ -2077,7 +2132,7 @@ class _ChatPageState extends State<ChatPage> {
                       children: [
                         if (replyToMessage != null || editMessageId != null)
                           Container(
-                            color: Colors.white,
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
                             child: Row(
@@ -2147,10 +2202,11 @@ class _ChatPageState extends State<ChatPage> {
                                   setState(() {
                                     isEmojiVisible = !isEmojiVisible;
                                   });
-                                  if (isEmojiVisible)
+                                  if (isEmojiVisible) {
                                     focusNode.unfocus();
-                                  else
+                                  } else {
                                     focusNode.requestFocus();
+                                  }
                                 },
                               ),
                               Expanded(
@@ -2158,7 +2214,7 @@ class _ChatPageState extends State<ChatPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1C1C1E) : Colors.white,
                                     borderRadius: BorderRadius.circular(25),
                                   ),
                                   child: isRecording
@@ -2171,7 +2227,7 @@ class _ChatPageState extends State<ChatPage> {
                                               Container(
                                                 width: 10,
                                                 height: 10,
-                                                decoration: const BoxDecoration(
+                                                decoration: BoxDecoration(
                                                   color: Colors.red,
                                                   shape: BoxShape.circle,
                                                 ),
@@ -2180,8 +2236,8 @@ class _ChatPageState extends State<ChatPage> {
                                               Text(
                                                   formatRecordingDuration(
                                                       _recordingDuration),
-                                                  style: const TextStyle(
-                                                      color: Colors.black,
+                                                  style: TextStyle(
+                                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                                       fontSize: 16)),
                                               const Spacer(),
                                               const Text("< Влево — отмена",
@@ -2239,9 +2295,9 @@ class _ChatPageState extends State<ChatPage> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.send,
-                                      color: Colors.white,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
                                     ),
                                     onPressed: () {
                                       sendMessage(messageController.text);
@@ -2312,13 +2368,13 @@ class _ChatPageState extends State<ChatPage> {
                                   child: Container(
                                     width: 45,
                                     height: 45,
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       color: Color(0xFF1E88E5),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.mic,
-                                      color: Colors.white,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
                                     ),
                                   ),
                                 ),

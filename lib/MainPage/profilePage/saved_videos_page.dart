@@ -148,7 +148,7 @@ class _SavedVideosPageState extends State<SavedVideosPage> {
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     video['duration']!,
                     style: const TextStyle(
@@ -156,7 +156,7 @@ class _SavedVideosPageState extends State<SavedVideosPage> {
                       fontSize: 12,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
                     child: IconButton(

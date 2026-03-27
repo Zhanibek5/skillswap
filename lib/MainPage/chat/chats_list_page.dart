@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chatPage.dart';
 import '../support/support_page.dart';
-import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -42,7 +41,6 @@ class _ChatsListPageState extends State<ChatsListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           /// TITLE
@@ -115,7 +113,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                 }
 
                 final chats = snapshot.data!.docs.toList();
-                
+
                 // Sort by lastTimestamp descending
                 chats.sort((a, b) {
                   final aData = a.data() as Map<String, dynamic>;
@@ -165,7 +163,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                       builder: (context, userSnapshot) {
                         if (!userSnapshot.hasData ||
                             !userSnapshot.data!.exists) {
-                          return const SizedBox();
+                          return SizedBox();
                         }
 
                         final userData =
@@ -215,7 +213,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         if (searchText.isNotEmpty &&
                             !nameLower.contains(searchText) &&
                             !skillLower.contains(searchText)) {
-                          return const SizedBox();
+                          return SizedBox();
                         }
 
                         return Container(
@@ -248,7 +246,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                 /// AVATAR
                                 CircleAvatar(
                                   radius: 28,
-                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,        
                                   child: ClipOval(
                                     child: photoUrl.isNotEmpty
                                         ? Image.network(
@@ -266,7 +264,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                   ),
                                 ),
 
-                                const SizedBox(width: 14),
+                                SizedBox(width: 14),
 
                                 /// TEXT AREA
                                 Expanded(
@@ -297,13 +295,13 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                           )
                                         ],
                                       ),
-                                      const SizedBox(height: 6),
+                                      SizedBox(height: 6),
                                       Text(
                                         lastMessage,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.black54,
+                                        style: TextStyle(
+                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
                                         ),
                                       ),
                                     ],

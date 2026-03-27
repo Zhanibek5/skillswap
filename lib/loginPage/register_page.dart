@@ -70,7 +70,6 @@ class _RegisterPageState extends State<RegisterPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -89,7 +88,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       style: TextStyle(fontSize: 14, color: Colors.black87),
                       children: [
                         TextSpan(
-                          text: 'Before proceeding with registration, please review and accept our User Agreement and ',
+                          text:
+                              'Before proceeding with registration, please review and accept our User Agreement and ',
                         ),
                         TextSpan(
                           text: 'Privacy Policy',
@@ -102,18 +102,20 @@ class _RegisterPageState extends State<RegisterPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const PrivacyPolicyPage(),
+                                  builder: (context) =>
+                                      const PrivacyPolicyPage(),
                                 ),
                               );
                             },
                         ),
                         TextSpan(
-                          text: ' to use the SkillSwap application. This includes our community guidelines for skill exchange and how we handle your data.',
+                          text:
+                              ' to use the SkillSwap application. This includes our community guidelines for skill exchange and how we handle your data.',
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -142,7 +144,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                               children: [
                                 TextSpan(
-                                  text: 'I accept the terms of the user agreement and the ',
+                                  text:
+                                      'I accept the terms of the user agreement and the ',
                                 ),
                                 TextSpan(
                                   text: 'privacy policy',
@@ -155,7 +158,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const PrivacyPolicyPage(),
+                                          builder: (context) =>
+                                              const PrivacyPolicyPage(),
                                         ),
                                       );
                                     },
@@ -184,7 +188,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   onPressed: isChecked
                       ? () {
                           Navigator.pop(context); // Close dialog
-                          register();            // Proceed to register
+                          register(); // Proceed to register
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -241,7 +245,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // Title
                     Center(
@@ -255,7 +259,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
                     Text(
                       'sign_up_with_email'.tr(),
@@ -265,7 +269,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // EMAIL FIELD
                     TextFormField(
@@ -305,7 +309,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // PASSWORD FIELD
                     TextFormField(
@@ -360,7 +364,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // ERROR MESSAGE
                     if (errorMessage.isNotEmpty)
@@ -372,7 +376,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
 
-                    const SizedBox(height: 25),
+                    SizedBox(height: 25),
 
                     // BUTTON
                     SizedBox(
@@ -401,7 +405,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 25),
+                    SizedBox(height: 25),
 
                     // Already have account?
                     Row(
@@ -424,7 +428,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 35),
+                    SizedBox(height: 35),
                     Center(
                       child: Text(
                         "SkillSwap",
@@ -433,7 +437,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                   ],
                 ),
               ),

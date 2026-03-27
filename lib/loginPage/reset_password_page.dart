@@ -95,7 +95,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Center(
                       child: SizedBox(
                         width: 400,
@@ -106,7 +106,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Text(
                       'enter_email_for_reset'.tr(),
                       style: TextStyle(
@@ -114,7 +114,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         color: Color(0xFF203068),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
                     TextFormField(
                       controller: controllerEmail,
                       keyboardType: TextInputType.emailAddress,
@@ -152,13 +152,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     if (errorMessage.isNotEmpty)
                       Text(
                         errorMessage,
                         style: const TextStyle(color: Colors.red, fontSize: 14),
                       ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
                     SizedBox(
                       width: double.infinity,
                       height: 60,
@@ -184,7 +184,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 150),
+                    SizedBox(height: 150),
                     Center(
                       child: Text(
                         "SkillSwap",
@@ -193,7 +193,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
                   ],
                 ),
               ),

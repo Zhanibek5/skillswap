@@ -5,7 +5,7 @@ import 'package:flutter_background/flutter_background.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-typedef void StreamStateCallback(MediaStream stream);
+typedef StreamStateCallback = void Function(MediaStream stream);
 
 class Signaling {
   Map<String, dynamic> configuration = {
@@ -557,7 +557,7 @@ class Signaling {
         displayStream = null;
         isScreenSharing = false;
         onScreenShareStateChange?.call();
-        throw e;
+        rethrow;
       }
     } else {
       await stopScreenShare(localVideo);

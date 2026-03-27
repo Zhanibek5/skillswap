@@ -39,7 +39,7 @@ class InstructionsPage extends StatelessWidget {
                   title: 'app_guide'.tr(),
                   content: 'getting_started'.tr(),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 /// 👤 PROFILE SECTION
                 _instructionCard(
@@ -51,7 +51,7 @@ class InstructionsPage extends StatelessWidget {
                     'step_add_skills'.tr(),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 /// 🎓 TEACHING SECTION
                 _instructionCard(
@@ -63,7 +63,7 @@ class InstructionsPage extends StatelessWidget {
                     'step_wait_request'.tr(),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 /// 📚 LEARNING SECTION
                 _instructionCard(
@@ -75,7 +75,7 @@ class InstructionsPage extends StatelessWidget {
                     'step_send_request'.tr(),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 /// 💬 CHAT SECTION
                 _instructionCard(
@@ -87,7 +87,7 @@ class InstructionsPage extends StatelessWidget {
                     'step_schedule_lesson'.tr(),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 /// ⏱️ TIME BALANCE SECTION
                 _instructionCard(
@@ -99,7 +99,7 @@ class InstructionsPage extends StatelessWidget {
                     'step_spend_time'.tr(),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 /// ⭐ RATINGS SECTION
                 _instructionCard(
@@ -111,7 +111,7 @@ class InstructionsPage extends StatelessWidget {
                     'step_leave_feedback'.tr(),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 /// 📋 IMPORTANT NOTES
                 _section(
@@ -119,7 +119,7 @@ class InstructionsPage extends StatelessWidget {
                   content: 'community_guidelines'.tr(),
                 ),
 
-                const SizedBox(height: 30),
+                SizedBox(height: 30),
               ],
             ),
           ),
@@ -154,7 +154,7 @@ class InstructionsPage extends StatelessWidget {
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             content,
             style: GoogleFonts.roboto(
@@ -192,8 +192,8 @@ class InstructionsPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.teal, size: 28),
-              const SizedBox(width: 12),
+              Icon(icon, color: const Color(0xFF1E88E5), size: 28),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
@@ -206,7 +206,7 @@ class InstructionsPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...List.generate(
             steps.length,
             (index) => Padding(
@@ -218,7 +218,7 @@ class InstructionsPage extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: Colors.teal,
+                      color: const Color(0xFF1E88E5),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: Center(
@@ -232,7 +232,7 @@ class InstructionsPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       steps[index],

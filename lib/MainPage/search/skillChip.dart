@@ -28,7 +28,7 @@ class SkillChip extends StatelessWidget {
                   ],
                 )
               : null,
-          color: isSelected ? null : Colors.grey.shade200,
+          color: isSelected ? null : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: const Color(0xFF1E88E5),

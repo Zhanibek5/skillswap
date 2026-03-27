@@ -75,7 +75,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
           title: Text('select_language'.tr()),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -182,7 +181,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               fit: BoxFit.cover,
                             ),
                           ),
-                          const SizedBox(height: 30),
+                          SizedBox(height: 30),
                           Text(
                             page["title"]!.tr(),
                             textAlign: TextAlign.left,
@@ -192,7 +191,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               color: Colors.white,
                             ),
                           ),
-                          const SizedBox(height: 15),
+                          SizedBox(height: 15),
                           Text(
                             page["desc"]!.tr(),
                             textAlign: TextAlign.left,
@@ -225,7 +224,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 25, vertical: 5),
@@ -273,7 +272,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
             ],
           ),
           Positioned(

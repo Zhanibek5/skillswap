@@ -93,7 +93,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: 5),
+                  SizedBox(height: 5),
 
                   /// Title
                   Text(
@@ -106,7 +106,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     textAlign: TextAlign.center,
                   ),
 
-                  const SizedBox(height: 5),
+                  SizedBox(height: 5),
 
                   Text(
                     "Your feedback helps improve learning quality",
@@ -116,7 +116,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   /// Teacher Card
                   Container(
@@ -141,7 +141,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                                 : const Icon(Icons.person, size: 30),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +153,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 3),
+                              SizedBox(height: 3),
                               Text(
                                 "Teacher: ${widget.selectedSkills.join(",")}",
                                 style: TextStyle(
@@ -168,7 +168,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: 22),
+                  SizedBox(height: 22),
 
                   /// Rating
                   Text(
@@ -179,7 +179,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
 
                   StarRatingWidget(
                     onRatingChanged: (value) {
@@ -189,7 +189,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     },
                   ),
 
-                  const SizedBox(height: 22),
+                  SizedBox(height: 22),
 
                   /// Comment
                   TextField(
@@ -207,7 +207,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   /// Buttons
                   Row(
@@ -230,7 +230,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Container(
                           height: 45,

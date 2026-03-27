@@ -169,9 +169,16 @@ class _UserCardState extends State<UserCard> {
           margin: const EdgeInsets.only(bottom: 20),
           padding: const EdgeInsets.fromLTRB(12, 25, 12, 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.black45 : Colors.black12, 
+                blurRadius: 10,
+                offset: const Offset(0, 4)
+              )
+            ],
+            border: Theme.of(context).brightness == Brightness.dark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +188,7 @@ class _UserCardState extends State<UserCard> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundColor: Colors.grey.shade200,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                     child: ClipOval(
                       child: photoUrl != null && photoUrl.isNotEmpty
                           ? Image.network(
@@ -196,7 +203,7 @@ class _UserCardState extends State<UserCard> {
                           : Icon(Icons.person, size: 40),
                     ),
                   ),
-                  const SizedBox(width: 15),
+                  SizedBox(width: 15),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,7 +222,7 @@ class _UserCardState extends State<UserCard> {
                                 : "No skills yet",
                             style: const TextStyle(color: Colors.grey),
                           ),
-                          // const SizedBox(height: 3),
+                          // SizedBox(height: 3),
                           // Row(
                           //   children: [
                           //     Icon(
@@ -223,7 +230,7 @@ class _UserCardState extends State<UserCard> {
                           //       size: 12,
                           //       color: canLearn ? Colors.green : Colors.red,
                           //     ),
-                          //     const SizedBox(width: 6),
+                          //     SizedBox(width: 6),
                           //     Text(
                           //       canLearn
                           //           ? "Ready to learn"
@@ -243,7 +250,7 @@ class _UserCardState extends State<UserCard> {
                                 : "No skills yet",
                             style: const TextStyle(color: Colors.grey),
                           ),
-                          // const SizedBox(height: 3),
+                          // SizedBox(height: 3),
                           // Row(
                           //   children: [
                           //     Icon(
@@ -251,7 +258,7 @@ class _UserCardState extends State<UserCard> {
                           //       size: 12,
                           //       color: canTeach ? Colors.green : Colors.red,
                           //     ),
-                          //     const SizedBox(width: 6),
+                          //     SizedBox(width: 6),
                           //     Text(
                           //       canTeach
                           //           ? "Ready to teach"
@@ -295,7 +302,7 @@ class _UserCardState extends State<UserCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 15),
+              SizedBox(height: 15),
               if (skillsToShow.isNotEmpty)
                 Wrap(
                   spacing: 10,
@@ -318,7 +325,7 @@ class _UserCardState extends State<UserCard> {
                     );
                   }).toList(),
                 ),
-              const SizedBox(height: 15),
+              SizedBox(height: 15),
               Row(
                 children: [
                   Expanded(
@@ -326,7 +333,7 @@ class _UserCardState extends State<UserCard> {
                         ? Row(
                             children: [
                               const Icon(Icons.language, size: 18),
-                              const SizedBox(width: 5),
+                              SizedBox(width: 5),
                               Expanded(
                                 child: Text(
                                   languages.join(" / "),
@@ -335,7 +342,7 @@ class _UserCardState extends State<UserCard> {
                               ),
                             ],
                           )
-                        : const SizedBox(),
+                        : SizedBox(),
                   ),
                   ElevatedButton(
                     onPressed: selectedSkills.isEmpty
@@ -426,14 +433,14 @@ class _UserCardState extends State<UserCard> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(width: 0.5, color: Colors.grey),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Colors.black38,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.black54 : Colors.black38,
                     blurRadius: 10,
-                    offset: Offset(2, 2),
+                    offset: const Offset(2, 2),
                   )
                 ],
               ),
@@ -447,7 +454,7 @@ class _UserCardState extends State<UserCard> {
                           size: 12,
                           color: canTeach ? Colors.green : Colors.red,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           canTeach ? "Ready to teach" : "Not teaching now",
                           style: TextStyle(
@@ -465,7 +472,7 @@ class _UserCardState extends State<UserCard> {
                           size: 12,
                           color: canLearn ? Colors.green : Colors.red,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           canLearn ? "Ready to learn" : "Not learning now",
                           style: TextStyle(
@@ -489,8 +496,8 @@ class _UserCardState extends State<UserCard> {
                 _openFeedbackSheet();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.white,
                 elevation: 4,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -518,7 +525,7 @@ class _UserCardState extends State<UserCard> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data?.data() == null) {
-                return const SizedBox();
+                return SizedBox();
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -543,7 +550,7 @@ class _UserCardState extends State<UserCard> {
             },
           ),
 
-          const SizedBox(height: 15),
+          SizedBox(height: 15),
 
           /// 📝 REVIEWS LIST
           Expanded(
@@ -585,7 +592,7 @@ class _UserCardState extends State<UserCard> {
                       builder: (context, userSnapshot) {
                         if (!userSnapshot.hasData ||
                             !userSnapshot.data!.exists) {
-                          return const SizedBox();
+                          return SizedBox();
                         }
 
                         final userData =
@@ -615,7 +622,7 @@ class _UserCardState extends State<UserCard> {
                                         ? const Icon(Icons.person)
                                         : null,
                                   ),
-                                  const SizedBox(width: 10),
+                                  SizedBox(width: 10),
                                   Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -638,11 +645,11 @@ class _UserCardState extends State<UserCard> {
                                               color: Colors.amber,
                                             ),
                                           ),
-                                          const SizedBox(width: 10),
+                                          SizedBox(width: 10),
                                           Text(
                                             timeText,
-                                            style: const TextStyle(
-                                                color: Colors.black45),
+                                            style: TextStyle(
+                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black45),
                                           ),
                                         ],
                                       ),

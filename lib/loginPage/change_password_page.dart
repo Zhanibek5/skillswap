@@ -95,7 +95,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     Center(
                       child: SizedBox(
@@ -108,7 +108,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
                     Text(
                       'email_and_current_password_info'.tr(),
@@ -118,7 +118,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // EMAIL
                     TextFormField(
@@ -158,7 +158,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // CURRENT PASSWORD
                     TextFormField(
@@ -210,7 +210,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // NEW PASSWORD
                     TextFormField(
@@ -264,7 +264,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       },
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // CHANGE PASSWORD BUTTON
                     SizedBox(
@@ -291,7 +291,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
                     Center(
                       child: Text(
                         "SkillSwap",
@@ -300,7 +300,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
                   ],
                 ),
               ),

@@ -58,7 +58,7 @@ class SavedVideosList extends StatelessWidget {
               final dateStr = createdAt != null
                   ? DateFormat('dd MMM yyyy, HH:mm').format(createdAt.toDate())
                   : 'Unknown Date';
-              
+
               // Here we assume video is mock/preview
               return Card(
                 elevation: 3,
@@ -80,7 +80,8 @@ class SavedVideosList extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text('Saved on $dateStr'),
                   ),
-                  trailing: const Icon(Icons.play_circle_fill, color: Colors.blueAccent, size: 32),
+                  trailing: const Icon(Icons.play_circle_fill,
+                      color: Colors.blueAccent, size: 32),
                   onTap: () {
                     // Logic to open video player or mock screen
                     _showVideoPlayerMock(context, teacherName);
@@ -99,7 +100,8 @@ class SavedVideosList extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Play Video'),
-        content: Text('Playing the recorded conference with $name... (This is a mock because real remote video recording requires a backend media server).'),
+        content: Text(
+            'Playing the recorded conference with $name... (This is a mock because real remote video recording requires a backend media server).'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
