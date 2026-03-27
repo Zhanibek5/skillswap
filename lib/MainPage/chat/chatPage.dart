@@ -234,7 +234,7 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _sendMeetingMessage(DateTime meetingTime) async {
+  Future<void> _sendMeetingMessage(DateTime meetingTime, int duration) async {
     final chatRef = FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.chatId)
@@ -244,6 +244,7 @@ class _ChatPageState extends State<ChatPage> {
       'senderId': 'system',
       'type': 'system_meeting_created',
       'meetingTime': Timestamp.fromDate(meetingTime),
+      'duration': duration,
       'timestamp': FieldValue.serverTimestamp(),
       'readBy': [],
     });
@@ -259,43 +260,97 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showConfirmDialog(DateTime meetingTime) {
+    int _selectedDuration = 60; // Default 1 hour
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: const Text("Confirm Meeting"),
-          content: Text(
-              "Meeting Time:\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Color(0xFF1E88E5)),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: const Text("Confirm Meeting"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      "Meeting Time:\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
+                  const SizedBox(height: 20),
+                  const Text("Duration (minutes):"),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: _selectedDuration > 5
+                            ? () {
+                                setState(() {
+                                  _selectedDuration -= 5;
+                                });
+                              }
+                            : null,
+                      ),
+                      Text(
+                        "$_selectedDuration min",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: _selectedDuration < 180
+                            ? () {
+                                setState(() {
+                                  _selectedDuration += 5;
+                                });
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: _selectedDuration.toDouble(),
+                    min: 5,
+                    max: 180,
+                    divisions: 35,
+                    activeColor: const Color(0xFF1E88E5),
+                    onChanged: (double value) {
+                      setState(() {
+                        _selectedDuration = value.toInt();
+                      });
+                    },
+                  )
+                ],
               ),
-            ),
-            OutlinedButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _sendMeetingMessage(meetingTime);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Color(0xFF1E88E5),
-                side: const BorderSide(
-                  color: Color(0xFF1E88E5), // шекара түсі
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Color(0xFF1E88E5)),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
+                OutlinedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _sendMeetingMessage(meetingTime, _selectedDuration);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1E88E5),
+                    side: const BorderSide(
+                      color: Color(0xFF1E88E5),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 10,
+                    ),
+                  ),
+                  child: const Text("Confirm"),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 10,
-                ),
-              ),
-              child: const Text("Confirm"),
-            ),
-          ],
+              ],
+            );
+          }
         );
       },
     );
@@ -1498,17 +1553,16 @@ class _ChatPageState extends State<ChatPage> {
                                             ElevatedButton(
                                               onPressed: () async {
                                                 // 1. Join Video Call
-                                                final callDone =
-                                                    await Navigator.push(
+                                                int duration = data['duration'] ?? 60;
+                                                final callDone = await Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (_) => importWebrtc
-                                                        .VideoCallScreen(
-                                                      specificRoomId:
-                                                          widget.chatId,
-                                                      isCaller:
-                                                          shouldInitiateVideoCall,
+                                                    builder: (_) => importWebrtc.VideoCallScreen(
+                                                      specificRoomId: widget.chatId,
+                                                      isCaller: shouldInitiateVideoCall,
                                                       otherUserId: otherUserId,
+                                                      expectedDurationMinutes: duration,
+                                                      role: widget.mode,
                                                     ),
                                                   ),
                                                 );

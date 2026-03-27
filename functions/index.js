@@ -112,6 +112,7 @@ exports.sendMeetingNotifications = onSchedule(
 							senderId: 'system',
 							type: 'system_meeting_10min',
 							meetingTime: meetingData.meetingTime,
+							duration: meetingData.duration || 60,
 							timestamp: admin.firestore.FieldValue.serverTimestamp(),
 							readBy: [],
 						})
@@ -138,6 +139,7 @@ exports.sendMeetingNotifications = onSchedule(
 							senderId: 'system',
 							type: 'system_meeting_started',
 							meetingTime: meetingData.meetingTime,
+							duration: meetingData.duration || 60,
 							timestamp: admin.firestore.FieldValue.serverTimestamp(),
 							readBy: [],
 						})

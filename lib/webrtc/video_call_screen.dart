@@ -11,12 +11,16 @@ class VideoCallScreen extends StatefulWidget {
   final String? specificRoomId;
   final bool isCaller;
   final String? otherUserId;
+  final int expectedDurationMinutes;
+  final String? role;
 
   const VideoCallScreen({
     super.key,
     this.specificRoomId,
     this.isCaller = false,
     this.otherUserId,
+    this.expectedDurationMinutes = 60,
+    this.role,
   });
 
   @override
@@ -24,6 +28,11 @@ class VideoCallScreen extends StatefulWidget {
 }
 
 class _VideoCallScreenState extends State<VideoCallScreen> {
+  Timer? _callTimer;
+  int _secondsRemaining = 0;
+  int _secondsSpent = 0;
+  bool _callActuallyStarted = false;
+
   final Signaling signaling = Signaling();
   final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
@@ -64,6 +73,29 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           _connectionStatus = status;
         });
         if (status.contains('IceConnectionStateConnected')) {
+          if (!_callActuallyStarted) {
+             _callActuallyStarted = true;
+             _secondsRemaining = widget.expectedDurationMinutes * 60;
+             _secondsSpent = 0;
+             _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+               if (!mounted) { timer.cancel(); return; }
+               setState(() {
+                 if (_secondsRemaining > 0) _secondsRemaining--;
+                 _secondsSpent++;
+               });
+               
+               if (_secondsRemaining == 5 * 60) {
+                 _showWarning('5 минут қалды / 5 minutes left');
+               } else if (_secondsRemaining == 60) {
+                 _showWarning('1 минут қалды / 1 minute left');
+               } else if (_secondsRemaining == 10) {
+                 _showWarning('10 секунд қалды / 10 seconds left');
+               } else if (_secondsRemaining == 0) {
+                 _leaveCall(callFinished: true);
+                 timer.cancel();
+               }
+             });
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Участник қосылды / Participant joined'),
@@ -235,9 +267,61 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
   }
 
+  void _showWarning(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _leaveCall({bool callFinished = false}) async {
     if (_isLeaving) return;
     _isLeaving = true;
+    _callTimer?.cancel();
+    
+    // Balance calculation
+    if (_secondsSpent > 0 && widget.role != null) {
+      int minutesSpent = (_secondsSpent / 60).ceil();
+      if (minutesSpent > widget.expectedDurationMinutes) {
+          minutesSpent = widget.expectedDurationMinutes;
+      }
+      if (minutesSpent > 0) {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+          try {
+            await FirebaseFirestore.instance.runTransaction((transaction) async {
+              final snap = await transaction.get(userRef);
+              if (snap.exists) {
+                final data = snap.data()!;
+                int bal = data['balance'] ?? 120;
+                int earn = data['timeEarned'] ?? 0;
+                int spent = data['timeSpent'] ?? 0;
+                
+                if (widget.role == 'teach') {
+                  bal += minutesSpent;
+                  earn += minutesSpent;
+                } else if (widget.role == 'learn') {
+                  bal -= minutesSpent;
+                  spent += minutesSpent;
+                }
+                transaction.update(userRef, {
+                  'balance': bal,
+                  'timeEarned': earn,
+                  'timeSpent': spent,
+                });
+              }
+            });
+          } catch(e) {
+            print("Error updating balance: $e");
+          }
+        }
+      }
+    }
 
     if (mounted) {
       Navigator.pop(context, callFinished);
@@ -367,13 +451,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
             ],
 
-            // 3. User name at top
+            // 3. User name at top      
             if (isVideoActive)
               Positioned(
                   top: 60,
                   left: 0,
                   right: 0,
                   child: Column(children: [
+                    if (_callActuallyStarted)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
+                          style: TextStyle(
+                            color: _secondsRemaining <= 60 ? Colors.redAccent : Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 10),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Row(

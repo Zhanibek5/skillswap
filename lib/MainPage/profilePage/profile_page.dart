@@ -98,7 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
         'canLearn': true,
         'timeEarned': 0,
         'timeSpent': 0,
-        'balance': 2,
+        'balance': 120, // in minutes
         'ratingAverage': 0,
         'ratingCount': 0,
         'notificationsEnabled': true, // ✅ default ON
@@ -141,6 +141,10 @@ class _ProfilePageState extends State<ProfilePage> {
               final bool canTeach = data['canTeach'] ?? false;
               final bool canLearn = data['canLearn'] ?? false;
               final rating = (data['ratingAverage'] ?? 0).toDouble();
+              final int balanceMinutes = (data['balance'] ?? 120);
+              final int timeEarned = (data['timeEarned'] ?? 0);
+              final int timeSpent = (data['timeSpent'] ?? 0);
+
 
               final String? photoUrl = data['photoUrl'];
 
@@ -320,29 +324,29 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: [
                                 Row(
                                   children: [
+                                    Icon(Icons.arrow_upward, color: Colors.green, size: 16),
+                                    const SizedBox(width: 4),
                                     Text('earned'.tr()),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '0h',
-                                    ),
+                                    const SizedBox(width: 4),
+                                    Text('\h \m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                                   ],
                                 ),
                                 Row(
                                   children: [
+                                    Icon(Icons.arrow_downward, color: Colors.red, size: 16),
+                                    const SizedBox(width: 4),
                                     Text('spent'.tr()),
-                                    SizedBox(width: 4),
-                                    Text('0h'),
+                                    const SizedBox(width: 4),
+                                    Text('\h \m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                                   ],
                                 ),
                                 Row(
                                   children: [
-                                    Text('balance:'.tr(),
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    SizedBox(width: 4),
-                                    Text('0h',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    Icon(Icons.account_balance_wallet, color: Color(0xFF1E88E5), size: 16),
+                                    const SizedBox(width: 4),
+                                    Text('balance:'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 4),
+                                    Text('\h \m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88E5))),
                                   ],
                                 ),
                               ],
