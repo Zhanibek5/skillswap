@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'edit_profile_page.dart';
+import 'saved_videos_list.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -523,6 +524,32 @@ class _ProfilePageState extends State<ProfilePage> {
                                   },
                                   icon: const Icon(Icons.visibility),
                                   label: const Text("View Feedback"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF1E88E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const SavedVideosList(),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.video_library),
+                                  label: const Text("Saved Video in History"),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Color(0xFF1E88E5),
                                     foregroundColor: Colors.white,

@@ -1569,7 +1569,7 @@ class _ChatPageState extends State<ChatPage> {
 
                                                 // 2. Show Review if call finished
                                                 if (callDone == true) {
-                                                  Navigator.push(
+                                                  await Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
                                                       builder: (_) =>
@@ -1585,6 +1585,43 @@ class _ChatPageState extends State<ChatPage> {
                                                       ),
                                                     ),
                                                   );
+
+                                                  // Ask to save video history
+                                                  bool? saveVideo = await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (ctx) => AlertDialog(
+                                                      title: const Text('Save Video in History?'),
+                                                      content: const Text('Do you want to save this video conference recording?'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () => Navigator.pop(ctx, false),
+                                                          child: const Text('No'),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () => Navigator.pop(ctx, true),
+                                                          child: const Text('Yes'),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+
+                                                  if (saveVideo == true) {
+                                                    final user = FirebaseAuth.instance.currentUser;
+                                                    if (user != null) {
+                                                      await FirebaseFirestore.instance
+                                                          .collection('users')
+                                                          .doc(user.uid)
+                                                          .collection('video_history')
+                                                          .add({
+                                                        'chatId': widget.chatId,
+                                                        'teacherName': userName,
+                                                        'createdAt': FieldValue.serverTimestamp(),
+                                                      });
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Video saved in history!')),
+                                                      );
+                                                    }
+                                                  }
                                                 }
                                               },
                                               style: ElevatedButton.styleFrom(
