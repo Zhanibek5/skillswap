@@ -33,10 +33,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   int _secondsSpent = 0;
   bool _callActuallyStarted = false;
 
-  final Signaling signaling = Signaling();
-  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
-  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
-  final TextEditingController textEditingController = TextEditingController();
+  String _formatDuration(int seconds) {
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    final s = seconds % 60;
+    if (h > 0) {
+      return '${h.toString()}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    } else {
+      return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+  }
 
   String? roomId;
   bool callStarted = false;
@@ -72,28 +78,55 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         setState(() {
           _connectionStatus = status;
         });
-        if (status.contains('IceConnectionStateConnected')) {
+        if (status.contains('IceConnectionStateDisconnected') ||
+            status.contains('IceConnectionStateClosed') ||
+            status.contains('IceConnectionStateFailed') ||
+            status.contains('ConnectionStateDisconnected') ||
+            status.contains('ConnectionStateClosed') ||
+            status.contains('ConnectionStateFailed')) {
+          _leaveCall(callFinished: true);
+        } else if (status.contains('IceConnectionStateConnected') ||
+            status.contains('ConnectionStateConnected')) {
           if (!_callActuallyStarted) {
             _callActuallyStarted = true;
-            _secondsRemaining = widget.expectedDurationMinutes * 60;
-            _secondsSpent = 0;
+
+            final startTime = DateTime.now();
+            final expectedSeconds = widget.expectedDurationMinutes * 60;
+            bool warned5m = false;
+            bool warned1m = false;
+            bool warned10s = false;
+
             _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
               if (!mounted) {
                 timer.cancel();
                 return;
               }
+
+              final now = DateTime.now();
+              int elapsedSeconds = now.difference(startTime).inSeconds;
+              int remaining = expectedSeconds - elapsedSeconds;
+
               setState(() {
-                if (_secondsRemaining > 0) _secondsRemaining--;
-                _secondsSpent++;
+                _secondsSpent = elapsedSeconds;
+                _secondsRemaining = remaining > 0 ? remaining : 0;
               });
 
-              if (_secondsRemaining == 5 * 60) {
+              if (_secondsRemaining <= 5 * 60 &&
+                  _secondsRemaining > 60 &&
+                  !warned5m) {
+                warned5m = true;
                 _showWarning('5 минут қалды / 5 minutes left');
-              } else if (_secondsRemaining == 60) {
+              } else if (_secondsRemaining <= 60 &&
+                  _secondsRemaining > 10 &&
+                  !warned1m) {
+                warned1m = true;
                 _showWarning('1 минут қалды / 1 minute left');
-              } else if (_secondsRemaining == 10) {
+              } else if (_secondsRemaining <= 10 &&
+                  _secondsRemaining > 0 &&
+                  !warned10s) {
+                warned10s = true;
                 _showWarning('10 секунд қалды / 10 seconds left');
-              } else if (_secondsRemaining == 0) {
+              } else if (_secondsRemaining <= 0) {
                 _leaveCall(callFinished: true);
                 timer.cancel();
               }
@@ -294,6 +327,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (minutesSpent > widget.expectedDurationMinutes) {
         minutesSpent = widget.expectedDurationMinutes;
       }
+
       if (minutesSpent > 0) {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null) {
@@ -470,10 +504,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_ios,
-                                  color: Colors.white),
-                              onPressed: () => _leaveCall(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.black45,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _formatDuration(_secondsRemaining > 0
+                                    ? _secondsRemaining
+                                    : widget.expectedDurationMinutes * 60),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                             Row(children: [
                               IconButton(
@@ -505,13 +552,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               ),
                             ])
                           ]),
-                    ),
-                    Text(
-                      otherUserName,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w500),
                     ),
                   ])),
 
