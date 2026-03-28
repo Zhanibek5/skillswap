@@ -28,6 +28,11 @@ class VideoCallScreen extends StatefulWidget {
 }
 
 class _VideoCallScreenState extends State<VideoCallScreen> {
+  Signaling signaling = Signaling();
+  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+  final TextEditingController textEditingController = TextEditingController();
+
   Timer? _callTimer;
   int _secondsRemaining = 0;
   int _secondsSpent = 0;
