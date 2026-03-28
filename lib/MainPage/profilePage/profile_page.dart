@@ -21,6 +21,15 @@ class _ProfilePageState extends State<ProfilePage> {
     _initUserStatus();
   }
 
+  String _formatDuration(int minutes) {
+    if (minutes == 0) return "0m";
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h > 0 && m > 0) return "${h}h ${m}m";
+    if (h > 0) return "${h}h";
+    return "${m}m";
+  }
+
   String formatTime(timestamp) {
     if (timestamp == null) return '';
 
@@ -51,7 +60,9 @@ class _ProfilePageState extends State<ProfilePage> {
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(25),
             ),
@@ -146,7 +157,6 @@ class _ProfilePageState extends State<ProfilePage> {
               final int timeEarned = (data['timeEarned'] ?? 0);
               final int timeSpent = (data['timeSpent'] ?? 0);
 
-
               final String? photoUrl = data['photoUrl'];
 
               final skillsTeach = data['skillsTeach'] ?? '';
@@ -182,16 +192,25 @@ class _ProfilePageState extends State<ProfilePage> {
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: Theme.of(context).brightness == Brightness.dark
-                                  ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)] // Elegant dark gradient
-                                  : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
+                              colors: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? [
+                                      const Color(0xFF0F2027),
+                                      const Color(0xFF203A43),
+                                      const Color(0xFF2C5364)
+                                    ] // Elegant dark gradient
+                                  : [
+                                      const Color(0xFF1A73E8),
+                                      const Color(0xFF4A90E2)
+                                    ],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Theme.of(context).brightness == Brightness.dark 
-                                    ? Colors.black.withOpacity(0.6) 
-                                    : Colors.white.withOpacity(0.4),       
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.black.withOpacity(0.6)
+                                    : Colors.white.withOpacity(0.4),
                                 blurRadius: 20,
                                 spreadRadius: 2,
                                 offset: const Offset(0, 0),
@@ -202,7 +221,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
+                                backgroundColor: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF2A2E35)
+                                    : Colors.grey.shade200,
                                 backgroundImage:
                                     photoUrl != null && photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
@@ -267,7 +289,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+                                  backgroundColor:
+                                      Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? const Color(0xFF1E1E1E)
+                                          : Colors.white,
                                   foregroundColor: Color(0xFF1E88E5),
                                 ),
                                 child: Text('edit'.tr()),
@@ -325,29 +351,43 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.arrow_upward, color: Colors.green, size: 16),
+                                    Icon(Icons.arrow_upward,
+                                        color: Colors.green, size: 16),
                                     const SizedBox(width: 4),
                                     Text('earned'.tr()),
                                     const SizedBox(width: 4),
-                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                                    Text(_formatDuration(timeEarned),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green)),
                                   ],
                                 ),
                                 Row(
                                   children: [
-                                    Icon(Icons.arrow_downward, color: Colors.red, size: 16),
+                                    Icon(Icons.arrow_downward,
+                                        color: Colors.red, size: 16),
                                     const SizedBox(width: 4),
                                     Text('spent'.tr()),
                                     const SizedBox(width: 4),
-                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                    Text(_formatDuration(timeSpent),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red)),
                                   ],
                                 ),
                                 Row(
                                   children: [
-                                    Icon(Icons.account_balance_wallet, color: Color(0xFF1E88E5), size: 16),
+                                    Icon(Icons.account_balance_wallet,
+                                        color: Color(0xFF1E88E5), size: 16),
                                     const SizedBox(width: 4),
-                                    Text('balance:'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text('balance:'.tr(),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 4),
-                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88E5))),
+                                    Text(_formatDuration(balanceMinutes),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1E88E5))),
                                   ],
                                 ),
                               ],
@@ -463,7 +503,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           margin: const EdgeInsets.symmetric(vertical: 10),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -496,9 +539,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
                               /// DESCRIPTION
                               Text(
-                                "See what other users wrote about you.",        
+                                "See what other users wrote about you.",
                                 style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                 ),
                               ),
 
@@ -521,7 +567,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-
                                   ),
                                 ),
                               ),
@@ -667,7 +712,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Column(
@@ -855,7 +903,9 @@ class _ProfilePageState extends State<ProfilePage> {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.05),
+          color: isDark
+              ? Colors.black.withOpacity(0.4)
+              : Colors.black.withOpacity(0.05),
           blurRadius: 12,
           offset: const Offset(0, 4),
         ),
