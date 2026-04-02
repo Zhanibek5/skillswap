@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillswap/firstPage/pageView.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/firstPage/loadingPage.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -23,8 +24,10 @@ import 'package:skillswap/MainPage/chat/chatPage.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print("Background message: ${message.notification?.title}");
+  await Firebase.initializeApp();
+  print("Background message received: ${message.data}");
 }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -114,100 +117,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       theme: ThemeData(
-        useMaterial3: true,
         brightness: Brightness.light,
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF1E88E5), // The app's signature blue
-          secondary: Color(0xFF42A5F5),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF3F2EF),
+        primarySwatch: Colors.teal,
       ),
       darkTheme: ThemeData(
-        useMaterial3: true,
         brightness: Brightness.dark,
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF1E88E5), // The app's signature blue 
-          secondary: Color(0xFF42A5F5),
-          surface: Color(0xFF121212),
-          background: Color(0xFF0A0A0A),
-          error: Color(0xFFCF6679),
-        ),
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A), // Deep OLED-friendly black
-        canvasColor: const Color(0xFF121212), 
-        cardColor: const Color(0xFF1A1A1A), // Nicely elevated dark card
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0A0A0A),
-          elevation: 0,
-          centerTitle: true,
-          iconTheme: IconThemeData(color: Colors.white),
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF121212),
-          selectedItemColor: Color(0xFF1E88E5),
-          unselectedItemColor: Colors.grey,
-          elevation: 8,
-          type: BottomNavigationBarType.fixed,
-        ),
+        primarySwatch: Colors.teal,
+        scaffoldBackgroundColor: Colors.black,
         elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1E88E5),
-            foregroundColor: Colors.white,
-            elevation: 4,
-            shadowColor: const Color(0xFF1E88E5).withOpacity(0.4),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-        cardTheme: const CardThemeData(
-          elevation: 4,
-          shadowColor: Colors.black45,
-          color: Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
-          clipBehavior: Clip.antiAlias,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1E1E1E),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 1.5), 
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 24,
-        ),
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: ZoomPageTransitionsBuilder(), // Beautiful modern zoom transition
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          },
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
         ),
       ),
       themeMode: settingsProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
@@ -271,6 +196,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _handleMessage(RemoteMessage message) {
+    if (!mounted) return;
     final data = message.data;
     if (data['chatId'] != null) {
       navigatorKey.currentState?.pushAndRemoveUntil(
@@ -285,7 +211,10 @@ class _AuthGateState extends State<AuthGate> {
           builder: (_) => ChatPage(
             chatId: data['chatId'],
             otherUserId: data['otherUserId'] ?? '',
-            selectedSkills: data['selectedSkills']?.split(",") ?? [],
+            selectedSkills: data['selectedSkills'] != null &&
+                    data['selectedSkills'].isNotEmpty
+                ? data['selectedSkills'].split(",")
+                : [],
             mode: 'chat',
           ),
         ),
@@ -340,9 +269,8 @@ class _AuthGateState extends State<AuthGate> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Бұл жерде pushAndRemoveUntil қолданған абзал, стек таза болу үшін
-        navigatorKey.currentState?.pushAndRemoveUntil(
+        navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => SkillMainPage(initialIndex: 0)),
-          (route) => false,
         );
 
         navigatorKey.currentState?.push(
@@ -363,9 +291,9 @@ class _AuthGateState extends State<AuthGate> {
 
     // Қалыпты логин болғанда:
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const LoginPage();
+    if (user == null) return const SplashScreen();
     if (!user.emailVerified) return const VerifyEmailPage();
 
-    return SkillMainPage(initialIndex: 1); // Дефолттық бет (Search)
+    return SkillMainPage(initialIndex: 1);
   }
 }

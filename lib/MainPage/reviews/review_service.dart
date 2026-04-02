@@ -6,42 +6,89 @@ class ReviewService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> submitReview({
-    required String teacherId,
+    required String toUserId,
     required String meetingId,
     required double rating,
     required String comment,
   }) async {
-    final String learnerId = _auth.currentUser!.uid;
+    final String fromUserId = _auth.currentUser!.uid;
+    String role;
+    final userDoc = await _firestore.collection('users').doc(fromUserId).get();
 
-    final teacherRef = _firestore.collection('users').doc(teacherId);
+    final userData = userDoc.data();
+
+    final userName = userData?['firstName'] ?? 'User';
+    final photoUrl = userData?['photoUrl'] ?? '';
+    final existing = await _firestore
+        .collection('reviews')
+        .where('meetingId', isEqualTo: meetingId)
+        .where('fromUserId', isEqualTo: fromUserId)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      throw Exception("You already reviewed this meeting");
+    }
+
+    final chatDoc = await _firestore.collection('chats').doc(meetingId).get();
+
+    if (!chatDoc.exists) {
+      print("Chat not found");
+      return;
+    }
+
+    final data = chatDoc.data();
+    if (data == null) return;
+
+    bool isFromTeacher = data['teacherId'] == fromUserId;
+
+    if (isFromTeacher) {
+      role = "learner"; // teacher → learner
+    } else {
+      role = "teacher"; // learner → teacher
+    }
+
+    final userRef = _firestore.collection('users').doc(toUserId);
 
     await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(teacherRef);
+      final snapshot = await transaction.get(userRef);
 
       if (!snapshot.exists) return;
 
-      final data = snapshot.data()!;
+      final userData = snapshot.data()!;
 
-      double currentAverage = (data['ratingAverage'] ?? 0).toDouble();
+      if (isFromTeacher) {
+        // 🔥 teacher → learner
+        double currentAvg = (userData['learnerRating'] ?? 0).toDouble();
+        int count = (userData['learnerReviewCount'] ?? 0).toInt();
+        double newAvg = ((currentAvg * count) + rating) / (count + 1);
 
-      int currentCount = (data['ratingCount'] ?? 0);
+        transaction.update(userRef, {
+          'learnerRating': newAvg,
+          'learnerReviewCount': count + 1,
+        });
+      } else {
+        // 🔥 learner → teacher
+        double currentAvg = (userData['teacherRating'] ?? 0).toDouble();
+        int count = (userData['teacherReviewCount'] ?? 0).toInt();
+        double newAvg = ((currentAvg * count) + rating) / (count + 1);
 
-      double newAverage =
-          ((currentAverage * currentCount) + rating) / (currentCount + 1);
-
-      transaction.update(teacherRef, {
-        'ratingAverage': newAverage,
-        'ratingCount': currentCount + 1,
-      });
+        transaction.update(userRef, {
+          'teacherRating': newAvg,
+          'teacherReviewCount': count + 1,
+        });
+      }
     });
 
-    // Review сақтау (бөлек)
+    // 🔥 review сақтау
     await _firestore.collection('reviews').add({
-      "teacherId": teacherId,
-      "learnerId": learnerId,
+      "fromUserId": fromUserId,
+      "toUserId": toUserId,
+      "fromUserName": userName,
+      "fromUserPhoto": photoUrl,
       "meetingId": meetingId,
       "rating": rating,
       "comment": comment,
+      "role": role, // 🔥 ОСЫ ЖЕРГЕ ҚОСАСЫҢ
       "createdAt": FieldValue.serverTimestamp(),
     });
   }

@@ -45,7 +45,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return DateFormat('dd MMM').format(date);
   }
 
-  void _openFeedbackSheet() {
+  void _openFeedbackSheet(String mode) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -69,10 +69,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Feedback",
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    Text(
+                      mode == 'learn'
+                          ? "Learners Feedback"
+                          : "Teachers Feedback",
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -85,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const Divider(),
               Expanded(
-                child: _buildFeedbackContent(),
+                child: _buildFeedbackContent(mode),
               ),
             ],
           ),
@@ -105,8 +107,10 @@ class _ProfilePageState extends State<ProfilePage> {
         'timeEarned': 0,
         'timeSpent': 0,
         'balance': 120, // in minutes
-        'ratingAverage': 0,
-        'ratingCount': 0,
+        'teacherRating': 0,
+        'teacherReviewCount': 0,
+        'learnerRating': 0,
+        'learnerReviewCount': 0,
         'notificationsEnabled': true, // ✅ default ON
       });
     } else {
@@ -151,7 +155,6 @@ class _ProfilePageState extends State<ProfilePage> {
               final int timeEarned = (data['timeEarned'] ?? 0);
               final int timeSpent = (data['timeSpent'] ?? 0);
 
-
               final String? photoUrl = data['photoUrl'];
 
               final skillsTeach = data['skillsTeach'] ?? '';
@@ -189,11 +192,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               end: Alignment.bottomRight,
                               colors: Theme.of(context).brightness ==
                                       Brightness.dark
-                                  ? const [
-                                      Color(0xFF173A6D),
-                                      Color(0xFF0F1F3B)
-                                    ]
-                                  : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
+                                  ? const [Color(0xFF173A6D), Color(0xFF0F1F3B)]
+                                  : [
+                                      const Color(0xFF1A73E8),
+                                      const Color(0xFF4A90E2)
+                                    ],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
@@ -209,7 +212,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             border: Theme.of(context).brightness ==
                                     Brightness.dark
                                 ? Border.all(
-                                    color: _darkCardBorderColor.withOpacity(0.45),
+                                    color:
+                                        _darkCardBorderColor.withOpacity(0.45),
                                   )
                                 : null,
                           ),
@@ -217,11 +221,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundColor:
-                                    Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF122A66)
-                                        : Colors.grey.shade200,
+                                backgroundColor: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF122A66)
+                                    : Colors.grey.shade200,
                                 backgroundImage:
                                     photoUrl != null && photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
@@ -312,10 +315,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _statItem(context, '⭐', "${rating.toStringAsFixed(1)}",
-                                'rating'.tr()),
+                            _statItem(context, '⭐',
+                                "${rating.toStringAsFixed(1)}", 'rating'.tr()),
                             _statItem(context, '⏱', '2h', 'balance'.tr()),
-                            _statItem(context, '🌐', languagesText, 'language'.tr()),
+                            _statItem(
+                                context, '🌐', languagesText, 'language'.tr()),
                           ],
                         ),
 
@@ -376,8 +380,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                   label: 'balance:'.tr(),
                                   value: _formatHoursMinutes(balanceMinutes),
                                   valueColor: const Color(0xFF1E88E5),
-                                  labelStyle:
-                                      const TextStyle(fontWeight: FontWeight.bold),
+                                  labelStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             )),
@@ -523,9 +527,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
                               /// DESCRIPTION
                               Text(
-                                "See what other users wrote about you.",        
+                                "See what other users wrote about you.",
                                 style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                 ),
                               ),
 
@@ -536,20 +543,86 @@ class _ProfilePageState extends State<ProfilePage> {
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
                                   onPressed: () {
-                                    _openFeedbackSheet();
+                                    _openFeedbackSheet('learn');
                                   },
                                   icon: const Icon(Icons.visibility),
-                                  label: const Text("View Feedback"),
+                                  label: const Text("Learners Feedback"),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF1E88E5),
+                                    backgroundColor: const Color(0xFF1E88E5),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-
                                   ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    _openFeedbackSheet('teach');
+                                  },
+                                  icon: const Icon(Icons.visibility),
+                                  label: const Text("Teachers Feedback"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E88E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.video_library,
+                                      color: Color(0xFF1E88E5)),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "History",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                "Watch your saved videos",
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                 ),
                               ),
                               const SizedBox(height: 15),
@@ -564,10 +637,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                       ),
                                     );
                                   },
-                                  icon: const Icon(Icons.video_library),
+                                  icon: const Icon(Icons.play_circle_fill),
                                   label: const Text("Saved Video in History"),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF1E88E5),
+                                    backgroundColor: const Color(0xFF1E88E5),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
@@ -602,7 +675,7 @@ class _ProfilePageState extends State<ProfilePage> {
             }));
   }
 
-  Widget _buildFeedbackContent() {
+  Widget _buildFeedbackContent(String mode) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -621,8 +694,13 @@ class _ProfilePageState extends State<ProfilePage> {
               final data = snapshot.data!.data() as Map<String, dynamic>;
               final isDark = Theme.of(context).brightness == Brightness.dark;
 
-              final avg = (data['ratingAverage'] ?? 0).toDouble();
-              final count = (data['ratingCount'] ?? 0);
+              final avg = mode == 'learn'
+                  ? (data['teacherRating'] ?? 0).toDouble()
+                  : (data['learnerRating'] ?? 0).toDouble();
+
+              final count = mode == 'learn'
+                  ? (data['teacherReviewCount'] ?? 0)
+                  : (data['learnerReviewCount'] ?? 0);
 
               return Row(
                 children: [
@@ -651,17 +729,21 @@ class _ProfilePageState extends State<ProfilePage> {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('reviews')
-                  .where('teacherId', isEqualTo: uid)
+                  .where('toUserId', isEqualTo: uid)
+                  .where('role',
+                      isEqualTo: mode == 'learn' ? 'teacher' : 'learner')
                   .orderBy('createdAt', descending: true)
                   .limit(50)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final docs = snapshot.data!.docs;
-
+                final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
                   return const Center(child: Text("No feedback yet"));
                 }
@@ -674,111 +756,88 @@ class _ProfilePageState extends State<ProfilePage> {
                     final rating = (data['rating'] ?? 0).toDouble();
                     final comment = data['comment'] ?? '';
                     final timestamp = data['createdAt'];
-                    final learnerID = data['learnerId'];
+                    final username = data['fromUserName'] ?? 'Username';
+                    final photoUrl = data['fromUserPhoto'];
 
                     final timeText = formatTime(timestamp);
 
-                    return StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(learnerID)
-                          .snapshots(),
-                      builder: (context, userSnapshot) {
-                        if (!userSnapshot.hasData ||
-                            !userSnapshot.data!.exists) {
-                          return const SizedBox();
-                        }
-
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>;
-                        final username = userData['firstName'] ?? 'Username';
-                        final photoUrl = userData['photoUrl'];
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                ? _darkCardColor
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(15),
-                            border: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                ? Border.all(
-                                    color: _darkCardBorderColor.withOpacity(0.4),
-                                  )
-                                : null,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? _darkCardColor
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Theme.of(context).brightness == Brightness.dark
+                            ? Border.all(
+                                color: _darkCardBorderColor.withOpacity(0.4),
+                              )
+                            : null,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          /// 👤 USER INFO
+                          Row(
                             children: [
-                              /// 👤 USER INFO
-                              Row(
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundImage: photoUrl != null
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: photoUrl == null
+                                    ? const Icon(Icons.person)
+                                    : null,
+                              ),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundImage: photoUrl != null
-                                        ? NetworkImage(photoUrl)
-                                        : null,
-                                    child: photoUrl == null
-                                        ? const Icon(Icons.person)
-                                        : null,
+                                  Text(
+                                    username,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  Row(
                                     children: [
-                                      Text(
-                                        username,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16),
+                                      ...List.generate(
+                                        5,
+                                        (index) => Icon(
+                                          index < rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          size: 18,
+                                          color: Colors.amber,
+                                        ),
                                       ),
-                                      Row(
-                                        children: [
-                                          ...List.generate(
-                                            5,
-                                            (index) => Icon(
-                                              index < rating
-                                                  ? Icons.star
-                                                  : Icons.star_border,
-                                              size: 18,
-                                              color: Colors.amber,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                            timeText,
-                                            style: TextStyle(
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.white60
-                                                  : Colors.black45,
-                                            ),
-                                          ),
-                                        ],
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        timeText,
+                                        style: TextStyle(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white60
+                                              : Colors.black45,
+                                        ),
                                       ),
                                     ],
-                                  )
+                                  ),
                                 ],
-                              ),
-                              SizedBox(
-                                height: 10,
-                              ),
-
-                              /// 💬 COMMENT
-                              if (comment.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Text(comment),
-                                ),
+                              )
                             ],
                           ),
-                        );
-                      },
+                          const SizedBox(height: 10),
+
+                          /// 💬 COMMENT
+                          if (comment.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(comment),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 );
@@ -825,7 +884,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _statItem(BuildContext context, String emoji, String value, String label) {
+  Widget _statItem(
+      BuildContext context, String emoji, String value, String label) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [

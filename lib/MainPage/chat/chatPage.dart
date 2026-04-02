@@ -38,7 +38,7 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final TextEditingController messageController = TextEditingController();
   final currentUserId = FirebaseAuth.instance.currentUser!.uid;
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
@@ -174,6 +174,24 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _setActive(bool isActive) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .set({
+      'activeUsers': {uid: isActive},
+      'lastActiveTime.$uid': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isActive = state == AppLifecycleState.resumed;
+    _setActive(isActive);
+  }
+
   @override
   void dispose() {
     messageController.dispose();
@@ -181,6 +199,9 @@ class _ChatPageState extends State<ChatPage> {
     _playbackSubscription?.cancel();
     recorder.closeRecorder();
     player.closePlayer();
+    _setActive(false);
+    WidgetsBinding.instance.removeObserver(this); // 🔥 IMPORTANT
+
     super.dispose();
   }
 
@@ -241,7 +262,7 @@ class _ChatPageState extends State<ChatPage> {
         .collection('messages');
 
     await chatRef.add({
-      'senderId': 'system',
+      'senderId': currentUserId,
       'type': 'system_meeting_created',
       'meetingTime': Timestamp.fromDate(meetingTime),
       'duration': duration,
@@ -418,6 +439,9 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    _markAsRead();
+    _setActive(true);
+    WidgetsBinding.instance.addObserver(this); // 🔥 ADD THIS
     loadChatData();
     loadChatInfo();
     messageController.addListener(() {
@@ -431,6 +455,20 @@ class _ChatPageState extends State<ChatPage> {
     _initAudio();
     checkAndSendInitialMessage();
     markMessagesAsRead();
+    FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
+      'unreadCount.$currentUserId': 0,
+    });
+  }
+
+  Future<void> _markAsRead() async {
+    final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .update({
+      'unreadCount.$currentUserId': 0,
+    });
   }
 
   Future<void> _initAudio() async {
@@ -1153,7 +1191,11 @@ class _ChatPageState extends State<ChatPage> {
       if (newOtherUserId.isNotEmpty && newOtherUserId != otherUserId) {
         if (mounted) {
           setState(() {
-            otherUserId = newOtherUserId;
+            if (newOtherUserId.isNotEmpty) {
+              setState(() {
+                otherUserId = newOtherUserId;
+              });
+            }
           });
         }
       }
@@ -1259,6 +1301,7 @@ class _ChatPageState extends State<ChatPage> {
                                     fontWeight: FontWeight.bold),
                               ),
                               Text(
+                                overflow: TextOverflow.ellipsis,
                                 !chatLoaded
                                     ? ""
                                     : amILearner
@@ -1634,7 +1677,7 @@ class _ChatPageState extends State<ChatPage> {
                                                     MaterialPageRoute(
                                                       builder: (_) =>
                                                           ReviewDialog(
-                                                        teacherName: userName,
+                                                        userName: userName,
                                                         chatId: widget.chatId,
                                                         otherUserId:
                                                             otherUserId,

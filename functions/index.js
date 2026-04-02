@@ -10,47 +10,54 @@ exports.onMeetingCreated = onDocumentCreated(
 	async event => {
 		const data = event.data.data()
 		if (!data || data.type !== 'system_meeting_created') return
+		const chatId = event.params.chatId
+		const senderId = data.senderId
+		const senderDoc = await admin
+			.firestore()
+			.collection('users')
+			.doc(senderId)
+			.get()
 
-		await sendNotification(event.params.chatId, {
-			title: '📅 Жаңа кездесу',
-			body: 'Кездесу жоспарланды',
-			type: 'meeting',
-		})
+		const senderData = senderDoc.data()
+		const title = await getChatTitle(chatId, senderId)
+
+		await sendNotification(
+			chatId,
+			{
+				title: title,
+				body: 'Кездесу жоспарланды',
+				type: 'meeting',
+			},
+			null,
+			senderData
+		)
 	}
 )
 
-// 🔹 2. ЖАЙ ХАБАРЛАМАЛАР (Тек текст, аудио, сурет үшін)
 exports.onMessageCreated = onDocumentCreated(
 	'chats/{chatId}/messages/{messageId}',
 	async event => {
 		const data = event.data.data()
-		if (!data) return
+		if (!data || data.senderId === 'system') return
 
 		const userMessageTypes = ['text', 'audio', 'image']
-		// Егер бұл жай хабарлама болмаса, тоқтатамыз (дубликат болмауы үшін)
 		if (!userMessageTypes.includes(data.type)) return
 
 		const chatId = event.params.chatId
 		const senderId = data.senderId
 
+		const chatRef = admin.firestore().collection('chats').doc(chatId)
+
+		// 🔹 Sender info
 		const senderDoc = await admin
 			.firestore()
 			.collection('users')
 			.doc(senderId)
 			.get()
 		const senderData = senderDoc.data()
-		const senderName = senderDoc.exists ? senderData.firstName : 'Хабарлама'
+		const senderName = senderData?.firstName || 'Пайдаланушы'
 
-		// Скриншоттағыдай "Zhanibek • Flutter" форматында шығару үшін:
-		const chatDoc = await admin
-			.firestore()
-			.collection('chats')
-			.doc(chatId)
-			.get()
-		const skill = chatDoc.data()?.lastSkill
-			? ` • ${chatDoc.data().lastSkill}`
-			: ''
-
+		// 🔹 Message text
 		let bodyText = ''
 		switch (data.type) {
 			case 'text':
@@ -62,37 +69,91 @@ exports.onMessageCreated = onDocumentCreated(
 			case 'image':
 				bodyText = '📷 Сурет жіберілді'
 				break
+			default:
+				bodyText = 'Жаңа хабарлама'
 		}
 
-		await sendNotification(
-			chatId,
-			{
-				title: `${senderName}${skill}`,
-				body: bodyText,
-				type: 'chat',
-			},
-			senderId
-		) // Жіберушіні алып тастаймыз
+		let recipientId = null
+		let chatData = null
+		let shouldNotify = false
+
+		try {
+			await admin.firestore().runTransaction(async tx => {
+				const chatDoc = await tx.get(chatRef)
+				if (!chatDoc.exists) return
+
+				chatData = chatDoc.data()
+				if (!chatData) return
+
+				const participants = chatData.participants || []
+
+				// 🔹 кімге жіберіледі
+				recipientId = participants.find(id => id !== senderId)
+				if (!recipientId) return
+
+				const activeUsers = chatData.activeUsers || {}
+
+				const isRecipientActive = activeUsers[recipientId] === true
+
+				let updateData = {
+					lastMessage: bodyText,
+					lastTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+					lastType: data.type,
+				}
+
+				if (isRecipientActive) {
+					// ✅ ONLINE → always 0
+					updateData[`unreadCount.${recipientId}`] = 0
+				} else {
+					// ❌ OFFLINE → increment
+					updateData[`unreadCount.${recipientId}`] =
+						admin.firestore.FieldValue.increment(1)
+
+					shouldNotify = true
+				}
+
+				tx.update(chatRef, updateData)
+			})
+
+			// 🔔 Notification тек offline кезде
+			if (shouldNotify && recipientId && chatData) {
+				const skill = chatData.lastSkill ? ` • ${chatData.lastSkill}` : ''
+
+				await sendToUser(recipientId, chatId, {
+					title: `${senderName}${skill}`,
+					body: bodyText,
+					type: 'chat',
+					senderData: senderData,
+					chatData: chatData,
+				})
+			}
+		} catch (error) {
+			console.error('Transaction failed:', error)
+		}
 	}
 )
 
-// 🔹 3. SCHEDULER (Бұрынғыша қалдырамыз)
 exports.sendMeetingNotifications = onSchedule(
 	{ schedule: 'every 1 minutes', timeZone: 'Asia/Almaty' },
 	async () => {
+		console.log('🔥 FUNCTION ENTERED')
 		const now = Date.now()
 		const chatsSnapshot = await admin.firestore().collection('chats').get()
+		console.log('📦 Chats count:', chatsSnapshot.size)
 
 		for (const chatDoc of chatsSnapshot.docs) {
 			const chatId = chatDoc.id
+			const chatData = chatDoc.data()
 			const messagesRef = admin
 				.firestore()
 				.collection('chats')
 				.doc(chatId)
 				.collection('messages')
+
 			const meetingSnapshot = await messagesRef
 				.where('type', '==', 'system_meeting_created')
 				.get()
+			console.log('📅 Meetings found:', meetingSnapshot.size)
 
 			for (const meetingDoc of meetingSnapshot.docs) {
 				const meetingData = meetingDoc.data()
@@ -101,12 +162,31 @@ exports.sendMeetingNotifications = onSchedule(
 				const meetingTime = meetingData.meetingTime.toDate().getTime()
 				const diffMs = meetingTime - now
 
+				const participants = chatData.participants || []
+				// 🔹 senderData алу: өз ID-сын алып тастап, қалған қатысушыны алу
+				let senderData = null
+				const otherUserId =
+					participants.find(id => id !== meetingData.senderId) ||
+					participants[0]
+
+				if (otherUserId) {
+					const userDoc = await admin
+						.firestore()
+						.collection('users')
+						.doc(otherUserId)
+						.get()
+					senderData = userDoc.exists ? userDoc.data() : null
+				}
+
+				const title = await getChatTitle(chatId, meetingData.senderId)
+				// 🔹 10 минут қалғанда хабарлау
 				if (diffMs > 0 && diffMs <= 10 * 60 * 1000) {
 					const exists = await messagesRef
 						.where('type', '==', 'system_meeting_10min')
 						.where('meetingTime', '==', meetingData.meetingTime)
 						.limit(1)
 						.get()
+
 					if (exists.empty) {
 						await messagesRef.add({
 							senderId: 'system',
@@ -121,19 +201,28 @@ exports.sendMeetingNotifications = onSchedule(
 							'⏰ Кездесуге 10 минут қалды',
 							'system_meeting_10min'
 						)
-						await sendNotification(chatId, {
-							title: '⏰ 10 минут қалды',
-							body: 'Кездесу басталуына аз қалды',
-							type: 'meeting',
-						})
+
+						await sendNotification(
+							chatId,
+							{
+								title: `⏰ ${title.replace('📅 ', '')}`,
+								body: 'Кездесу басталуына аз қалды',
+								type: 'meeting',
+							},
+							null,
+							senderData
+						)
 					}
 				}
+
+				// 🔹 Кездесу басталған кезде хабарлау
 				if (diffMs <= 0 && diffMs > -60 * 1000) {
 					const exists = await messagesRef
 						.where('type', '==', 'system_meeting_started')
 						.where('meetingTime', '==', meetingData.meetingTime)
 						.limit(1)
 						.get()
+
 					if (exists.empty) {
 						await messagesRef.add({
 							senderId: 'system',
@@ -148,17 +237,99 @@ exports.sendMeetingNotifications = onSchedule(
 							'🔔 Кездесу басталды',
 							'system_meeting_started'
 						)
-						await sendNotification(chatId, {
-							title: '🔔 Кездесу басталды',
-							body: 'Кездесу уақыты келді!',
-							type: 'meeting',
-						})
+
+						await sendNotification(
+							chatId,
+							{
+								title: `🔔 ${title.replace('📅 ', '')}`,
+								body: 'Кездесу уақыты келді!',
+								type: 'meeting',
+							},
+							null,
+							senderData
+						)
 					}
 				}
 			}
 		}
 	}
 )
+
+async function sendToUser(userId, chatId, payload) {
+	const userDoc = await admin.firestore().collection('users').doc(userId).get()
+	if (!userDoc.exists) return
+
+	const userData = userDoc.data()
+	if (userData.notificationsEnabled === false || !userData.fcmTokens) return
+
+	// Дубликат болмас үшін соңғы активті токенді ғана аламыз
+	const token = userData.fcmTokens[userData.fcmTokens.length - 1]
+
+	try {
+		await admin.messaging().send({
+			token: token,
+			notification: {
+				title: payload.title,
+				body: payload.body,
+			},
+			data: {
+				title: payload.title,
+				body: payload.body,
+				userImage: payload.senderData?.photoUrl || '',
+				type: payload.type,
+				chatId: chatId,
+				otherUserId: String(
+					payload.chatData.participants.find(id => id !== userId) || ''
+				),
+				selectedSkills: JSON.stringify(payload.chatData.selectedSkills || []),
+			},
+			android: {
+				priority: 'high',
+				notification: {
+					channelId: 'skillswap_channel',
+					tag: chatId, // Хабарламаларды бір чатқа топтастыру
+				},
+			},
+		})
+	} catch (e) {
+		console.error('FCM Error:', e)
+	}
+}
+
+async function getChatTitle(chatId, currentUserId = null) {
+	const chatDoc = await admin.firestore().collection('chats').doc(chatId).get()
+	if (!chatDoc.exists) return 'Чат'
+
+	const chatData = chatDoc.data()
+	const participants = chatData.participants || []
+
+	// 🔹 Егер currentUserId берілсе, оны шығарып тастап, қалған қатысушылардың атын аламыз
+	let otherParticipants = participants
+	if (currentUserId) {
+		otherParticipants = participants.filter(id => id !== currentUserId)
+	}
+
+	// 🔹 Әр қатысушының атын аламыз
+	const namesPromises = otherParticipants.map(async userId => {
+		const userDoc = await admin
+			.firestore()
+			.collection('users')
+			.doc(userId)
+			.get()
+		return userDoc.exists
+			? userDoc.data().firstName || 'Пайдаланушы'
+			: 'Пайдаланушы'
+	})
+
+	const names = await Promise.all(namesPromises)
+
+	if (names.length === 0) return 'Чат'
+	if (names.length === 1) return names[0]
+	if (names.length === 2) return `${names[0]} & ${names[1]}`
+
+	const othersCount = names.length - 2
+	return `${names[0]}, ${names[1]} & ${othersCount} басқа`
+}
 
 async function updateChatLastMessage(chatId, lastMessage, lastType) {
 	await admin.firestore().collection('chats').doc(chatId).update({
@@ -168,14 +339,22 @@ async function updateChatLastMessage(chatId, lastMessage, lastType) {
 	})
 }
 
-// 🔹 БІРЫҢҒАЙ ХАБАРЛАМА ЖІБЕРУ ФУНКЦИЯСЫ
-async function sendNotification(chatId, notification, excludeUserId = null) {
+async function sendNotification(
+	chatId,
+	notification,
+	excludeUserId = null,
+	senderData = null
+) {
 	const chatDoc = await admin.firestore().collection('chats').doc(chatId).get()
 	const chatData = chatDoc.data()
 	const participants = chatData.participants || []
 
 	for (const userId of participants) {
-		if (excludeUserId && userId === excludeUserId) continue
+		// ✅ 1. Өзіне хабарлама жібермеу (Double notification fix)
+		if (excludeUserId && userId === excludeUserId) {
+			console.log(`🚫 Skipping notification for sender: ${userId}`)
+			continue
+		}
 
 		const userDoc = await admin
 			.firestore()
@@ -189,9 +368,11 @@ async function sendNotification(chatId, notification, excludeUserId = null) {
 
 		if (Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0) {
 			const uniqueTokens = [...new Set(userData.fcmTokens)]
-			const tokensToRemove = []
 
-			for (const token of uniqueTokens) {
+			// Көбінесе соңғы активті токенді қолданған дұрыс
+			const lastToken = uniqueTokens.slice(-1)
+
+			for (const token of lastToken) {
 				try {
 					await admin.messaging().send({
 						token: token,
@@ -200,6 +381,9 @@ async function sendNotification(chatId, notification, excludeUserId = null) {
 							body: notification.body,
 						},
 						data: {
+							title: notification.title,
+							body: notification.body,
+							userImage: senderData?.photoUrl || '',
 							type: notification.type,
 							chatId: chatId,
 							otherUserId: String(participants.find(id => id !== userId) || ''),
@@ -207,35 +391,16 @@ async function sendNotification(chatId, notification, excludeUserId = null) {
 						},
 						android: {
 							priority: 'high',
-							collapseKey: `chat_${chatId}`,
 							notification: {
 								channelId: 'skillswap_channel',
 								sound: 'default',
-								tag: `chat_${chatId}`,
+								tag: chatId, // 🔥 Бұл бір чаттың хабарламаларын біріктіреді
 							},
 						},
-						apns: {
-							headers: {
-								'apns-collapse-id': `chat_${chatId}`
-							}
-						}
 					})
 				} catch (e) {
-					console.error('FCM Send Error for token', token, e)
-					if (
-						e.code === 'messaging/invalid-registration-token' ||
-						e.code === 'messaging/registration-token-not-registered'
-					) {
-						tokensToRemove.push(token)
-					}
+					console.error('❌ FCM ERROR:', e)
 				}
-			}
-
-			// Жарамсыз (ескі) токендерді өшіру
-			if (tokensToRemove.length > 0) {
-				await admin.firestore().collection('users').doc(userId).update({
-					fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
-				})
 			}
 		}
 	}

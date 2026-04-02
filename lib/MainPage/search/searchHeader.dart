@@ -65,21 +65,54 @@ class _SearchHeaderState extends State<SearchHeader> {
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isDark ? _darkInputColor : Colors.white.withOpacity(0.2),
+                    color: isDark
+                        ? _darkInputColor
+                        : Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: isDark
-                        ? Border.all(color: _darkCardBorderColor.withOpacity(0.4))
+                        ? Border.all(
+                            color: _darkCardBorderColor.withOpacity(0.4))
                         : null,
                   ),
-                  child: Row(
+                  child: Stack(
                     children: [
-                      _buildTab("Learn", 0),
-                      _buildTab("Teach", 1),
+                      // Moving indicator
+                      AnimatedAlign(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        alignment: selectedIndex == 0
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        child: FractionallySizedBox(
+                          widthFactor: 0.5,
+                          child: Container(
+                            margin: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Tabs
+                      Row(
+                        children: [
+                          _buildTab("Learn", 0),
+                          _buildTab("Teach", 1),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(width: 15),
+              const SizedBox(width: 15),
               GestureDetector(
                 onTap: widget.onFilterTap,
                 child: const Icon(
@@ -109,12 +142,14 @@ class _SearchHeaderState extends State<SearchHeader> {
             borderRadius: BorderRadius.circular(20),
           ),
           alignment: Alignment.center,
-          child: Text(
-            text,
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
             ),
+            child: Text(text),
           ),
         ),
       ),

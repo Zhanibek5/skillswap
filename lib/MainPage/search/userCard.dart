@@ -78,13 +78,13 @@ class _UserCardState extends State<UserCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Feedback",
-                      style:
-                          TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
+                      widget.mode == 'learn'
+                          ? "Learners Feedback"
+                          : "Teachers Feedback",
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     IconButton(
                       icon: Icon(
@@ -318,6 +318,17 @@ class _UserCardState extends State<UserCard> {
                             ),
                           ],
                         ),
+                      if (widget.mode == 'teach')
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber),
+                            Text(
+                              " ${rating.toStringAsFixed(1)}",
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       IconButton(
                         icon: const Icon(Icons.warning_amber_rounded,
                             color: Colors.red, size: 20),
@@ -385,8 +396,11 @@ class _UserCardState extends State<UserCard> {
                     onPressed: selectedSkills.isEmpty
                         ? null
                         : () async {
-                            final currentUserId =
-                                FirebaseAuth.instance.currentUser!.uid;
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user == null) {
+                              return;
+                            }
+                            final currentUserId = user.uid;
 
                             // Current user profile тексеру
                             final currentUserDoc = await FirebaseFirestore
@@ -480,9 +494,8 @@ class _UserCardState extends State<UserCard> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark
-                        ? Colors.blue.withOpacity(0.18)
-                        : Colors.black38,
+                    color:
+                        isDark ? Colors.blue.withOpacity(0.18) : Colors.black38,
                     blurRadius: 10,
                     offset: const Offset(2, 2),
                   )
@@ -544,6 +557,28 @@ class _UserCardState extends State<UserCard> {
                 backgroundColor: isDark ? _darkInputColor : Colors.white,
                 elevation: 4,
                 shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(width: 0.5, color: Colors.grey)),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              icon: Icon(Icons.chat_bubble_outline, color: Colors.yellow[700]),
+              label: Text("feedback".tr()),
+            ),
+          ),
+        if (widget.mode == 'teach')
+          Positioned(
+            bottom: -10,
+            left: 90,
+            right: 90,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _openFeedbackSheet();
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: isDark ? Colors.white : Colors.black,
+                backgroundColor: isDark ? _darkInputColor : Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
                     width: 0.5,
@@ -581,8 +616,13 @@ class _UserCardState extends State<UserCard> {
               final data = snapshot.data!.data() as Map<String, dynamic>;
               final isDark = Theme.of(context).brightness == Brightness.dark;
 
-              final avg = (data['ratingAverage'] ?? 0).toDouble();
-              final count = (data['ratingCount'] ?? 0);
+              final avg = widget.mode == 'learn'
+                  ? (data['teacherRating'] ?? 0).toDouble()
+                  : (data['learnerRating'] ?? 0).toDouble();
+
+              final count = widget.mode == 'learn'
+                  ? (data['teacherReviewCount'] ?? 0)
+                  : (data['learnerReviewCount'] ?? 0);
 
               return Row(
                 children: [
@@ -611,19 +651,26 @@ class _UserCardState extends State<UserCard> {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('reviews')
-                  .where('teacherId', isEqualTo: widget.userId)
+                  .where('toUserId', isEqualTo: widget.userId)
+                  .where(
+                    'role',
+                    isEqualTo: widget.mode == 'learn' ? 'teacher' : 'learner',
+                  )
                   .orderBy('createdAt', descending: true)
                   .limit(50)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text("Қате орын алды: ${snapshot.error}"));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final docs = snapshot.data!.docs;
-
+                final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
-                  return const Center(child: Text("No feedback yet"));
+                  return const Center(child: Text("No comments yet"));
                 }
 
                 return ListView.builder(
@@ -634,106 +681,90 @@ class _UserCardState extends State<UserCard> {
                     final rating = (data['rating'] ?? 0).toDouble();
                     final comment = data['comment'] ?? '';
                     final timestamp = data['createdAt'];
-                    final learnerID = data['learnerId'];
-
+                    final fromUserId = data['fromUserId'];
+                    final username = data['fromUserName'] ?? 'username';
+                    final photoUrl = data['fromUserPhoto'];
                     final timeText = formatTime(timestamp);
 
-                    return StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(learnerID)
-                          .snapshots(),
-                      builder: (context, userSnapshot) {
-                        if (!userSnapshot.hasData ||
-                            !userSnapshot.data!.exists) {
-                          return SizedBox();
-                        }
-
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>;
-                        final username = userData['firstName'] ?? 'Username';
-                        final photoUrl = userData['photoUrl'];
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                ? _darkCardColor
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(15),
-                            border: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                ? Border.all(
-                                    color: _darkCardBorderColor.withOpacity(0.4),
-                                  )
-                                : null,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? _darkCardColor
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Theme.of(context).brightness == Brightness.dark
+                            ? Border.all(
+                                color: _darkCardBorderColor.withOpacity(0.4),
+                              )
+                            : null,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          /// 👤 USER INFO
+                          Row(
                             children: [
-                              /// 👤 USER INFO
-                              Row(
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundImage: photoUrl != null
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: photoUrl == null
+                                    ? const Icon(Icons.person)
+                                    : null,
+                              ),
+                              SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundImage: photoUrl != null
-                                        ? NetworkImage(photoUrl)
-                                        : null,
-                                    child: photoUrl == null
-                                        ? const Icon(Icons.person)
-                                        : null,
+                                  Text(
+                                    username,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
                                   ),
-                                  SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  Row(
                                     children: [
-                                      Text(
-                                        username,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16),
+                                      ...List.generate(
+                                        5,
+                                        (index) => Icon(
+                                          index < rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          size: 18,
+                                          color: Colors.amber,
+                                        ),
                                       ),
-                                      Row(
-                                        children: [
-                                          ...List.generate(
-                                            5,
-                                            (index) => Icon(
-                                              index < rating
-                                                  ? Icons.star
-                                                  : Icons.star_border,
-                                              size: 18,
-                                              color: Colors.amber,
-                                            ),
-                                          ),
-                                          SizedBox(width: 10),
-                                          Text(
-                                            timeText,
-                                            style: TextStyle(
-                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black45),
-                                          ),
-                                        ],
+                                      SizedBox(width: 10),
+                                      Text(
+                                        timeText,
+                                        style: TextStyle(
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white54
+                                                    : Colors.black45),
                                       ),
                                     ],
-                                  )
+                                  ),
                                 ],
-                              ),
-                              SizedBox(
-                                height: 10,
-                              ),
-
-                              /// 💬 COMMENT
-                              if (comment.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Text(comment),
-                                ),
+                              )
                             ],
                           ),
-                        );
-                      },
+                          SizedBox(
+                            height: 10,
+                          ),
+
+                          /// 💬 COMMENT
+                          if (comment.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(comment),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 );

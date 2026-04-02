@@ -126,7 +126,7 @@ class _SkillMainPageState extends State<SkillMainPage> {
           extendBody: true, // Blur үшін маңызды
           body: Stack(
             children: [
-              IndexedStack(
+              FadeIndexedStack(
                 index: _selectedIndex,
                 children: const [
                   ChatsListPage(),
@@ -157,7 +157,9 @@ class _SkillMainPageState extends State<SkillMainPage> {
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.15),
+            color: isDark
+                ? Colors.black.withOpacity(0.5)
+                : Colors.black.withOpacity(0.15),
             blurRadius: 25,
             spreadRadius: 5,
             offset: const Offset(0, 8),
@@ -184,7 +186,37 @@ class _SkillMainPageState extends State<SkillMainPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _navItem(context, Icons.chat, 'chat'.tr(), 0),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('chats')
+                      .where('participants',
+                          arrayContains: FirebaseAuth.instance.currentUser!.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    int unreadUsersCount = 0;
+
+                    if (snapshot.hasData) {
+                      for (var doc in snapshot.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final unreadMap = data['unreadCount'] ?? {};
+                        final unread = (unreadMap[
+                                FirebaseAuth.instance.currentUser!.uid] ??
+                            0) as int;
+                        if (unread > 0) {
+                          unreadUsersCount += 1;
+                        }
+                      }
+                    }
+
+                    return _navItemWithBadge(
+                      context,
+                      Icons.chat,
+                      'chat'.tr(),
+                      0,
+                      unreadUsersCount,
+                    );
+                  },
+                ),
                 _navItem(context, Icons.search, 'search'.tr(), 1),
                 _navItem(context, Icons.settings, 'settings'.tr(), 2),
                 _navItem(context, Icons.person_outline, 'profile'.tr(), 3),
@@ -196,10 +228,41 @@ class _SkillMainPageState extends State<SkillMainPage> {
     );
   }
 
-  Widget _navItem(BuildContext context, IconData icon, String label, int index) {
+  Widget _navItemWithBadge(
+    BuildContext context,
+    IconData icon,
+    String label,
+    int index,
+    int badgeCount,
+  ) {
+    return Stack(
+      children: [
+        _navItem(context, icon, label, index),
+        if (badgeCount > 0)
+          Positioned(
+            right: 6,
+            top: 4,
+            child: Container(
+              padding: EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                badgeCount.toString(),
+                style: TextStyle(color: Colors.white, fontSize: 10),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _navItem(
+      BuildContext context, IconData icon, String label, int index) {
     bool isSelected = _selectedIndex == index;
     bool isDark = Theme.of(context).brightness == Brightness.dark;
-    Color primaryColor = Theme.of(context).colorScheme.primary;
+    Color primaryColor = Color(0xFF1E88E5);
 
     return GestureDetector(
       onTap: () {
@@ -212,9 +275,7 @@ class _SkillMainPageState extends State<SkillMainPage> {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? primaryColor 
-              : Colors.transparent,
+          color: isSelected ? primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(25),
         ),
         child: Column(
@@ -222,13 +283,14 @@ class _SkillMainPageState extends State<SkillMainPage> {
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
               child: Icon(
                 icon,
                 key: ValueKey<bool>(isSelected),
-                color: isSelected 
-                    ? Colors.white 
-                    : (isDark ? Colors.white70 : const Color(0xFF1E88E5)),
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Color(0xFF1E88E5)),
                 size: isSelected ? 24 : 22,
               ),
             ),
@@ -252,6 +314,39 @@ class _SkillMainPageState extends State<SkillMainPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class FadeIndexedStack extends StatelessWidget {
+  final int index;
+  final List<Widget> children;
+  final Duration duration;
+
+  const FadeIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+    this.duration = const Duration(milliseconds: 300),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: List<Widget>.generate(children.length, (int i) {
+        final bool isActive = index == i;
+        return IgnorePointer(
+          ignoring: !isActive,
+          child: AnimatedOpacity(
+            duration: duration,
+            opacity: isActive ? 1.0 : 0.0,
+            child: TickerMode(
+              enabled: isActive,
+              child: children[i],
+            ),
+          ),
+        );
+      }),
     );
   }
 }

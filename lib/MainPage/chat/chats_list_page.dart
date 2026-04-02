@@ -5,7 +5,7 @@ import 'chatPage.dart';
 import '../support/support_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:skillswap/background/backgroundColor.dart';
+import 'package:skillswap/background/backgroundForChat.dart';
 
 class ChatsListPage extends StatefulWidget {
   const ChatsListPage({super.key});
@@ -17,11 +17,12 @@ class ChatsListPage extends StatefulWidget {
 class _ChatsListPageState extends State<ChatsListPage> {
   final currentUserId = FirebaseAuth.instance.currentUser!.uid;
   String searchText = "";
+
   static const Color _darkCardColor = Color(0xFF0F1F3B);
   static const Color _darkCardBorderColor = Color(0xFF2B4C85);
   static const Color _darkInputColor = Color(0xFF122A66);
 
-  String formatTime(timestamp) {
+  String formatTime(Timestamp? timestamp) {
     if (timestamp == null) return '';
 
     DateTime date = timestamp.toDate();
@@ -50,14 +51,14 @@ class _ChatsListPageState extends State<ChatsListPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const Backgroundcolor(),
+          const BackgroundForChatcolor(),
           SafeArea(
             child: Column(
               children: [
                 /// TITLE
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(left: 16, top: 12, right: 16),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -80,7 +81,6 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         },
                         icon: const Icon(Icons.support_agent_outlined),
                         color: isDark ? Colors.white70 : Colors.grey[700],
-                        tooltip: 'support'.tr(),
                       ),
                     ],
                   ),
@@ -91,14 +91,10 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   padding: const EdgeInsets.all(12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color:
-                          isDark ? _darkCardColor : Colors.grey.withOpacity(0.15),
+                      color: isDark
+                          ? _darkCardColor
+                          : Colors.grey.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: isDark
-                          ? Border.all(
-                              color: _darkCardBorderColor.withOpacity(0.45),
-                            )
-                          : null,
                     ),
                     child: TextField(
                       onChanged: (value) {
@@ -107,7 +103,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         });
                       },
                       style: TextStyle(
-                        color: isDark ? Colors.white : Colors.grey[800],
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                       decoration: InputDecoration(
                         hintText: "Search by name or skill",
@@ -139,32 +135,28 @@ class _ChatsListPageState extends State<ChatsListPage> {
 
                       final chats = snapshot.data!.docs.toList();
 
-                      // Sort by lastTimestamp descending
+                      /// SORT
                       chats.sort((a, b) {
                         final aData = a.data() as Map<String, dynamic>;
                         final bData = b.data() as Map<String, dynamic>;
-                        final Timestamp? aTime = aData['lastTimestamp'] as Timestamp?;
-                        final Timestamp? bTime = bData['lastTimestamp'] as Timestamp?;
+
+                        final aTime = aData['lastTimestamp'] as Timestamp?;
+                        final bTime = bData['lastTimestamp'] as Timestamp?;
+
                         if (aTime == null && bTime == null) return 0;
                         if (aTime == null) return 1;
                         if (bTime == null) return -1;
+
                         return bTime.compareTo(aTime);
                       });
 
                       if (chats.isEmpty) {
-                        return Center(
-                          child: Text(
-                            "No chats yet",
-                            style: GoogleFonts.roboto(
-                              fontSize: 18,
-                              color: isDark ? Colors.white70 : Colors.grey,
-                            ),
-                          ),
+                        return const Center(
+                          child: Text("No chats yet"),
                         );
                       }
 
                       return ListView.builder(
-                        padding: const EdgeInsets.only(top: 10, bottom: 20),
                         itemCount: chats.length,
                         itemBuilder: (context, index) {
                           final chat = chats[index];
@@ -175,10 +167,12 @@ class _ChatsListPageState extends State<ChatsListPage> {
 
                           final otherUserId = participants.firstWhere(
                             (id) => id != currentUserId,
-                            orElse: () => participants.isNotEmpty
-                                ? participants.first
-                                : currentUserId,
+                            orElse: () => participants.first,
                           );
+
+                          /// 🔥 UNREAD COUNT (FIXED)
+                          final unreadMap = chatData['unreadCount'] ?? {};
+                          final unread = (unreadMap[currentUserId] ?? 0) as int;
 
                           return StreamBuilder<DocumentSnapshot>(
                             stream: FirebaseFirestore.instance
@@ -194,187 +188,145 @@ class _ChatsListPageState extends State<ChatsListPage> {
                               final userData = userSnapshot.data!.data()
                                   as Map<String, dynamic>;
 
-                              bool isSupportAgent = chatData['isSupport'] == true &&
-                                  userData['role'] == 'admin';
-                              final name = isSupportAgent
-                                  ? 'Support'
-                                  : (userData['firstName'] ?? 'No name');
-                              final photoUrl = isSupportAgent
-                                  ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png'
-                                  : (userData['photoUrl'] ?? '');
+                              final name = userData['firstName'] ?? 'User';
+                              final photoUrl = userData['photoUrl'] ?? '';
                               final skill = chatData['lastSkill'] ?? '';
-                              final lastType = chatData['lastType'] ?? 'text';
-                              String lastMessage = chatData['lastMessage'] ?? '';
 
-                              /// SYSTEM MESSAGE TEXT
+                              String lastMessage =
+                                  chatData['lastMessage'] ?? '';
+
+                              /// SYSTEM MESSAGES
+                              final lastType = chatData['lastType'] ?? 'text';
+
                               if (lastType == 'system_meeting_created') {
                                 lastMessage = "📅 Кездесу жоспарланды";
                               }
-
                               if (lastType == 'system_meeting_10min') {
                                 lastMessage = "⏰ 10 минут қалды";
                               }
-
                               if (lastType == 'system_meeting_started') {
                                 lastMessage = "🔔 Кездесу басталды";
                               }
 
-                              if (lastType == 'audio') {
-                                lastMessage = "🎤 Voice message";
-                              }
-
                               final timestamp = chatData['lastTimestamp'];
                               final timeText = formatTime(timestamp);
-                              final chatMode = chatData['isSupport'] == true
-                                  ? 'support'
-                                  : (chatData['teacherId'] == currentUserId
-                                      ? 'teach'
-                                      : 'learn');
 
                               /// SEARCH FILTER
-                              final nameLower = name.toLowerCase();
-                              final skillLower = skill.toLowerCase();
-
                               if (searchText.isNotEmpty &&
-                                  !nameLower.contains(searchText) &&
-                                  !skillLower.contains(searchText)) {
+                                  !name.toLowerCase().contains(searchText) &&
+                                  !skill.toLowerCase().contains(searchText)) {
                                 return const SizedBox();
                               }
-                              final isLast = index == chats.length - 1;
 
-                              return Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChatPage(
-                                          chatId: chat.id,
-                                          otherUserId: otherUserId,
-                                          selectedSkills:
-                                              (chatData['lastSkill']?.toString() ??
-                                                      '')
-                                                  .split(',')
-                                                  .map((e) => e.trim())
-                                                  .where((e) => e.isNotEmpty)
-                                                  .toList(),
-                                          mode: chatMode,
-                                        ),
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatPage(
+                                        chatId: chat.id,
+                                        otherUserId: otherUserId,
+                                        selectedSkills:
+                                            (chatData['lastSkill'] ?? '')
+                                                .toString()
+                                                .split(',')
+                                                .map((e) => e.trim())
+                                                .toList(),
+                                        mode: 'chat',
                                       ),
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 14,
                                     ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.transparent
-                                          : Colors.white,
-                                      border: isLast
-                                          ? null
-                                          : Border(
-                                              bottom: BorderSide(
-                                                color: isDark
-                                                    ? _darkCardBorderColor
-                                                        .withOpacity(0.35)
-                                                    : Colors.black12,
-                                                width: 0.8,
-                                              ),
-                                            ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        /// AVATAR
-                                        CircleAvatar(
-                                          radius: 28,
-                                          backgroundColor: isDark
-                                              ? _darkInputColor
-                                              : Colors.grey.shade200,
-                                          child: ClipOval(
-                                            child: photoUrl.isNotEmpty
-                                                ? Image.network(
-                                                    photoUrl,
-                                                    width: 56,
-                                                    height: 56,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) {
-                                                      return const Icon(
-                                                        Icons.person,
-                                                        size: 33,
-                                                      );
-                                                    },
-                                                  )
-                                                : const Icon(
-                                                    Icons.person,
-                                                    size: 28,
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 26,
+                                        backgroundImage: photoUrl.isNotEmpty
+                                            ? NetworkImage(photoUrl)
+                                            : null,
+                                        child: photoUrl.isEmpty
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    "$name • $skill",
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
                                                   ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        /// TEXT AREA
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Expanded(
+                                                ),
+                                                Text(
+                                                  timeText,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    lastMessage,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight: unread > 0
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
+                                                      color: unread > 0
+                                                          ? Colors.black
+                                                          : Colors.grey,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (unread > 0)
+                                                  Container(
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                            left: 6),
+                                                    padding:
+                                                        const EdgeInsets.all(6),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      color: Colors.blue,
+                                                      shape: BoxShape.circle,
+                                                    ),
                                                     child: Text(
-                                                      "$name • $skill",
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: GoogleFonts.roboto(
-                                                        fontSize: 17,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: isDark
-                                                            ? Colors.white
-                                                            : Colors.black87,
+                                                      unread.toString(),
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
                                                       ),
                                                     ),
                                                   ),
-                                                  Text(
-                                                    timeText,
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: isDark
-                                                          ? Colors.white60
-                                                          : Colors.grey,
-                                                    ),
-                                                  )
-                                                ],
-                                              ),
-                                              const SizedBox(height: 6),
-                                              Text(
-                                                lastMessage,
-                                                maxLines: 1,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : Colors.black54,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
@@ -384,7 +336,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                       );
                     },
                   ),
-                )
+                ),
               ],
             ),
           ),
