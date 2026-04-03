@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:skillswap/MainPage/support/support_chat_page.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -15,6 +16,10 @@ class SupportPage extends StatefulWidget {
 }
 
 class _SupportPageState extends State<SupportPage> {
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _darkInputColor = Color(0xFF122A66);
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
@@ -177,14 +182,18 @@ class _SupportPageState extends State<SupportPage> {
   static const String _supportUserId = 'admin';
 
   Widget _buildHistoryTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
       // user not logged in yet
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child:
-              Text('support_not_logged_in'.tr(), textAlign: TextAlign.center),
+          child: Text(
+            'support_not_logged_in'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+          ),
         ),
       );
     }
@@ -219,7 +228,11 @@ class _SupportPageState extends State<SupportPage> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(err, textAlign: TextAlign.center),
+              child: Text(
+                err,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+              ),
             ),
           );
         }
@@ -227,7 +240,11 @@ class _SupportPageState extends State<SupportPage> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('show_last_month'.tr(), textAlign: TextAlign.center),
+              child: Text(
+                'show_last_month'.tr(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+              ),
             ),
           );
         }
@@ -241,28 +258,70 @@ class _SupportPageState extends State<SupportPage> {
         });
         // simple list of tickets – tapping one should open a support chat
         return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
             final subject = (data['reason'] as String?)?.trim();
             final category = (data['category'] as String?) ?? '';
             final created = (data['createdAt'] as Timestamp?)?.toDate();
-            return ListTile(
-              title: Text(subject?.isNotEmpty == true ? subject! : category),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (category.isNotEmpty && subject?.isNotEmpty == true)
-                    Text(category, style: const TextStyle(fontSize: 12)),
-                  if (created != null)
-                    Text(
-                      DateFormat('yyyy-MM-dd HH:mm').format(created),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: isDark ? _darkCardColor : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  if (isDark)
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  if (!isDark)
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                 ],
+                border: isDark
+                    ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+                    : null,
               ),
-              trailing: Text(data['status'] ?? ''),
-              onTap: () async {
+              child: ListTile(
+                title: Text(
+                  subject?.isNotEmpty == true ? subject! : category,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (category.isNotEmpty && subject?.isNotEmpty == true)
+                      Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    if (created != null)
+                      Text(
+                        DateFormat('yyyy-MM-dd HH:mm').format(created),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white60 : Colors.grey,
+                        ),
+                      ),
+                  ],
+                ),
+                trailing: Text(
+                  data['status'] ?? '',
+                  style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                ),
+                onTap: () async {
                 // generate a unique chat id for this ticket rather than reusing
                 // the general user-admin chat.  including the ticket id ensures
                 // separate threads per feedback entry.
@@ -326,7 +385,8 @@ class _SupportPageState extends State<SupportPage> {
                     ),
                   ),
                 );
-              },
+                },
+              ),
             );
           },
         );
@@ -342,6 +402,8 @@ class _SupportPageState extends State<SupportPage> {
   }
 
   Widget _buildFeedbackTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -351,17 +413,35 @@ class _SupportPageState extends State<SupportPage> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [Colors.blue.shade50, Colors.white],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter),
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF173A6D), Color(0xFF0F1F3B)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      )
+                    : LinearGradient(
+                        colors: [Colors.blue.shade50, Colors.white],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(
+                  if (isDark)
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  if (!isDark)
+                    BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 12,
-                      offset: const Offset(0, 6))
+                      offset: const Offset(0, 6),
+                    ),
                 ],
+                border: isDark
+                    ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -369,9 +449,13 @@ class _SupportPageState extends State<SupportPage> {
                   Center(
                     child: CircleAvatar(
                       radius: 32,
-                      backgroundColor: Colors.blue.shade100,
-                      child: Icon(Icons.support_agent,
-                          size: 40, color: Colors.blue.shade700),
+                      backgroundColor:
+                          isDark ? _darkInputColor : Colors.blue.shade100,
+                      child: Icon(
+                        Icons.support_agent,
+                        size: 40,
+                        color: const Color(0xFF1E88E5),
+                      ),
                     ),
                   ),
                   SizedBox(height: 12),
@@ -383,19 +467,28 @@ class _SupportPageState extends State<SupportPage> {
                         Text('support_help_title'.tr(),
                             textAlign: TextAlign.center,
                             style: GoogleFonts.roboto(
-                                fontSize: 20, fontWeight: FontWeight.w700)),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : Colors.black87,
+                            )),
                         SizedBox(height: 6),
                         Text('support_help_subtitle'.tr(),
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.roboto(color: Colors.grey[600])),
+                            style: GoogleFonts.roboto(
+                              color: isDark ? Colors.white70 : Colors.grey[600],
+                            )),
                         SizedBox(height: 16),
                         // category heading
                         Row(
                           children: [
-                            const Text('• '),
+                            Text('• ',
+                                style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black)),
                             Text('category'.tr(),
                                 style: GoogleFonts.roboto(
-                                    fontWeight: FontWeight.w600)),
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                )),
                             const Text('*',
                                 style: TextStyle(color: Colors.red)),
                           ],
@@ -410,13 +503,21 @@ class _SupportPageState extends State<SupportPage> {
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      selected ? Colors.blue : Colors.grey[200],
+                                  backgroundColor: selected
+                                      ? const Color(0xFF1E88E5)
+                                      : (isDark ? _darkInputColor : Colors.grey[200]),
                                   foregroundColor:
-                                      selected ? Colors.white : Colors.black87,
+                                      selected
+                                          ? Colors.white
+                                          : (isDark ? Colors.white : Colors.black87),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(24)),
                                   minimumSize: const Size(double.infinity, 48),
+                                  side: isDark && !selected
+                                      ? BorderSide(
+                                          color: _darkCardBorderColor.withOpacity(0.5),
+                                        )
+                                      : null,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -433,10 +534,14 @@ class _SupportPageState extends State<SupportPage> {
                         if (_selectedCategory != null) ...[
                           Row(
                             children: [
-                              const Text('• '),
+                              Text('• ',
+                                  style: TextStyle(
+                                      color: isDark ? Colors.white : Colors.black)),
                               Text('where_problem'.tr(),
                                   style: GoogleFonts.roboto(
-                                      fontWeight: FontWeight.w600)),
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  )),
                               Text('*',
                                   style: TextStyle(
                                       color:
@@ -453,9 +558,37 @@ class _SupportPageState extends State<SupportPage> {
                               true) ...[
                             ..._subcategoriesMap[_selectedCategory]!
                                 .map((sub) => RadioListTile<String>(
-                                      title: Text(sub['label']!.tr()),
+                                      title: Text(
+                                        sub['label']!.tr(),
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
                                       value: sub['key']!,
                                       groupValue: _selectedSubcategory,
+                                      activeColor: const Color(0xFF1E88E5),
+                                      fillColor: WidgetStateProperty.resolveWith(
+                                        (states) => states
+                                                .contains(WidgetState.selected)
+                                            ? const Color(0xFF1E88E5)
+                                            : (isDark ? Colors.white70 : null),
+                                      ),
+                                      tileColor: isDark
+                                          ? _darkInputColor.withOpacity(0.45)
+                                          : null,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        side: isDark
+                                            ? BorderSide(
+                                                color: _darkCardBorderColor
+                                                    .withOpacity(0.3),
+                                              )
+                                            : BorderSide.none,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(horizontal: 8),
                                       onChanged: (val) => setState(
                                           () => _selectedSubcategory = val),
                                     ))
@@ -465,10 +598,14 @@ class _SupportPageState extends State<SupportPage> {
                           if (_selectedCategory == 'audio') ...[
                             Row(
                               children: [
-                                const Text('• '),
+                                Text('• ',
+                                    style: TextStyle(
+                                        color: isDark ? Colors.white : Colors.black)),
                                 Text('choose_time'.tr(),
                                     style: GoogleFonts.roboto(
-                                        fontWeight: FontWeight.w600)),
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    )),
                                 const Text('*',
                                     style: TextStyle(color: Colors.red)),
                               ],
@@ -480,10 +617,28 @@ class _SupportPageState extends State<SupportPage> {
                               decoration: InputDecoration(
                                 hintText: 'select_date_time'.tr(),
                                 filled: true,
-                                fillColor: Colors.grey.shade100,
+                                fillColor: isDark ? _darkInputColor : Colors.grey.shade100,
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide.none),
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white60 : Colors.black54,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: isDark
+                                      ? BorderSide(
+                                          color: _darkCardBorderColor.withOpacity(0.45),
+                                        )
+                                      : BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF1E88E5),
+                                    width: 1.4,
+                                  ),
+                                ),
                               ),
                               onTap: _pickDateTime,
                               validator: (v) {
@@ -499,10 +654,14 @@ class _SupportPageState extends State<SupportPage> {
                         ],
                         Row(
                           children: [
-                            const Text('• '),
+                            Text('• ',
+                                style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black)),
                             Text('description_label'.tr(),
                                 style: GoogleFonts.roboto(
-                                    fontWeight: FontWeight.w600)),
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                )),
                             const Text('*',
                                 style: TextStyle(color: Colors.red)),
                           ],
@@ -518,10 +677,31 @@ class _SupportPageState extends State<SupportPage> {
                             decoration: InputDecoration(
                               hintText: 'support_message_hint'.tr(),
                               filled: true,
-                              fillColor: Colors.grey.shade100,
+                              fillColor: isDark ? _darkInputColor : Colors.grey.shade100,
                               border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none),
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.white60 : Colors.black54,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: isDark
+                                    ? BorderSide(
+                                        color: _darkCardBorderColor.withOpacity(0.45),
+                                      )
+                                    : BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF1E88E5),
+                                  width: 1.4,
+                                ),
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? 'support_validate_message'.tr()
@@ -531,11 +711,15 @@ class _SupportPageState extends State<SupportPage> {
                         SizedBox(height: 12),
                         Row(
                           children: [
-                            const Text('• '),
+                            Text('• ',
+                                style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black)),
                             Expanded(
                                 child: Text('attach_photo_video'.tr(),
                                     style: GoogleFonts.roboto(
-                                        fontWeight: FontWeight.w600))),
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ))),
                           ],
                         ),
                         SizedBox(height: 8),
@@ -555,9 +739,22 @@ class _SupportPageState extends State<SupportPage> {
                                         ? Container(
                                             width: 80,
                                             height: 80,
-                                            color: Colors.grey.shade300,
-                                            child: const Icon(Icons.videocam,
-                                                color: Colors.black54),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? _darkInputColor
+                                                  : Colors.grey.shade300,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: isDark
+                                                  ? Border.all(
+                                                      color: _darkCardBorderColor
+                                                          .withOpacity(0.45),
+                                                    )
+                                                  : null,
+                                            ),
+                                            child: Icon(Icons.videocam,
+                                                color: isDark
+                                                    ? Colors.white70
+                                                    : Colors.black54),
                                           )
                                         : Image.file(
                                             File(file.path),
@@ -573,11 +770,19 @@ class _SupportPageState extends State<SupportPage> {
                                     width: 80,
                                     height: 80,
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
+                                      color: isDark
+                                          ? _darkInputColor
+                                          : Colors.grey.shade200,
                                       borderRadius: BorderRadius.circular(12),
+                                      border: isDark
+                                          ? Border.all(
+                                              color:
+                                                  _darkCardBorderColor.withOpacity(0.45),
+                                            )
+                                          : null,
                                     ),
-                                    child: const Icon(Icons.camera_alt,
-                                        color: Colors.grey),
+                                    child: Icon(Icons.camera_alt,
+                                        color: isDark ? Colors.white70 : Colors.grey),
                                   ),
                                 ),
                             ],
@@ -588,13 +793,22 @@ class _SupportPageState extends State<SupportPage> {
                           value: _includeLogs,
                           onChanged: (v) =>
                               setState(() => _includeLogs = v ?? false),
-                          title: Text('include_logs'.tr()),
+                          title: Text(
+                            'include_logs'.tr(),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          activeColor: const Color(0xFF1E88E5),
+                          checkColor: Colors.white,
                           controlAffinity: ListTileControlAffinity.leading,
                         ),
                         SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _sending ? null : _submitTicket,
                           style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E88E5),
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -621,18 +835,23 @@ class _SupportPageState extends State<SupportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: isDark ? Colors.transparent : Colors.grey.shade50,
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
           centerTitle: true,
           title: Text('feedback'.tr(),
               style: GoogleFonts.roboto(
-                  color: Colors.black, fontWeight: FontWeight.w600)),
-          iconTheme: const IconThemeData(color: Colors.black87),
+                  color: isDark ? Colors.white : Colors.black,
+                  fontWeight: FontWeight.w600)),
+          iconTheme: IconThemeData(
+            color: isDark ? Colors.white : Colors.black87,
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.help_outline),
@@ -643,19 +862,25 @@ class _SupportPageState extends State<SupportPage> {
             ),
           ],
           bottom: TabBar(
-            labelColor: Colors.blue,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.blue,
+            labelColor: const Color(0xFF1E88E5),
+            unselectedLabelColor: isDark ? Colors.white60 : Colors.grey,
+            indicatorColor: const Color(0xFF1E88E5),
             tabs: [
               Tab(text: 'feedback'.tr()),
               Tab(text: 'history'.tr()),
             ],
           ),
         ),
-        body: TabBarView(
+        body: Stack(
+          fit: StackFit.expand,
           children: [
-            _buildFeedbackTab(),
-            _buildHistoryTab(),
+            if (isDark) const Backgroundcolor(),
+            TabBarView(
+              children: [
+                _buildFeedbackTab(),
+                _buildHistoryTab(),
+              ],
+            ),
           ],
         ),
       ),
