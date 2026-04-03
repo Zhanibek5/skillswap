@@ -352,35 +352,32 @@ class _ProfilePageState extends State<ProfilePage> {
                         Container(
                             padding: const EdgeInsets.all(16),
                             decoration: _boxDecoration(context),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Wrap(
+                              spacing: 16,
+                              runSpacing: 10,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.arrow_upward, color: Colors.green, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('earned'.tr()),
-                                    const SizedBox(width: 4),
-                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                  ],
+                                _timeBankMetric(
+                                  icon: Icons.arrow_upward,
+                                  iconColor: Colors.green,
+                                  label: 'earned'.tr(),
+                                  value: _formatHoursMinutes(timeEarned),
+                                  valueColor: Colors.green,
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.arrow_downward, color: Colors.red, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('spent'.tr()),
-                                    const SizedBox(width: 4),
-                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                                  ],
+                                _timeBankMetric(
+                                  icon: Icons.arrow_downward,
+                                  iconColor: Colors.red,
+                                  label: 'spent'.tr(),
+                                  value: _formatHoursMinutes(timeSpent),
+                                  valueColor: Colors.red,
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.account_balance_wallet, color: Color(0xFF1E88E5), size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('balance:'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 4),
-                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88E5))),
-                                  ],
+                                _timeBankMetric(
+                                  icon: Icons.account_balance_wallet,
+                                  iconColor: const Color(0xFF1E88E5),
+                                  label: 'balance:'.tr(),
+                                  value: _formatHoursMinutes(balanceMinutes),
+                                  valueColor: const Color(0xFF1E88E5),
+                                  labelStyle:
+                                      const TextStyle(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             )),
@@ -794,6 +791,39 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ===== WIDGETS =====
+
+  String _formatHoursMinutes(int totalMinutes) {
+    final int safeMinutes = totalMinutes < 0 ? 0 : totalMinutes;
+    final int hours = safeMinutes ~/ 60;
+    final int minutes = safeMinutes % 60;
+    return '${hours}h ${minutes}m';
+  }
+
+  Widget _timeBankMetric({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required Color valueColor,
+    TextStyle? labelStyle,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 16),
+        const SizedBox(width: 4),
+        Text(label, style: labelStyle),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _statItem(BuildContext context, String emoji, String value, String label) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
