@@ -31,6 +31,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String _sex = 'male';
   List<String> _languages = ['KZ'];
 
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _darkInputColor = Color(0xFF122A66);
+
   Future<void> _uploadPhoto() async {
     if (_pickedImage == null) return;
 
@@ -227,7 +231,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     children: [
                       CircleAvatar(
                         radius: 55,
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
+                        backgroundColor:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? _darkInputColor
+                                : Colors.grey.shade200,
                         backgroundImage: _pickedImage != null
                             ? FileImage(_pickedImage!)
                             : (_photoUrl != null && _photoUrl!.isNotEmpty
@@ -279,17 +286,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? const Color(0xFF1A1A1A) 
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? _darkCardColor
                         : Colors.white.withOpacity(0.96),
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
+                      if (Theme.of(context).brightness == Brightness.dark)
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      if (Theme.of(context).brightness != Brightness.dark)
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
                     ],
+                    border: Theme.of(context).brightness == Brightness.dark
+                        ? Border.all(
+                            color: _darkCardBorderColor.withOpacity(0.45),
+                          )
+                        : null,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,10 +438,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
           hintText: hint,
           prefixIcon: Icon(icon),
           filled: true,
-          fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+          fillColor: Theme.of(context).brightness == Brightness.dark
+              ? _darkInputColor
+              : Colors.grey.shade100,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: Theme.of(context).brightness == Brightness.dark
+                ? BorderSide(color: _darkCardBorderColor.withOpacity(0.4))
+                : BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
           ),
         ),
       ),
@@ -447,8 +478,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? _darkInputColor
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(16),
+              border: Theme.of(context).brightness == Brightness.dark
+                  ? Border.all(color: _darkCardBorderColor.withOpacity(0.4))
+                  : null,
             ),
             child: Row(
               children: sexCodes.map((code) {
@@ -563,12 +599,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF1E88E5)
-                        : Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+                        : Theme.of(context).brightness == Brightness.dark
+                            ? _darkInputColor
+                            : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
                           ? const Color(0xFF1E88E5)
-                          : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300),
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? _darkCardBorderColor.withOpacity(0.6)
+                              : Colors.grey.shade300),
                     ),
                   ),
                   child: Row(
