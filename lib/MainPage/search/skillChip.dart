@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SkillChip extends StatelessWidget {
+  static const Color _darkInputColor = Color(0xFF122A66);
+
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -14,6 +16,8 @@ class SkillChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -28,7 +32,9 @@ class SkillChip extends StatelessWidget {
                   ],
                 )
               : null,
-          color: isSelected ? null : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200),
+          color: isSelected
+              ? null
+              : (isDark ? _darkInputColor : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: const Color(0xFF1E88E5),

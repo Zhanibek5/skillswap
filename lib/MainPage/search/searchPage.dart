@@ -199,12 +199,14 @@ class _SearchPageState extends State<SearchPage> {
                     }).toList();
 
                     if (filteredUsers.isEmpty) {
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
                       return Center(
                         child: Text(
                           "User not found".tr(),
                           style: TextStyle(
                             fontSize: 16,
-                            color: Color(0xFF203068),
+                            color: isDark ? Colors.white70 : const Color(0xFF203068),
                           ),
                         ),
                       );
