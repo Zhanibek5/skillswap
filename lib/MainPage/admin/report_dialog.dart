@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class ReportDialog {
-  static void show(BuildContext context, String reportedUserId, String targetType, {String? targetId}) {
+  static void show(
+      BuildContext context, String reportedUserId, String targetType,
+      {String? targetId}) {
     showDialog(
       context: context,
       builder: (context) {
@@ -24,11 +25,10 @@ class _ReportDialogContent extends StatefulWidget {
   final String? targetId;
 
   const _ReportDialogContent({
-    Key? key,
     required this.reportedUserId,
     required this.targetType,
     this.targetId,
-  }) : super(key: key);
+  });
 
   @override
   State<_ReportDialogContent> createState() => _ReportDialogContentState();
@@ -61,20 +61,22 @@ class _ReportDialogContentState extends State<_ReportDialogContent> {
         'targetType': widget.targetType,
         'targetId': widget.targetId,
         'reason': reason,
-        'status': 'pending', 
+        'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report submitted successfully. We will review it shortly.')),
+          const SnackBar(
+              content: Text(
+                  'Report submitted successfully. We will review it shortly.')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Failed to submit report: $e')),
+          SnackBar(content: Text('Failed to submit report: $e')),
         );
       }
     } finally {
@@ -93,8 +95,9 @@ class _ReportDialogContentState extends State<_ReportDialogContent> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Please describe why you are reporting this user. False reports may result in a ban.'),
-          const SizedBox(height: 16),
+          const Text(
+              'Please describe why you are reporting this user. False reports may result in a ban.'),
+          SizedBox(height: 16),
           TextField(
             controller: _reasonController,
             maxLines: 3,
@@ -114,7 +117,11 @@ class _ReportDialogContentState extends State<_ReportDialogContent> {
           onPressed: _isSubmitting ? null : _submitReport,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           child: _isSubmitting
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2))
               : const Text('Submit Report'),
         ),
       ],

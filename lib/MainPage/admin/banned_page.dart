@@ -7,11 +7,11 @@ class BannedPage extends StatelessWidget {
   final String? reason;
   final DateTime? expiration;
 
-  const BannedPage({Key? key, this.reason, this.expiration}) : super(key: key);
+  const BannedPage({super.key, this.reason, this.expiration});
 
   @override
   Widget build(BuildContext context) {
-    String expirationText = expiration != null 
+    String expirationText = expiration != null
         ? "Until ${DateFormat('dd MMM yyyy, HH:mm').format(expiration!)}"
         : "Permanent";
 
@@ -23,36 +23,40 @@ class BannedPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.block, size: 80, color: Colors.red),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               const Text(
                 'Account Suspended',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),    
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               const Text(
                 'Your account has been restricted by an administrator.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               if (reason != null && reason!.isNotEmpty)
                 Text(
                   'Reason: $reason',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.red),
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red),
                 ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 'Duration: $expirationText',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               ElevatedButton.icon(
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoginPage()), 
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
                     (route) => false,
                   );
                 },

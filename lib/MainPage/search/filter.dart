@@ -78,10 +78,10 @@ class _FilterSheetState extends State<FilterSheet> {
                     const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 25),
+            SizedBox(height: 25),
             Text("activity".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Wrap(
               spacing: 10,
               children: [
@@ -114,13 +114,13 @@ class _FilterSheetState extends State<FilterSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 25),
+            SizedBox(height: 25),
             Text("rating".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             Row(
               children: [
                 const Icon(Icons.star, color: Colors.amber),
-                const SizedBox(width: 5),
+                SizedBox(width: 5),
                 Expanded(
                   child: Slider(
                     value: rating,
@@ -134,10 +134,10 @@ class _FilterSheetState extends State<FilterSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text("languages_comfortable".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Wrap(
               spacing: 10,
               children: languageCodes.map((code) {
@@ -161,13 +161,13 @@ class _FilterSheetState extends State<FilterSheet> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 25),
+            SizedBox(height: 25),
             Text("age".tr(),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 )),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             RangeSlider(
               values: RangeValues(
                 (minAge ?? 16).toDouble(),
@@ -202,10 +202,10 @@ class _FilterSheetState extends State<FilterSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 25),
+            SizedBox(height: 25),
             Text("sex".tr(),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Wrap(
               spacing: 10,
               children: sexCodes.map((code) {
@@ -226,7 +226,7 @@ class _FilterSheetState extends State<FilterSheet> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
             Row(
               children: [
                 Expanded(
@@ -251,7 +251,7 @@ class _FilterSheetState extends State<FilterSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(

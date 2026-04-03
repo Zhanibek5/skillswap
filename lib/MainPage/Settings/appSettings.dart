@@ -11,11 +11,12 @@ import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:skillswap/MainPage/admin/users_management_page.dart';
-import 'package:provider/provider.dart';
-import '../../settings_provider.dart';
 import 'package:skillswap/MainPage/admin/reports_management_page.dart';
 import 'package:skillswap/MainPage/admin/admin_list_page.dart';
 import 'instructions_page.dart';
+import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
+import 'package:provider/provider.dart';
+import '../../settings_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -27,21 +28,27 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final uid = FirebaseAuth.instance.currentUser!.uid;
   String _selectedLanguage = "Қазақша";
+  bool notificationsEnabled = true;
 
   void _showLanguageDialog() async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: Text('select_language'.tr()),
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          title: Text(
+            'select_language'.tr(),
+            style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+          ),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _languageOption(Locale('en')),
-              _languageOption(Locale('kk')),
-              _languageOption(Locale('ru')),
+              _languageOption(const Locale('en')),
+              _languageOption(const Locale('kk')),
+              _languageOption(const Locale('ru')),
             ],
           ),
         );
@@ -73,6 +80,19 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Future<void> loadNotificationSetting() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    if (doc.exists) {
+      setState(() {
+        notificationsEnabled = doc.data()?['notificationsEnabled'] ?? true;
+      });
+    }
+  }
+
   String _getCurrentLanguageLabel(BuildContext context) {
     final code = context.locale.languageCode;
     if (code == 'en') return 'english'.tr();
@@ -82,19 +102,15 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-    final titleColor = Colors.white;
-
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           'settings'.tr(),
           style: GoogleFonts.roboto(
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: titleColor,
+            color: Colors.white,
           ),
         ),
         centerTitle: true,
@@ -135,7 +151,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         CircleAvatar(
                           radius: 65,
-                          backgroundColor: Colors.white,
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF1E1E1E)
+                                  : Colors.white,
                           backgroundImage:
                               photoUrl != null && photoUrl.isNotEmpty
                                   ? NetworkImage(photoUrl)
@@ -144,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ? const Icon(Icons.person, size: 80)
                               : null,
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Text(
                           displayName,
                           style: const TextStyle(
@@ -153,15 +172,12 @@ class _SettingsPageState extends State<SettingsPage> {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        SizedBox(height: 5),
                         Text(
                           FirebaseAuth.instance.currentUser!.email ?? '',
-                          style: TextStyle(
-                            color: dark ? Colors.white70 : Colors.white,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        // const SizedBox(height: 10),
+                        // SizedBox(height: 10),
 
                         /// ✏️ EDIT PROFILE BUTTON
                         // OutlinedButton(
@@ -185,53 +201,53 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     /// 👮 ADMIN CARD
                     if (role == 'admin' || role == 'moderator') ...[
                       _card(
                         children: [
                           _item(
-                              Icons.manage_accounts,
-                              'Manage Users',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const UsersManagementPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _divider(),
-                            _item(
-                              Icons.report_problem,
-                              'Manage Reports',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ReportsManagementPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _divider(),
-                            _item(
-                              Icons.admin_panel_settings,
-                              'Other Admins',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const AdminListPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                            Icons.manage_accounts,
+                            'Manage Users',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const UsersManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _divider(),
+                          _item(
+                            Icons.report_problem,
+                            'Manage Reports',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ReportsManagementPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _divider(),
+                          _item(
+                            Icons.admin_panel_settings,
+                            'Other Admins',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AdminListPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                     ],
 
                     /// ⚙️ GENERAL SETTINGS CARD
@@ -241,13 +257,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           Icons.language,
                           _getCurrentLanguageLabel(context),
                           onTap: _showLanguageDialog,
-                        ),
-                        _divider(),
-                        _switchItem(
-                          Icons.dark_mode,
-                          'dark_mode'.tr(),
-                          dark,
-                          (value) => context.read<SettingsProvider>().setDarkMode(value),
                         ),
                         _divider(),
                         _item(
@@ -279,6 +288,93 @@ class _SettingsPageState extends State<SettingsPage> {
                           },
                         ),
                         _divider(),
+                        Consumer<SettingsProvider>(
+                            builder: (context, settingsProvider, child) {
+                          bool isDarkMode =
+                              Theme.of(context).brightness == Brightness.dark;
+                          Color iconColor =
+                              isDarkMode ? Colors.white : Colors.black;
+                          return Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.notifications,
+                                      color: iconColor,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        "Notification",
+                                        style: TextStyle(
+                                          color: iconColor,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    Switch(
+                                      value:
+                                          settingsProvider.notificationsEnabled,
+                                      activeThumbColor: Colors.white,
+                                      activeTrackColor: const Color(0xFF1E88E5),
+                                      inactiveThumbColor: Colors.grey,
+                                      inactiveTrackColor: Colors.black54,
+                                      onChanged: (value) async {
+                                        settingsProvider
+                                            .setNotifications(value);
+                                        final uid = FirebaseAuth
+                                            .instance.currentUser!.uid;
+                                        await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(uid)
+                                            .update({
+                                          'notificationsEnabled': value
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _divider(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.dark_mode,
+                                      color: iconColor,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        "dark_mode".tr(),
+                                        style: TextStyle(
+                                          color: iconColor,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    Switch(
+                                      value: settingsProvider.isDarkMode,
+                                      activeThumbColor: Colors.white,
+                                      activeTrackColor: const Color(0xFF1E88E5),
+                                      inactiveThumbColor: Colors.grey,
+                                      inactiveTrackColor: Colors.black54,
+                                      onChanged: (value) async {
+                                        settingsProvider.setDarkMode(value);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                        _divider(),
                         _item(
                           Icons.privacy_tip_outlined,
                           'privacy_policy'.tr(),
@@ -307,7 +403,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
 
                     /// ⚠️ ACCOUNT CARD
                     _card(
@@ -317,7 +413,10 @@ class _SettingsPageState extends State<SettingsPage> {
                           'logout'.tr(),
                           danger: true,
                           onTap: () async {
+                            await TokenService().logout();
+
                             await FirebaseAuth.instance.signOut();
+
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
@@ -353,42 +452,31 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// 🌈 SAME BACKGROUND
   Widget _background() {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-    if (dark) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0B1A30),
-              Color(0xFF161F36),
-              Color(0xFF071125),
-            ],
-          ),
-        ),
-      );
-    }
     return Backgroundcolor();
   }
 
+  static const Color _darkCard = Color(0xFF1E1E1E);
+
   /// 📦 CARD
   Widget _card({required List<Widget> children}) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-    final cardColor = dark ? const Color(0xFF121B2F) : Colors.white;
-    final shadowColor = dark ? Colors.black45 : Colors.black.withOpacity(0.06);
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: isDarkMode ? _darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: shadowColor,
+            color: isDarkMode
+                ? Colors.black.withOpacity(0.4)
+                : Colors.black.withOpacity(0.06),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
         ],
+        border: isDarkMode
+            ? Border.all(color: Colors.white.withOpacity(0.05))
+            : null,
       ),
       child: Column(children: children),
     );
@@ -401,74 +489,36 @@ class _SettingsPageState extends State<SettingsPage> {
     bool danger = false,
     VoidCallback? onTap,
   }) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-    final itemColor = danger
-        ? Colors.redAccent
-        : (dark ? Colors.white : Colors.black);
-
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    Color textColor =
+        danger ? Colors.red : (isDarkMode ? Colors.white : Colors.black);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
         child: Row(
           children: [
-            Icon(icon, color: itemColor),
-            const SizedBox(width: 12),
+            Icon(icon, color: textColor),
+            SizedBox(width: 12),
             Text(
               text,
               style: TextStyle(
-                color: itemColor,
+                color: textColor,
                 fontSize: 15,
               ),
             ),
+            // const Spacer(),
+            // const Icon(Icons.chevron_right),
           ],
         ),
       ),
     );
   }
 
-  Widget _switchItem(
-    IconData icon,
-    String text,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-    final textColor = dark ? Colors.white : Colors.black;
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        children: [
-          Icon(icon, color: textColor),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: textColor, fontSize: 15),
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.cyanAccent,
-            activeTrackColor: Colors.indigoAccent,
-            inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.white30,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _divider() {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(
-        height: 1,
-        color: dark ? Colors.white24 : Colors.black12,
-      ),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Divider(height: 1),
     );
   }
 }

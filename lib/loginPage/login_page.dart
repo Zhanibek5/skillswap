@@ -65,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
           centerTitle: true,
-          // backgroundColor: Colors.white,
+          //
           elevation: 0,
           backgroundColor: Colors.transparent,
         ),
@@ -80,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Center(
                       child: SizedBox(
                         width: 400,
@@ -92,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
                     Text(
                       'enterEmailPassword'.tr(),
@@ -102,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // EMAIL
                     TextFormField(
@@ -142,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // PASSWORD
                     TextFormField(
@@ -196,7 +196,7 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // ERROR
                     if (errorMessage.isNotEmpty)
@@ -208,7 +208,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                    const SizedBox(height: 25),
+                    SizedBox(height: 25),
 
                     // LOGIN BUTTON
                     SizedBox(
@@ -237,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 25),
+                    SizedBox(height: 25),
 
                     // REGISTER NAVIGATION
                     Row(
@@ -280,7 +280,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Center(
                       child: Text(
                         "SkillSwap",
@@ -289,7 +289,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                   ],
                 ),
               ),

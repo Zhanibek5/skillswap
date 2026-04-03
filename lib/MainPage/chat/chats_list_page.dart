@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chatPage.dart';
 import '../support/support_page.dart';
-import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -42,7 +41,6 @@ class _ChatsListPageState extends State<ChatsListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           /// TITLE
@@ -114,7 +112,19 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final chats = snapshot.data!.docs;
+                final chats = snapshot.data!.docs.toList();
+
+                // Sort by lastTimestamp descending
+                chats.sort((a, b) {
+                  final aData = a.data() as Map<String, dynamic>;
+                  final bData = b.data() as Map<String, dynamic>;
+                  final Timestamp? aTime = aData['lastTimestamp'] as Timestamp?;
+                  final Timestamp? bTime = bData['lastTimestamp'] as Timestamp?;
+                  if (aTime == null && bTime == null) return 0;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime);
+                });
 
                 if (chats.isEmpty) {
                   return Center(
@@ -134,13 +144,15 @@ class _ChatsListPageState extends State<ChatsListPage> {
                   itemBuilder: (context, index) {
                     final chat = chats[index];
                     final chatData = chat.data() as Map<String, dynamic>;
-                    
+
                     final participants =
                         List<String>.from(chatData['participants'] ?? []);
 
                     final otherUserId = participants.firstWhere(
                       (id) => id != currentUserId,
-                      orElse: () => participants.isNotEmpty ? participants.first : currentUserId,
+                      orElse: () => participants.isNotEmpty
+                          ? participants.first
+                          : currentUserId,
                     );
 
                     return StreamBuilder<DocumentSnapshot>(
@@ -151,17 +163,22 @@ class _ChatsListPageState extends State<ChatsListPage> {
                       builder: (context, userSnapshot) {
                         if (!userSnapshot.hasData ||
                             !userSnapshot.data!.exists) {
-                          return const SizedBox();
+                          return SizedBox();
                         }
 
                         final userData =
                             userSnapshot.data!.data() as Map<String, dynamic>;
 
-                          bool isSupportAgent = chatData['isSupport'] == true && userData['role'] == 'admin';
-                          final name = isSupportAgent ? 'Support' : (userData['firstName'] ?? 'No name');
-                          final photoUrl = isSupportAgent ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png' : (userData['photoUrl'] ?? '');
-                          final skill = chatData['lastSkill'] ?? '';
-                          final lastType = chatData['lastType'] ?? 'text';
+                        bool isSupportAgent = chatData['isSupport'] == true &&
+                            userData['role'] == 'admin';
+                        final name = isSupportAgent
+                            ? 'Support'
+                            : (userData['firstName'] ?? 'No name');
+                        final photoUrl = isSupportAgent
+                            ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png'
+                            : (userData['photoUrl'] ?? '');
+                        final skill = chatData['lastSkill'] ?? '';
+                        final lastType = chatData['lastType'] ?? 'text';
                         String lastMessage = chatData['lastMessage'] ?? '';
 
                         /// SYSTEM MESSAGE TEXT
@@ -183,6 +200,11 @@ class _ChatsListPageState extends State<ChatsListPage> {
 
                         final timestamp = chatData['lastTimestamp'];
                         final timeText = formatTime(timestamp);
+                        final chatMode = chatData['isSupport'] == true
+                            ? 'support'
+                            : (chatData['teacherId'] == currentUserId
+                                ? 'teach'
+                                : 'learn');
 
                         /// SEARCH FILTER
                         final nameLower = name.toLowerCase();
@@ -191,7 +213,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         if (searchText.isNotEmpty &&
                             !nameLower.contains(searchText) &&
                             !skillLower.contains(searchText)) {
-                          return const SizedBox();
+                          return SizedBox();
                         }
 
                         return Container(
@@ -208,12 +230,13 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                     chatId: chat.id,
                                     otherUserId: otherUserId,
                                     selectedSkills:
-                                        (chatData['lastSkill']?.toString() ?? '')
+                                        (chatData['lastSkill']?.toString() ??
+                                                '')
                                             .split(',')
                                             .map((e) => e.trim())
                                             .where((e) => e.isNotEmpty)
                                             .toList(),
-                                    mode: (chatData['isSupport'] == true) ? 'support' : 'learn',
+                                    mode: chatMode,
                                   ),
                                 ),
                               );
@@ -223,7 +246,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                 /// AVATAR
                                 CircleAvatar(
                                   radius: 28,
-                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,        
                                   child: ClipOval(
                                     child: photoUrl.isNotEmpty
                                         ? Image.network(
@@ -241,7 +264,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                   ),
                                 ),
 
-                                const SizedBox(width: 14),
+                                SizedBox(width: 14),
 
                                 /// TEXT AREA
                                 Expanded(
@@ -272,13 +295,13 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                           )
                                         ],
                                       ),
-                                      const SizedBox(height: 6),
+                                      SizedBox(height: 6),
                                       Text(
                                         lastMessage,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.black54,
+                                        style: TextStyle(
+                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
                                         ),
                                       ),
                                     ],

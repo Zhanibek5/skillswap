@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'edit_profile_page.dart';
+import 'saved_videos_list.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:provider/provider.dart';
 import 'package:skillswap/background/backgroundColor.dart';
-import 'package:skillswap/settings_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -22,53 +21,110 @@ class _ProfilePageState extends State<ProfilePage> {
     _initUserStatus();
   }
 
+  String formatTime(timestamp) {
+    if (timestamp == null) return '';
+
+    DateTime date = timestamp.toDate();
+    DateTime now = DateTime.now();
+
+    if (date.day == now.day &&
+        date.month == now.month &&
+        date.year == now.year) {
+      return DateFormat('HH:mm').format(date);
+    }
+
+    if (date.day == now.day - 1 &&
+        date.month == now.month &&
+        date.year == now.year) {
+      return "Yesterday";
+    }
+
+    return DateFormat('dd MMM').format(date);
+  }
+
+  void _openFeedbackSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(25),
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Feedback",
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: _buildFeedbackContent(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _initUserStatus() async {
     final doc = FirebaseFirestore.instance.collection('users').doc(uid);
     final snapshot = await doc.get();
 
     if (!snapshot.exists) {
-      // Жаңа user үшін document жасау
       await doc.set({
         'canTeach': true,
         'canLearn': true,
         'timeEarned': 0,
         'timeSpent': 0,
-        'balance': 2,
+        'balance': 120, // in minutes
+        'ratingAverage': 0,
+        'ratingCount': 0,
+        'notificationsEnabled': true, // ✅ default ON
       });
     } else {
-      // Егер өрістер жоқ болса, қосу
       final data = snapshot.data()!;
+
       if (!data.containsKey('canTeach') || !data.containsKey('canLearn')) {
         await doc.update({
           'canTeach': true,
           'canLearn': true,
         });
       }
-    }
-  }
 
-  Widget _darkBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF0B1A30),
-            Color(0xFF1A2D4D),
-            Color(0xFF0E1A32),
-          ],
-        ),
-      ),
-    );
+      if (!data.containsKey('notificationsEnabled')) {
+        await doc.update({
+          'notificationsEnabled': true,
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-
     return Scaffold(
-        backgroundColor: dark ? const Color(0xFF0B1A30) : null,
         body: StreamBuilder(
             stream: FirebaseFirestore.instance
                 .collection('users')
@@ -85,6 +141,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
               final bool canTeach = data['canTeach'] ?? false;
               final bool canLearn = data['canLearn'] ?? false;
+              final rating = (data['ratingAverage'] ?? 0).toDouble();
+              final int balanceMinutes = (data['balance'] ?? 120);
+              final int timeEarned = (data['timeEarned'] ?? 0);
+              final int timeSpent = (data['timeSpent'] ?? 0);
+
 
               final String? photoUrl = data['photoUrl'];
 
@@ -100,12 +161,13 @@ class _ProfilePageState extends State<ProfilePage> {
               final String firstName = data['firstName']?.toString() ?? '';
               final String lastName = data['lastName']?.toString() ?? '';
               final String role = data['role']?.toString() ?? 'user';
-              final String adminTitle = data['adminTitle']?.toString() ?? (role == 'admin' ? 'Main Admin' : 'Moderator');
+              final String adminTitle = data['adminTitle']?.toString() ??
+                  (role == 'admin' ? 'Main Admin' : 'Moderator');
 
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  dark ? _darkBackground() : const Backgroundcolor(),
+                  Backgroundcolor(),
                   SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -120,22 +182,16 @@ class _ProfilePageState extends State<ProfilePage> {
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: dark
-                                  ? const [
-                                      Color(0xFF182741),
-                                      Color(0xFF203155),
-                                    ]
-                                  : const [
-                                      Color(0xFF1A73E8),
-                                      Color(0xFF4A90E2),
-                                    ],
+                              colors: Theme.of(context).brightness == Brightness.dark
+                                  ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)] // Elegant dark gradient
+                                  : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: dark
-                                    ? Colors.black.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.4),
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.black.withOpacity(0.6) 
+                                    : Colors.white.withOpacity(0.4),       
                                 blurRadius: 20,
                                 spreadRadius: 2,
                                 offset: const Offset(0, 0),
@@ -146,13 +202,13 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                                 backgroundImage:
                                     photoUrl != null && photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
                                         : null,
                                 child: photoUrl == null || photoUrl.isEmpty
-                                    ? const Icon(Icons.person, size: 70)
+                                    ? Icon(Icons.person, size: 70)
                                     : null,
                               ),
                               const SizedBox(width: 16),
@@ -162,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   children: [
                                     Text(
                                       'welcome'.tr(),
-                                      style: TextStyle(color: dark ? Colors.white : Colors.grey[600]),
+                                      style: TextStyle(color: Colors.white70),
                                     ),
                                     Text(
                                       (data['firstName'] != null &&
@@ -171,26 +227,33 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   .isNotEmpty)
                                           ? (firstName).trim()
                                           : 'username'.tr(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                    ),                                      if (role == 'admin' || role == 'moderator') ...[
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.3),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            adminTitle,
-                                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                          ),
+                                    ),
+                                    if (role == 'admin' ||
+                                        role == 'moderator') ...[
+                                      SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white24,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
-                                      ],
-                                      const SizedBox(height: 4),
+                                        child: Text(
+                                          adminTitle,
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                    SizedBox(height: 4),
                                   ],
                                 ),
                               ),
@@ -204,10 +267,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+                                  foregroundColor: Color(0xFF1E88E5),
                                 ),
-                                child: Text('edit'.tr(), style: const TextStyle(color: Colors.black)),
+                                child: Text('edit'.tr()),
                               ),
                             ],
                           ),
@@ -217,21 +280,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _statItem(dark, '⭐', '0', 'rating'.tr()),
-                            _statItem(dark, '⏱', '2h', 'balance'.tr()),
-                            _statItem(dark, '🌐', languagesText, 'language'.tr()),
+                            _statItem('⭐', "${rating.toStringAsFixed(1)}",
+                                'rating'.tr()),
+                            _statItem('⏱', '2h', 'balance'.tr()),
+                            _statItem('🌐', languagesText, 'language'.tr()),
                           ],
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
 
                         // ===== MY SKILLS =====
-                        _sectionTitle(dark, 'my_skills'.tr()),
+                        _sectionTitle('my_skills'.tr()),
                         Container(
-                          decoration: _boxDecoration(dark),
+                          decoration: _boxDecoration(context),
                           child: Column(
                             children: [
-                              skillsList(dark, skillsTeach),
+                              skillsList(skillsTeach),
                             ],
                           ),
                         ),
@@ -239,12 +303,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 20),
 
                         // ===== WANT TO LEARN =====
-                        _sectionTitle(dark, 'want_to_learn'.tr()),
+                        _sectionTitle('want_to_learn'.tr()),
                         Container(
-                          decoration: _boxDecoration(dark),
+                          decoration: _boxDecoration(context),
                           child: Column(
                             children: [
-                              skillsList(dark, skillsLearn),
+                              skillsList(skillsLearn),
                             ],
                           ),
                         ),
@@ -252,48 +316,38 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 20),
 
                         // ===== TIME BANK =====
-                        _sectionTitle(dark, 'time_bank'.tr()),
+                        _sectionTitle('time_bank'.tr()),
                         Container(
                             padding: const EdgeInsets.all(16),
-                            decoration: _boxDecoration(dark),
+                            decoration: _boxDecoration(context),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Row(
                                   children: [
-                                    Text('earned'.tr(),
-                                        style: TextStyle(
-                                            color: dark ? Colors.white : Colors.black)),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '0h',
-                                      style: TextStyle(
-                                          color: dark ? Colors.white : Colors.black),
-                                    ),
+                                    Icon(Icons.arrow_upward, color: Colors.green, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text('earned'.tr()),
+                                    const SizedBox(width: 4),
+                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                                   ],
                                 ),
                                 Row(
                                   children: [
-                                    Text('spent'.tr(),
-                                        style: TextStyle(
-                                            color: dark ? Colors.white : Colors.black)),
-                                    SizedBox(width: 4),
-                                    Text('0h',
-                                        style: TextStyle(
-                                            color: dark ? Colors.white : Colors.black)),
+                                    Icon(Icons.arrow_downward, color: Colors.red, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text('spent'.tr()),
+                                    const SizedBox(width: 4),
+                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                                   ],
                                 ),
                                 Row(
                                   children: [
-                                    Text('balance:'.tr(),
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: dark ? Colors.white : Colors.black)),
-                                    SizedBox(width: 4),
-                                    Text('0h',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: dark ? Colors.white : Colors.black)),
+                                    Icon(Icons.account_balance_wallet, color: Color(0xFF1E88E5), size: 16),
+                                    const SizedBox(width: 4),
+                                    Text('balance:'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 4),
+                                    Text('h m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88E5))),
                                   ],
                                 ),
                               ],
@@ -304,17 +358,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: dark ? const Color(0xFF1A2438) : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
+                          decoration: _boxDecoration(context),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -336,15 +380,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                             'Can Teach',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: dark ? Colors.white : Colors.black),
+                                                fontSize: 16),
                                           ),
                                           Text(
                                             canTeach
                                                 ? 'Available to teach'
                                                 : 'Not teaching now',
                                             style: TextStyle(
-                                                color: dark ? Colors.grey[400] : Colors.grey[600],
+                                                color: Colors.grey[600],
                                                 fontSize: 13),
                                           ),
                                         ],
@@ -365,11 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ),
                                 ],
                               ),
-                              Divider(
-                                height: 24,
-                                thickness: 1,
-                                color: dark ? Colors.white24 : Colors.grey[300],
-                              ),
+                              Divider(height: 24, thickness: 1),
 
                               // Can Learn
                               Row(
@@ -389,15 +428,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                             'Can Learn',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: dark ? Colors.white : Colors.black),
+                                                fontSize: 16),
                                           ),
                                           Text(
                                             canLearn
                                                 ? 'Available to learn'
                                                 : 'Not learning now',
                                             style: TextStyle(
-                                                color: dark ? Colors.grey[400] : Colors.grey[600],
+                                                color: Colors.grey[600],
                                                 fontSize: 13),
                                           ),
                                         ],
@@ -417,6 +455,100 @@ class _ProfilePageState extends State<ProfilePage> {
                                     },
                                   ),
                                 ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// TITLE
+                              Row(
+                                children: const [
+                                  Icon(Icons.rate_review,
+                                      color: Color(0xFF1E88E5)),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Feedback",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              /// DESCRIPTION
+                              Text(
+                                "See what other users wrote about you.",        
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+                                ),
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// BUTTON
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    _openFeedbackSheet();
+                                  },
+                                  icon: const Icon(Icons.visibility),
+                                  label: const Text("View Feedback"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF1E88E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const SavedVideosList(),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.video_library),
+                                  label: const Text("Saved Video in History"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF1E88E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -443,43 +575,210 @@ class _ProfilePageState extends State<ProfilePage> {
             }));
   }
 
+  Widget _buildFeedbackContent() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          /// ⭐ AVERAGE RATING
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data?.data() == null) {
+                return const SizedBox();
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+
+              final avg = (data['ratingAverage'] ?? 0).toDouble();
+              final count = (data['ratingCount'] ?? 0);
+
+              return Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber),
+                  Text(
+                    " ${avg.toStringAsFixed(1)}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  Text(
+                    "  ($count reviews)",
+                    style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 15),
+
+          /// 📝 REVIEWS LIST
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('reviews')
+                  .where('teacherId', isEqualTo: uid)
+                  .orderBy('createdAt', descending: true)
+                  .limit(50)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data!.docs;
+
+                if (docs.isEmpty) {
+                  return const Center(child: Text("No feedback yet"));
+                }
+
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+
+                    final rating = (data['rating'] ?? 0).toDouble();
+                    final comment = data['comment'] ?? '';
+                    final timestamp = data['createdAt'];
+                    final learnerID = data['learnerId'];
+
+                    final timeText = formatTime(timestamp);
+
+                    return StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(learnerID)
+                          .snapshots(),
+                      builder: (context, userSnapshot) {
+                        if (!userSnapshot.hasData ||
+                            !userSnapshot.data!.exists) {
+                          return const SizedBox();
+                        }
+
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>;
+                        final username = userData['firstName'] ?? 'Username';
+                        final photoUrl = userData['photoUrl'];
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// 👤 USER INFO
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundImage: photoUrl != null
+                                        ? NetworkImage(photoUrl)
+                                        : null,
+                                    child: photoUrl == null
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        username,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      Row(
+                                        children: [
+                                          ...List.generate(
+                                            5,
+                                            (index) => Icon(
+                                              index < rating
+                                                  ? Icons.star
+                                                  : Icons.star_border,
+                                              size: 18,
+                                              color: Colors.amber,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            timeText,
+                                            style: const TextStyle(
+                                                color: Colors.black45),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+
+                              /// 💬 COMMENT
+                              if (comment.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(comment),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ===== WIDGETS =====
 
-  static Widget _statItem(bool dark, String emoji, String value, String label) {
+  static Widget _statItem(String emoji, String value, String label) {
     return Column(
       children: [
         Text(emoji, style: const TextStyle(fontSize: 24)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: dark ? Colors.white : const Color(0xFF203068),
-          ),
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, color: Color(0xFF203068)),
         ),
-        Text(label, style: TextStyle(color: dark ? Colors.grey[300] : Colors.black54)),
+        Text(label, style: const TextStyle(color: Colors.white)),
       ],
     );
   }
 
-  static Widget _sectionTitle(bool dark, String text) {
+  static Widget _sectionTitle(String text) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(
           text,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: dark ? Colors.white : const Color(0xFF203068),
-          ),
+          style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF203068)),
         ),
       ),
     );
   }
 
-  static Widget _skillRow(bool dark, String text) {
+  static Widget _skillRow(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -487,8 +786,8 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
-              color: dark ? Colors.lightBlueAccent : const Color(0xFF1E88E5),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E88E5),
               shape: BoxShape.circle,
             ),
           ),
@@ -496,10 +795,9 @@ class _ProfilePageState extends State<ProfilePage> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: dark ? Colors.white : Colors.black,
               ),
             ),
           ),
@@ -508,17 +806,17 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  static Widget skillsList(bool dark, String skillsText) {
+  static Widget skillsList(String skillsText) {
     if (skillsText.trim().isEmpty) {
       return Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Row(
             children: [
               Text(
                 'no_skills_added'.tr(),
-                style: TextStyle(color: dark ? Colors.white60 : Colors.grey),
+                style: TextStyle(color: Colors.grey),
               ),
-              const Spacer()
+              Spacer()
             ],
           ));
     }
@@ -533,35 +831,36 @@ class _ProfilePageState extends State<ProfilePage> {
       children: List.generate(skills.length, (index) {
         return Column(
           children: [
-            _skillRow(dark, skills[index]),
-            if (index != skills.length - 1) _divider(dark),
+            _skillRow(skills[index]),
+            if (index != skills.length - 1) _divider(),
           ],
         );
       }),
     );
   }
 
-  static Widget _divider(bool dark) {
-    return Divider(
+  static Widget _divider() {
+    return const Divider(
       height: 1,
       thickness: 1,
       indent: 16,
       endIndent: 16,
-      color: dark ? Colors.white24 : Colors.grey[300],
     );
   }
 
-  static BoxDecoration _boxDecoration(bool dark) {
+  static BoxDecoration _boxDecoration(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: dark ? const Color(0xFF1A2438) : Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: dark ? Colors.black.withOpacity(0.35) : Colors.black.withOpacity(0.05),
-          blurRadius: 10,
+          color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.05),
+          blurRadius: 12,
           offset: const Offset(0, 4),
         ),
       ],
+      border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
     );
   }
 }

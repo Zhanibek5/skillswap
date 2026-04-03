@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class UsersManagementPage extends StatefulWidget {
-  const UsersManagementPage({Key? key}) : super(key: key);
+  const UsersManagementPage({super.key});
 
   @override
   _UsersManagementPageState createState() => _UsersManagementPageState();
@@ -43,7 +42,10 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                 ),
                 TextButton(
                   onPressed: () async {
-                    await _firestore.collection('users').doc(userId).update({'role': selectedRole});
+                    await _firestore
+                        .collection('users')
+                        .doc(userId)
+                        .update({'role': selectedRole});
                     if (context.mounted) Navigator.pop(context);
                   },
                   child: const Text('Save'),
@@ -57,7 +59,10 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
   }
 
   void _toggleBan(String userId, bool isCurrentlyBanned) async {
-    await _firestore.collection('users').doc(userId).update({'isBanned': !isCurrentlyBanned});
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .update({'isBanned': !isCurrentlyBanned});
   }
 
   @override
@@ -65,7 +70,6 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Management'),
-        backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
@@ -86,7 +90,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
             itemBuilder: (context, index) {
               final userData = users[index].data() as Map<String, dynamic>;
               final userId = users[index].id;
-              
+
               final firstName = userData['firstName'] ?? 'No Name';
               final lastName = userData['lastName'] ?? '';
               final email = userData['email'] ?? 'No Email';
@@ -98,7 +102,8 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                    backgroundImage:
+                        photoUrl != null ? NetworkImage(photoUrl) : null,
                     child: photoUrl == null ? const Icon(Icons.person) : null,
                   ),
                   title: Text('$firstName $lastName'),

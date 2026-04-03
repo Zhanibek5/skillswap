@@ -7,8 +7,6 @@ import 'package:skillswap/MainPage/chat/chat_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
 import 'package:skillswap/MainPage/admin/report_dialog.dart';
-import 'package:provider/provider.dart';
-import 'package:skillswap/settings_provider.dart';
 
 class UserCard extends StatefulWidget {
   final String userId;
@@ -28,6 +26,73 @@ class UserCard extends StatefulWidget {
 
 class _UserCardState extends State<UserCard> {
   Set<String> selectedSkills = {};
+  String formatTime(timestamp) {
+    if (timestamp == null) return '';
+
+    DateTime date = timestamp.toDate();
+    DateTime now = DateTime.now();
+
+    if (date.day == now.day &&
+        date.month == now.month &&
+        date.year == now.year) {
+      return DateFormat('HH:mm').format(date);
+    }
+
+    if (date.day == now.day - 1 &&
+        date.month == now.month &&
+        date.year == now.year) {
+      return "Yesterday";
+    }
+
+    return DateFormat('dd MMM').format(date);
+  }
+
+  void _openFeedbackSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(25),
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Feedback",
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: _buildFeedbackContent(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void startChat({
     required String currentUserId,
@@ -45,6 +110,8 @@ class _UserCardState extends State<UserCard> {
     if (!doc.exists) {
       await chatDoc.set({
         'participants': [currentUserId, otherUserId],
+        'learnerId': mode == 'learn' ? currentUserId : otherUserId,
+        'teacherId': mode == 'teach' ? currentUserId : otherUserId,
         'lastMessage': '',
         'lastTimestamp': FieldValue.serverTimestamp(),
         'lastSkill': selectedSkills.join(', '),
@@ -68,13 +135,12 @@ class _UserCardState extends State<UserCard> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
     final data = widget.userData;
 
     final firstName = data['firstName'] ?? '';
     final age = data['age'] ?? '';
     final photoUrl = data['photoUrl'] ?? '';
-    final rating = (data['rating'] ?? 0).toDouble();
+    final rating = (data['ratingAverage'] ?? 0).toDouble();
 
     final skillsTeach = data['skillsTeach']?.toString() ?? '';
     final List<String> skillsT = skillsTeach
@@ -103,14 +169,16 @@ class _UserCardState extends State<UserCard> {
           margin: const EdgeInsets.only(bottom: 20),
           padding: const EdgeInsets.fromLTRB(12, 25, 12, 20),
           decoration: BoxDecoration(
-            color: dark ? const Color(0xFF1A2438) : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: dark ? Colors.black.withOpacity(0.3) : Colors.black12,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.black45 : Colors.black12, 
                 blurRadius: 10,
+                offset: const Offset(0, 4)
               )
             ],
+            border: Theme.of(context).brightness == Brightness.dark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +188,7 @@ class _UserCardState extends State<UserCard> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundColor: Colors.grey.shade200,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                     child: ClipOval(
                       child: photoUrl != null && photoUrl.isNotEmpty
                           ? Image.network(
@@ -129,23 +197,22 @@ class _UserCardState extends State<UserCard> {
                               height: 70,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.person, size: 40);
+                                return Icon(Icons.person, size: 40);
                               },
                             )
-                          : const Icon(Icons.person, size: 40),
+                          : Icon(Icons.person, size: 40),
                     ),
                   ),
-                  const SizedBox(width: 15),
+                  SizedBox(width: 15),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           "$firstName, $age",
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: dark ? Colors.white : Colors.black,
                           ),
                         ),
                         if (widget.mode == 'learn') ...[
@@ -153,11 +220,9 @@ class _UserCardState extends State<UserCard> {
                             skillsT.isNotEmpty
                                 ? "Teaches: ${skillsT.join(', ')}"
                                 : "No skills yet",
-                            style: TextStyle(
-                              color: dark ? Colors.grey[300] : Colors.grey,
-                            ),
+                            style: const TextStyle(color: Colors.grey),
                           ),
-                          // const SizedBox(height: 3),
+                          // SizedBox(height: 3),
                           // Row(
                           //   children: [
                           //     Icon(
@@ -165,7 +230,7 @@ class _UserCardState extends State<UserCard> {
                           //       size: 12,
                           //       color: canLearn ? Colors.green : Colors.red,
                           //     ),
-                          //     const SizedBox(width: 6),
+                          //     SizedBox(width: 6),
                           //     Text(
                           //       canLearn
                           //           ? "Ready to learn"
@@ -183,11 +248,9 @@ class _UserCardState extends State<UserCard> {
                             skillsL.isNotEmpty
                                 ? "Wants to learn: ${skillsL.join(', ')}"
                                 : "No skills yet",
-                            style: TextStyle(
-                              color: dark ? Colors.grey[300] : Colors.grey,
-                            ),
+                            style: const TextStyle(color: Colors.grey),
                           ),
-                          // const SizedBox(height: 3),
+                          // SizedBox(height: 3),
                           // Row(
                           //   children: [
                           //     Icon(
@@ -195,7 +258,7 @@ class _UserCardState extends State<UserCard> {
                           //       size: 12,
                           //       color: canTeach ? Colors.green : Colors.red,
                           //     ),
-                          //     const SizedBox(width: 6),
+                          //     SizedBox(width: 6),
                           //     Text(
                           //       canTeach
                           //           ? "Ready to teach"
@@ -214,20 +277,20 @@ class _UserCardState extends State<UserCard> {
                   ),
                   Column(
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber),
-                          Text(
-                            " $rating",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: dark ? Colors.white : Colors.black,
+                      if (widget.mode == 'learn')
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber),
+                            Text(
+                              " ${rating.toStringAsFixed(1)}",
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       IconButton(
-                        icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                        icon: const Icon(Icons.warning_amber_rounded,
+                            color: Colors.red, size: 20),
                         tooltip: 'Report User',
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -236,10 +299,10 @@ class _UserCardState extends State<UserCard> {
                         },
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
-              const SizedBox(height: 15),
+              SizedBox(height: 15),
               if (skillsToShow.isNotEmpty)
                 Wrap(
                   spacing: 10,
@@ -262,25 +325,24 @@ class _UserCardState extends State<UserCard> {
                     );
                   }).toList(),
                 ),
-              const SizedBox(height: 15),
+              SizedBox(height: 15),
               Row(
                 children: [
                   Expanded(
                     child: languages.isNotEmpty
                         ? Row(
                             children: [
-                              Icon(Icons.language, size: 18, color: dark ? Colors.white : Colors.black),
-                              const SizedBox(width: 5),
+                              const Icon(Icons.language, size: 18),
+                              SizedBox(width: 5),
                               Expanded(
                                 child: Text(
                                   languages.join(" / "),
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: dark ? Colors.white : Colors.black),
                                 ),
                               ),
                             ],
                           )
-                        : const SizedBox(),
+                        : SizedBox(),
                   ),
                   ElevatedButton(
                     onPressed: selectedSkills.isEmpty
@@ -349,18 +411,18 @@ class _UserCardState extends State<UserCard> {
                             );
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A9FFF),
+                      backgroundColor: const Color(0xFF1E88E5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                     child: const Text(
                       "Exchange",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -369,14 +431,14 @@ class _UserCardState extends State<UserCard> {
             left: 90,
             right: 90,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF1A2438) : Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(width: 0.5, color: dark ? Colors.white24 : Colors.grey),
+                border: Border.all(width: 0.5, color: Colors.grey),
                 boxShadow: [
                   BoxShadow(
-                    color: dark ? Colors.black54 : Colors.black38,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.black54 : Colors.black38,
                     blurRadius: 10,
                     offset: const Offset(2, 2),
                   )
@@ -392,7 +454,7 @@ class _UserCardState extends State<UserCard> {
                           size: 12,
                           color: canTeach ? Colors.green : Colors.red,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           canTeach ? "Ready to teach" : "Not teaching now",
                           style: TextStyle(
@@ -410,7 +472,7 @@ class _UserCardState extends State<UserCard> {
                           size: 12,
                           color: canLearn ? Colors.green : Colors.red,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           canLearn ? "Ready to learn" : "Not learning now",
                           style: TextStyle(
@@ -424,26 +486,199 @@ class _UserCardState extends State<UserCard> {
                 ],
               ),
             )),
-        Positioned(
-          bottom: -10, // Картадан төмен
-          left: 90,
-          right: 90,
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF5F5F5),
-              foregroundColor: Colors.black87,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: const BorderSide(width: 1, color: Color(0xFFE0E0E0))),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        if (widget.mode == 'learn')
+          Positioned(
+            bottom: -10,
+            left: 90,
+            right: 90,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _openFeedbackSheet();
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(width: 0.5, color: Colors.grey)),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              icon: Icon(Icons.chat_bubble_outline, color: Colors.yellow[700]),
+              label: Text("feedback".tr()),
             ),
-            icon: Icon(Icons.chat_bubble_outline, color: Colors.amber[600]),
-            label: Text("feedback".tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildFeedbackContent() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          /// ⭐ AVERAGE RATING
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(widget.userId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data?.data() == null) {
+                return SizedBox();
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+
+              final avg = (data['ratingAverage'] ?? 0).toDouble();
+              final count = (data['ratingCount'] ?? 0);
+
+              return Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber),
+                  Text(
+                    " ${avg.toStringAsFixed(1)}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  Text(
+                    "  ($count reviews)",
+                    style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          SizedBox(height: 15),
+
+          /// 📝 REVIEWS LIST
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('reviews')
+                  .where('teacherId', isEqualTo: widget.userId)
+                  .orderBy('createdAt', descending: true)
+                  .limit(50)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data!.docs;
+
+                if (docs.isEmpty) {
+                  return const Center(child: Text("No feedback yet"));
+                }
+
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+
+                    final rating = (data['rating'] ?? 0).toDouble();
+                    final comment = data['comment'] ?? '';
+                    final timestamp = data['createdAt'];
+                    final learnerID = data['learnerId'];
+
+                    final timeText = formatTime(timestamp);
+
+                    return StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(learnerID)
+                          .snapshots(),
+                      builder: (context, userSnapshot) {
+                        if (!userSnapshot.hasData ||
+                            !userSnapshot.data!.exists) {
+                          return SizedBox();
+                        }
+
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>;
+                        final username = userData['firstName'] ?? 'Username';
+                        final photoUrl = userData['photoUrl'];
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// 👤 USER INFO
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundImage: photoUrl != null
+                                        ? NetworkImage(photoUrl)
+                                        : null,
+                                    child: photoUrl == null
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        username,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      Row(
+                                        children: [
+                                          ...List.generate(
+                                            5,
+                                            (index) => Icon(
+                                              index < rating
+                                                  ? Icons.star
+                                                  : Icons.star_border,
+                                              size: 18,
+                                              color: Colors.amber,
+                                            ),
+                                          ),
+                                          SizedBox(width: 10),
+                                          Text(
+                                            timeText,
+                                            style: TextStyle(
+                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black45),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+
+                              /// 💬 COMMENT
+                              if (comment.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(comment),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -139,6 +140,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
       text: user?.email ?? '',
     );
     _loadProfile();
+
+    TokenService.updateUserToken();
+    TokenService.listenToTokenRefresh();
   }
 
   Future<void> _loadProfile() async {
@@ -203,7 +207,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         backgroundColor: Colors.transparent,
@@ -223,7 +227,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     children: [
                       CircleAvatar(
                         radius: 55,
-                        backgroundColor: Colors.grey.shade200,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                         backgroundImage: _pickedImage != null
                             ? FileImage(_pickedImage!)
                             : (_photoUrl != null && _photoUrl!.isNotEmpty
@@ -275,7 +279,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.96),
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF1A1A1A) 
+                        : Colors.white.withOpacity(0.96),
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
@@ -320,7 +326,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           setState(() => _languages = value);
                         },
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       _sectionTitle('skills'.tr()),
                       _inputField(
                           label: 'skills_teach'.tr(),
@@ -353,7 +359,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     child: Text(
                       'save_changes'.tr(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -394,7 +400,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  static Widget _inputField({
+  Widget _inputField({
     required String label,
     required IconData icon,
     TextEditingController? controller,
@@ -413,7 +419,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           hintText: hint,
           prefixIcon: Icon(icon),
           filled: true,
-          fillColor: Colors.grey.shade100,
+          fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
@@ -424,7 +430,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
   //
 
-  static Widget sexSelector({
+  Widget sexSelector({
     required String label,
     required String selectedValue,
     required ValueChanged<String> onChanged,
@@ -436,12 +442,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(label, style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -464,7 +470,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         code.tr(), // тек UI үшін аудару
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color: isSelected 
+                              ? Colors.white 
+                              : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -479,7 +487,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  static Widget _sexItem(
+  Widget _sexItem(
     String value,
     String selectedValue,
     ValueChanged<String> onChanged,
@@ -500,7 +508,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             value,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
+              color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -509,7 +517,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  static Widget languageSelector({
+  Widget languageSelector({
     required String title,
     required List<String> selectedLanguages,
     required ValueChanged<List<String>> onChanged,
@@ -555,12 +563,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF1E88E5)
-                        : Colors.grey.shade100,
+                        : Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
                           ? const Color(0xFF1E88E5)
-                          : Colors.grey.shade300,
+                          : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300),
                     ),
                   ),
                   child: Row(
@@ -570,7 +578,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         lang,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                         ),
                       ),
                       if (isSelected) ...[
@@ -594,5 +602,51 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ],
       ),
     );
+  }
+}
+
+class TokenService {
+  static final _firestore = FirebaseFirestore.instance;
+
+  static Future<void> updateUserToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'tokenUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  static void listenToTokenRefresh() {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'fcmTokens': FieldValue.arrayUnion([newToken]),
+      }, SetOptions(merge: true));
+    });
+  }
+
+  Future<void> logout() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'fcmTokens': FieldValue.arrayRemove([token]),
+      });
+    }
+
+    await FirebaseAuth.instance.signOut();
   }
 }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:skillswap/settings_provider.dart';
 
 class SearchHeader extends StatefulWidget {
   final Function(String) onSearchChanged;
@@ -23,8 +21,6 @@ class _SearchHeaderState extends State<SearchHeader> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<SettingsProvider>().isDarkMode;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -32,23 +28,23 @@ class _SearchHeaderState extends State<SearchHeader> {
           /// SEARCH FIELD
           Container(
             decoration: BoxDecoration(
-              color: dark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.3),
+              color: Colors.white.withOpacity(0.3),
               borderRadius: BorderRadius.circular(20),
             ),
             child: TextField(
-              style: TextStyle(color: dark ? Colors.white : Colors.black),
-              decoration: InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
                 hintText: "Search skills or people",
-                hintStyle: TextStyle(color: dark ? Colors.white60 : Colors.white70),
-                prefixIcon: Icon(Icons.search, color: dark ? Colors.white : Colors.white),
+                hintStyle: TextStyle(color: Colors.white70),
+                prefixIcon: Icon(Icons.search, color: Colors.white),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                contentPadding: EdgeInsets.symmetric(vertical: 15),
               ),
               onChanged: widget.onSearchChanged,
             ),
           ),
 
-          const SizedBox(height: 15),
+          SizedBox(height: 15),
 
           Row(
             children: [
@@ -56,23 +52,23 @@ class _SearchHeaderState extends State<SearchHeader> {
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: dark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
-                      _buildTab("Learn", 0, dark),
-                      _buildTab("Teach", 1, dark),
+                      _buildTab("Learn", 0),
+                      _buildTab("Teach", 1),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 15),
+              SizedBox(width: 15),
               GestureDetector(
                 onTap: widget.onFilterTap,
-                child: Icon(
+                child: const Icon(
                   Icons.tune,
-                  color: dark ? Colors.white : Colors.white,
+                  color: Colors.white,
                 ),
               )
             ],
@@ -82,7 +78,7 @@ class _SearchHeaderState extends State<SearchHeader> {
     );
   }
 
-  Widget _buildTab(String text, int index, bool dark) {
+  Widget _buildTab(String text, int index) {
     final isSelected = selectedIndex == index;
 
     return Expanded(
@@ -93,9 +89,7 @@ class _SearchHeaderState extends State<SearchHeader> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: isSelected
-                ? (dark ? Color(0xFF1A2438) : Colors.white)
-                : Colors.transparent,
+            color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           alignment: Alignment.center,

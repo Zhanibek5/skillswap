@@ -4,10 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:skillswap/MainPage/support/support_chat_page.dart';
-import 'package:skillswap/MainPage/chat/chat_utils.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -37,7 +35,6 @@ class _SupportPageState extends State<SupportPage> {
     // other category-specific lists can be added here
   };
 
-
   final List<Map<String, String>> _categories = [
     {'key': 'account', 'label': 'category_account'},
     {'key': 'payment', 'label': 'category_payment'},
@@ -55,7 +52,8 @@ class _SupportPageState extends State<SupportPage> {
       );
       return;
     }
-    if (_subcategoriesMap.containsKey(_selectedCategory) && _selectedSubcategory == null) {
+    if (_subcategoriesMap.containsKey(_selectedCategory) &&
+        _selectedSubcategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('where_problem'.tr())),
       );
@@ -96,11 +94,11 @@ class _SupportPageState extends State<SupportPage> {
       'targetType': 'feedback',
       'attachments': _attachments.map((f) => f.path).toList(),
       'includeLogs': _includeLogs,
-      if (_scheduledDateTime != null) 'scheduledAt': Timestamp.fromDate(_scheduledDateTime!),
+      if (_scheduledDateTime != null)
+        'scheduledAt': Timestamp.fromDate(_scheduledDateTime!),
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     };
-
 
     try {
       await FirebaseFirestore.instance.collection('reports').add(ticket);
@@ -168,7 +166,8 @@ class _SupportPageState extends State<SupportPage> {
       initialTime: TimeOfDay.now(),
     );
     if (time == null) return;
-    final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final dt =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
     setState(() {
       _scheduledDateTime = dt;
       _timeController.text = DateFormat('yyyy-MM-dd HH:mm').format(dt);
@@ -184,7 +183,8 @@ class _SupportPageState extends State<SupportPage> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text('support_not_logged_in'.tr(), textAlign: TextAlign.center),
+          child:
+              Text('support_not_logged_in'.tr(), textAlign: TextAlign.center),
         ),
       );
     }
@@ -200,9 +200,9 @@ class _SupportPageState extends State<SupportPage> {
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-            .collection('reports')
-            .where('reporterId', isEqualTo: uid)
-            .where('targetType', isEqualTo: 'feedback')
+          .collection('reports')
+          .where('reporterId', isEqualTo: uid)
+          .where('targetType', isEqualTo: 'feedback')
           // order the results manually below instead of using Firestore's
           // `orderBy` (which requires a composite index when combined with a
           // `where`) to avoid permissions/index errors during development.
@@ -244,7 +244,7 @@ class _SupportPageState extends State<SupportPage> {
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-              final subject = (data['reason'] as String?)?.trim();
+            final subject = (data['reason'] as String?)?.trim();
             final category = (data['category'] as String?) ?? '';
             final created = (data['createdAt'] as Timestamp?)?.toDate();
             return ListTile(
@@ -269,15 +269,19 @@ class _SupportPageState extends State<SupportPage> {
                 final ticketId = docs[index].id;
                 final chatId = 'support_${uid}_$ticketId';
                 // make sure the chat document exists before opening the page
-                final chatDoc = FirebaseFirestore.instance.collection('chats').doc(chatId);
+                final chatDoc =
+                    FirebaseFirestore.instance.collection('chats').doc(chatId);
                 await chatDoc.set({
                   'members': [uid, _supportUserId],
                   'createdAt': FieldValue.serverTimestamp(),
                 }, SetOptions(merge: true));
                 // also ensure the support user record exists so ChatPage header
                 // doesn't remain stuck on a spinner
-                final adminDoc = FirebaseFirestore.instance.collection('users').doc(_supportUserId);
-                await adminDoc.set({'firstName': 'Support'}, SetOptions(merge: true));
+                final adminDoc = FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(_supportUserId);
+                await adminDoc
+                    .set({'firstName': 'Support'}, SetOptions(merge: true));
 
                 // if the ticket contains a message, add it to this ticket's
                 // chat.  because chats are now per-ticket we don't need to
@@ -347,9 +351,17 @@ class _SupportPageState extends State<SupportPage> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.blue.shade50, Colors.white], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                gradient: LinearGradient(
+                    colors: [Colors.blue.shade50, Colors.white],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 6))],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6))
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -358,28 +370,37 @@ class _SupportPageState extends State<SupportPage> {
                     child: CircleAvatar(
                       radius: 32,
                       backgroundColor: Colors.blue.shade100,
-                      child: Icon(Icons.support_agent, size: 40, color: Colors.blue.shade700),
+                      child: Icon(Icons.support_agent,
+                          size: 40, color: Colors.blue.shade700),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('support_help_title'.tr(), textAlign: TextAlign.center, style: GoogleFonts.roboto(fontSize: 20, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 6),
-                        Text('support_help_subtitle'.tr(), textAlign: TextAlign.center, style: GoogleFonts.roboto(color: Colors.grey[600])),
-                        const SizedBox(height: 16),
+                        Text('support_help_title'.tr(),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.roboto(
+                                fontSize: 20, fontWeight: FontWeight.w700)),
+                        SizedBox(height: 6),
+                        Text('support_help_subtitle'.tr(),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.roboto(color: Colors.grey[600])),
+                        SizedBox(height: 16),
                         // category heading
                         Row(
                           children: [
                             const Text('• '),
-                            Text('category'.tr(), style: GoogleFonts.roboto(fontWeight: FontWeight.w600)),
-                            const Text('*', style: TextStyle(color: Colors.red)),
+                            Text('category'.tr(),
+                                style: GoogleFonts.roboto(
+                                    fontWeight: FontWeight.w600)),
+                            const Text('*',
+                                style: TextStyle(color: Colors.red)),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Column(
                           children: _categories.map((cat) {
                             final key = cat['key']!;
@@ -389,9 +410,12 @@ class _SupportPageState extends State<SupportPage> {
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: selected ? Colors.blue : Colors.grey[200],
-                                  foregroundColor: selected ? Colors.white : Colors.black87,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  backgroundColor:
+                                      selected ? Colors.blue : Colors.grey[200],
+                                  foregroundColor:
+                                      selected ? Colors.white : Colors.black87,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24)),
                                   minimumSize: const Size(double.infinity, 48),
                                 ),
                                 onPressed: () {
@@ -405,36 +429,51 @@ class _SupportPageState extends State<SupportPage> {
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         if (_selectedCategory != null) ...[
                           Row(
                             children: [
                               const Text('• '),
-                              Text('where_problem'.tr(), style: GoogleFonts.roboto(fontWeight: FontWeight.w600)),
-                              Text('*', style: TextStyle(color: _subcategoriesMap[_selectedCategory]?.isNotEmpty == true ? Colors.red : Colors.transparent)),
+                              Text('where_problem'.tr(),
+                                  style: GoogleFonts.roboto(
+                                      fontWeight: FontWeight.w600)),
+                              Text('*',
+                                  style: TextStyle(
+                                      color:
+                                          _subcategoriesMap[_selectedCategory]
+                                                      ?.isNotEmpty ==
+                                                  true
+                                              ? Colors.red
+                                              : Colors.transparent)),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          if (_subcategoriesMap[_selectedCategory]?.isNotEmpty == true) ...[
+                          SizedBox(height: 8),
+                          if (_subcategoriesMap[_selectedCategory]
+                                  ?.isNotEmpty ==
+                              true) ...[
                             ..._subcategoriesMap[_selectedCategory]!
                                 .map((sub) => RadioListTile<String>(
                                       title: Text(sub['label']!.tr()),
                                       value: sub['key']!,
                                       groupValue: _selectedSubcategory,
-                                      onChanged: (val) => setState(() => _selectedSubcategory = val),
+                                      onChanged: (val) => setState(
+                                          () => _selectedSubcategory = val),
                                     ))
-                                .toList(),
+                                ,
                           ],
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           if (_selectedCategory == 'audio') ...[
                             Row(
                               children: [
                                 const Text('• '),
-                                Text('choose_time'.tr(), style: GoogleFonts.roboto(fontWeight: FontWeight.w600)),
-                                const Text('*', style: TextStyle(color: Colors.red)),
+                                Text('choose_time'.tr(),
+                                    style: GoogleFonts.roboto(
+                                        fontWeight: FontWeight.w600)),
+                                const Text('*',
+                                    style: TextStyle(color: Colors.red)),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8),
                             TextFormField(
                               controller: _timeController,
                               readOnly: true,
@@ -442,27 +481,33 @@ class _SupportPageState extends State<SupportPage> {
                                 hintText: 'select_date_time'.tr(),
                                 filled: true,
                                 fillColor: Colors.grey.shade100,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none),
                               ),
                               onTap: _pickDateTime,
                               validator: (v) {
-                                if (_selectedCategory == 'audio' && (_scheduledDateTime == null)) {
+                                if (_selectedCategory == 'audio' &&
+                                    (_scheduledDateTime == null)) {
                                   return 'support_validate_time'.tr();
                                 }
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                           ],
                         ],
                         Row(
                           children: [
                             const Text('• '),
-                            Text('description_label'.tr(), style: GoogleFonts.roboto(fontWeight: FontWeight.w600)),
-                            const Text('*', style: TextStyle(color: Colors.red)),
+                            Text('description_label'.tr(),
+                                style: GoogleFonts.roboto(
+                                    fontWeight: FontWeight.w600)),
+                            const Text('*',
+                                style: TextStyle(color: Colors.red)),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         SizedBox(
                           height: 180,
                           child: TextFormField(
@@ -474,19 +519,26 @@ class _SupportPageState extends State<SupportPage> {
                               hintText: 'support_message_hint'.tr(),
                               filled: true,
                               fillColor: Colors.grey.shade100,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none),
                             ),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'support_validate_message'.tr() : null,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'support_validate_message'.tr()
+                                : null,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Row(
                           children: [
                             const Text('• '),
-                            Expanded(child: Text('attach_photo_video'.tr(), style: GoogleFonts.roboto(fontWeight: FontWeight.w600))),
+                            Expanded(
+                                child: Text('attach_photo_video'.tr(),
+                                    style: GoogleFonts.roboto(
+                                        fontWeight: FontWeight.w600))),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         SizedBox(
                           height: 80,
                           child: ListView(
@@ -494,19 +546,25 @@ class _SupportPageState extends State<SupportPage> {
                             children: [
                               ..._attachments.map((file) => Padding(
                                     padding: const EdgeInsets.only(right: 8),
-                                    child: file.path.toLowerCase().endsWith('.mp4') || file.path.toLowerCase().endsWith('.mov')
-                                  ? Container(
-                                      width: 80,
-                                      height: 80,
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(Icons.videocam, color: Colors.black54),
-                                    )
-                                  : Image.file(
-                                      File(file.path),
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                    ),
+                                    child: file.path
+                                                .toLowerCase()
+                                                .endsWith('.mp4') ||
+                                            file.path
+                                                .toLowerCase()
+                                                .endsWith('.mov')
+                                        ? Container(
+                                            width: 80,
+                                            height: 80,
+                                            color: Colors.grey.shade300,
+                                            child: const Icon(Icons.videocam,
+                                                color: Colors.black54),
+                                          )
+                                        : Image.file(
+                                            File(file.path),
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                          ),
                                   )),
                               if (_attachments.length < 3)
                                 GestureDetector(
@@ -518,28 +576,35 @@ class _SupportPageState extends State<SupportPage> {
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(Icons.camera_alt, color: Colors.grey),
+                                    child: const Icon(Icons.camera_alt,
+                                        color: Colors.grey),
                                   ),
                                 ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         CheckboxListTile(
                           value: _includeLogs,
-                          onChanged: (v) => setState(() => _includeLogs = v ?? false),
+                          onChanged: (v) =>
+                              setState(() => _includeLogs = v ?? false),
                           title: Text('include_logs'.tr()),
                           controlAffinity: ListTileControlAffinity.leading,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _sending ? null : _submitTicket,
                           style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: _sending
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
                               : Text('send_feedback'.tr()),
                         ),
                       ],
@@ -564,7 +629,9 @@ class _SupportPageState extends State<SupportPage> {
           elevation: 0,
           backgroundColor: Colors.transparent,
           centerTitle: true,
-          title: Text('feedback'.tr(), style: GoogleFonts.roboto(color: Colors.black, fontWeight: FontWeight.w600)),
+          title: Text('feedback'.tr(),
+              style: GoogleFonts.roboto(
+                  color: Colors.black, fontWeight: FontWeight.w600)),
           iconTheme: const IconThemeData(color: Colors.black87),
           actions: [
             IconButton(

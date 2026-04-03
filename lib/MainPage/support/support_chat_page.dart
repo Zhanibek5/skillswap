@@ -13,11 +13,11 @@ class SupportChatPage extends StatelessWidget {
   final String subject;
 
   const SupportChatPage({
-    Key? key,
+    super.key,
     required this.chatId,
     required this.ticketId,
     required this.subject,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
