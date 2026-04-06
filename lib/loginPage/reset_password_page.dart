@@ -14,6 +14,9 @@ class ResetPasswordPage extends StatefulWidget {
 }
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _accentColor = Color(0xFF1E88E5);
   final TextEditingController controllerEmail = TextEditingController();
   final formKey = GlobalKey<FormState>();
   String errorMessage = '';
@@ -67,6 +70,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -111,35 +115,50 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       'enter_email_for_reset'.tr(),
                       style: TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF203068),
+                        color: isDarkMode
+                            ? Colors.white70
+                            : const Color(0xFF203068),
                       ),
                     ),
                     SizedBox(height: 30),
                     TextFormField(
                       controller: controllerEmail,
                       keyboardType: TextInputType.emailAddress,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      cursorColor: _accentColor,
                       decoration: InputDecoration(
+                        filled: true,
+                        fillColor:
+                            isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
                         labelText: 'email'.tr(),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.email_outlined,
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
+                            color: isDarkMode
+                                ? _darkCardBorderColor.withOpacity(0.55)
+                                : const Color(0xFF203068),
                             width: 1.2,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
-                            width: 1.2,
+                            color: _accentColor,
+                            width: 1.4,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         labelStyle: TextStyle(
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                       ),
                       validator: (value) {
@@ -169,7 +188,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF1E88E5),
+                          backgroundColor: _accentColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
