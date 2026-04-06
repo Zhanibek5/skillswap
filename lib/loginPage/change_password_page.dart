@@ -12,6 +12,9 @@ class ChangePasswordPage extends StatefulWidget {
 }
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _accentColor = Color(0xFF1E88E5);
   TextEditingController controllerEmail = TextEditingController();
   TextEditingController controllerCurrentPassword = TextEditingController();
   TextEditingController controllerNewPassword = TextEditingController();
@@ -68,6 +71,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -114,7 +118,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       'email_and_current_password_info'.tr(),
                       style: TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF203068),
+                        color: isDarkMode
+                            ? Colors.white70
+                            : const Color(0xFF203068),
                       ),
                     ),
 
@@ -123,28 +129,41 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     // EMAIL
                     TextFormField(
                       controller: controllerEmail,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      cursorColor: _accentColor,
                       decoration: InputDecoration(
+                        filled: true,
+                        fillColor:
+                            isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
                         labelText: 'email'.tr(),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.email_outlined,
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
+                            color: isDarkMode
+                                ? _darkCardBorderColor.withOpacity(0.55)
+                                : const Color(0xFF203068),
                             width: 1.2,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
-                            width: 1.2,
+                            color: _accentColor,
+                            width: 1.4,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         labelStyle: TextStyle(
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                       ),
                       validator: (value) {
@@ -164,14 +183,25 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     TextFormField(
                       controller: controllerCurrentPassword,
                       obscureText: _obscureCurrentPassword,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      cursorColor: _accentColor,
                       decoration: InputDecoration(
+                        filled: true,
+                        fillColor:
+                            isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
                         labelText: 'current_password'.tr(),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.lock_outline,
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                         suffixIcon: IconButton(
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                           icon: Icon(
                             _obscureCurrentPassword
                                 ? Icons.visibility_off
@@ -186,20 +216,24 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
+                            color: isDarkMode
+                                ? _darkCardBorderColor.withOpacity(0.55)
+                                : const Color(0xFF203068),
                             width: 1.2,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
-                            width: 1.2,
+                            color: _accentColor,
+                            width: 1.4,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         labelStyle: TextStyle(
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                       ),
                       validator: (value) {
@@ -216,14 +250,25 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     TextFormField(
                       controller: controllerNewPassword,
                       obscureText: _obscureNewPassword,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      cursorColor: _accentColor,
                       decoration: InputDecoration(
+                        filled: true,
+                        fillColor:
+                            isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
                         labelText: 'new_password'.tr(),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.lock_reset,
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                         suffixIcon: IconButton(
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                           icon: Icon(
                             _obscureNewPassword
                                 ? Icons.visibility_off
@@ -237,20 +282,24 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
+                            color: isDarkMode
+                                ? _darkCardBorderColor.withOpacity(0.55)
+                                : const Color(0xFF203068),
                             width: 1.2,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF203068),
-                            width: 1.2,
+                            color: _accentColor,
+                            width: 1.4,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         labelStyle: TextStyle(
-                          color: Color(0xFF203068),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
                         ),
                       ),
                       validator: (value) {
@@ -277,7 +326,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF1E88E5),
+                          backgroundColor: _accentColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
