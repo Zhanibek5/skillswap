@@ -5,6 +5,8 @@ import 'package:skillswap/background/backgroundColor.dart';
 
 class InstructionsPage extends StatelessWidget {
   const InstructionsPage({super.key});
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class InstructionsPage extends StatelessWidget {
                   height: 20,
                 ),
                 _section(
+                  context: context,
                   title: 'app_guide'.tr(),
                   content: 'getting_started'.tr(),
                 ),
@@ -43,6 +46,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// 👤 PROFILE SECTION
                 _instructionCard(
+                  context: context,
                   icon: Icons.person,
                   title: 'profile_setup'.tr(),
                   steps: [
@@ -55,6 +59,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// 🎓 TEACHING SECTION
                 _instructionCard(
+                  context: context,
                   icon: Icons.school,
                   title: 'offer_skill'.tr(),
                   steps: [
@@ -67,6 +72,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// 📚 LEARNING SECTION
                 _instructionCard(
+                  context: context,
                   icon: Icons.book,
                   title: 'request_skill'.tr(),
                   steps: [
@@ -79,6 +85,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// 💬 CHAT SECTION
                 _instructionCard(
+                  context: context,
                   icon: Icons.chat,
                   title: 'messaging'.tr(),
                   steps: [
@@ -91,6 +98,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// ⏱️ TIME BALANCE SECTION
                 _instructionCard(
+                  context: context,
                   icon: Icons.timer,
                   title: 'time_balance_info'.tr(),
                   steps: [
@@ -103,6 +111,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// ⭐ RATINGS SECTION
                 _instructionCard(
+                  context: context,
                   icon: Icons.star,
                   title: 'ratings_reviews'.tr(),
                   steps: [
@@ -115,6 +124,7 @@ class InstructionsPage extends StatelessWidget {
 
                 /// 📋 IMPORTANT NOTES
                 _section(
+                  context: context,
                   title: 'important_notes'.tr(),
                   content: 'community_guidelines'.tr(),
                 ),
@@ -129,19 +139,34 @@ class InstructionsPage extends StatelessWidget {
   }
 
   /// 📌 SECTION WIDGET
-  Widget _section({required String title, required String content}) {
+  Widget _section({
+    required BuildContext context,
+    required String title,
+    required String content,
+  }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
+          if (isDarkMode)
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          if (!isDarkMode)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
         ],
+        border: isDarkMode
+            ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +176,7 @@ class InstructionsPage extends StatelessWidget {
             style: GoogleFonts.roboto(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+              color: isDarkMode ? Colors.white : Colors.black,
             ),
           ),
           SizedBox(height: 10),
@@ -159,7 +184,7 @@ class InstructionsPage extends StatelessWidget {
             content,
             style: GoogleFonts.roboto(
               fontSize: 14,
-              color: Colors.grey[700],
+              color: isDarkMode ? Colors.white70 : Colors.grey[700],
               height: 1.6,
             ),
           ),
@@ -170,22 +195,34 @@ class InstructionsPage extends StatelessWidget {
 
   /// 🎯 INSTRUCTION CARD WITH STEPS
   Widget _instructionCard({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required List<String> steps,
   }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
+          if (isDarkMode)
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          if (!isDarkMode)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
         ],
+        border: isDarkMode
+            ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,7 +237,7 @@ class InstructionsPage extends StatelessWidget {
                   style: GoogleFonts.roboto(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
               ),
@@ -238,7 +275,7 @@ class InstructionsPage extends StatelessWidget {
                       steps[index],
                       style: GoogleFonts.roboto(
                         fontSize: 14,
-                        color: Colors.grey[700],
+                        color: isDarkMode ? Colors.white70 : Colors.grey[700],
                         height: 1.4,
                       ),
                     ),
