@@ -4,10 +4,14 @@ import 'package:intl/intl.dart';
 import 'package:skillswap/MainPage/search/userCard.dart';
 import 'package:skillswap/MainPage/chat/chatPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skillswap/background/backgroundColor.dart';
 import 'dart:io';
 
 class ReportsManagementPage extends StatelessWidget {
   const ReportsManagementPage({super.key});
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _accentColor = Color(0xFF1E88E5);
 
   void _updateReportStatus(String reportId, String status) {
     FirebaseFirestore.instance
@@ -25,13 +29,22 @@ class ReportsManagementPage extends StatelessWidget {
       showDialog(
           context: context,
           builder: (context) {
+            final bool isDarkMode =
+                Theme.of(context).brightness == Brightness.dark;
             return Dialog(
               insetPadding: const EdgeInsets.all(16),
               child: SizedBox(
                 height: MediaQuery.of(context).size.height * 0.8,
                 child: Scaffold(
                   appBar: AppBar(
-                      title: const Text('User Profile View'),
+                      title: Text(
+                        'User Profile View',
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                      backgroundColor: isDarkMode ? _darkCardColor : null,
                       leading: const CloseButton()),
                   body: SingleChildScrollView(
                     child: Padding(
@@ -55,21 +68,50 @@ class ReportsManagementPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) {
+        final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return StatefulBuilder(builder: (context, setState) {
           return AlertDialog(
-            title: const Text('Ban User'),
+            backgroundColor: isDarkMode ? _darkCardColor : Colors.white,
+            title: Text(
+              'Ban User',
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: reasonController,
-                  decoration: const InputDecoration(
-                      labelText: 'Reason for ban',
-                      border: OutlineInputBorder()),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Reason for ban',
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDarkMode
+                            ? _darkCardBorderColor.withOpacity(0.55)
+                            : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: _accentColor, width: 1.4),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
                   maxLines: 3,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 DropdownButton<String>(
+                  dropdownColor: isDarkMode ? _darkCardColor : Colors.white,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
                   value: selectedDuration,
                   isExpanded: true,
                   items: const [
@@ -91,7 +133,10 @@ class ReportsManagementPage extends StatelessWidget {
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel')),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: _accentColor),
+                  )),
               ElevatedButton(
                 onPressed: () async {
                   if (reasonController.text.trim().isEmpty) {
@@ -196,6 +241,9 @@ class ReportsManagementPage extends StatelessWidget {
 
   Widget _buildReportCard(
       BuildContext context, DocumentSnapshot reportDoc, bool isFeedback) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color primaryText = isDarkMode ? Colors.white : Colors.black87;
+    final Color secondaryText = isDarkMode ? Colors.white70 : Colors.grey.shade700;
     final data = reportDoc.data() as Map<String, dynamic>;
     final reportId = reportDoc.id;
 
@@ -223,9 +271,13 @@ class ReportsManagementPage extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: isDarkMode ? _darkCardColor : Theme.of(context).cardColor,
+      shadowColor: isDarkMode
+          ? Colors.blue.withOpacity(0.2)
+          : Colors.black.withOpacity(0.08),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: statusColor, width: 1.5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -239,7 +291,10 @@ class ReportsManagementPage extends StatelessWidget {
                     isFeedback
                         ? 'Category: ${category ?? "General"}'
                         : 'Type: $targetType',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: primaryText,
+                    )),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -260,25 +315,33 @@ class ReportsManagementPage extends StatelessWidget {
             SizedBox(height: 8),
             if (isFeedback && location != null) ...[
               Text('Subcategory: $location',
-                  style: const TextStyle(
-                      fontSize: 13, fontStyle: FontStyle.italic)),
-              SizedBox(height: 8),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: secondaryText,
+                  )),
+              const SizedBox(height: 8),
             ],
             if (!isFeedback)
               Text('Reported User ID:\n$reportedUserId',
-                  style: const TextStyle(fontSize: 12)),
-            SizedBox(height: 4),
+                  style: TextStyle(fontSize: 12, color: secondaryText)),
+            const SizedBox(height: 4),
             Text('From User ID: $reporterId',
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            SizedBox(height: 12),
-            const Text('Reason / Message:',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(reason, style: const TextStyle(fontSize: 14)),
-            SizedBox(height: 8),
+                style: TextStyle(fontSize: 12, color: secondaryText)),
+            const SizedBox(height: 12),
+            Text(
+              'Reason / Message:',
+              style: TextStyle(fontWeight: FontWeight.bold, color: primaryText),
+            ),
+            Text(reason, style: TextStyle(fontSize: 14, color: primaryText)),
+            const SizedBox(height: 8),
             if (attachments != null && attachments.isNotEmpty) ...[
-              const Text('Attachments:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
+              Text('Attachments:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
+                  )),
+              const SizedBox(height: 4),
               SizedBox(
                 height: 80,
                 child: ListView.builder(
@@ -292,7 +355,7 @@ class ReportsManagementPage extends StatelessWidget {
                         width: 80,
                         height: 80,
                         margin: const EdgeInsets.only(right: 8),
-                        color: Colors.grey.shade300,
+                        color: isDarkMode ? _darkCardBorderColor : Colors.grey.shade300,
                         child: const Icon(Icons.videocam),
                       );
                     }
@@ -308,16 +371,24 @@ class ReportsManagementPage extends StatelessWidget {
                   },
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
             ],
             Text('Date: $dateStr',
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            const Divider(),
+                style: TextStyle(fontSize: 12, color: secondaryText)),
+            Divider(color: isDarkMode ? Colors.white30 : Colors.black26),
             Wrap(
               spacing: 8,
               children: [
                 if (!isFeedback && targetType == 'chat' && targetId != null)
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _accentColor,
+                      side: BorderSide(
+                        color: isDarkMode
+                            ? _darkCardBorderColor.withOpacity(0.8)
+                            : Colors.black45,
+                      ),
+                    ),
                     icon: const Icon(Icons.chat, size: 16),
                     label: const Text('View Chat'),
                     onPressed: () {
@@ -334,6 +405,14 @@ class ReportsManagementPage extends StatelessWidget {
                   ),
                 if (reporterId.isNotEmpty)
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _accentColor,
+                      side: BorderSide(
+                        color: isDarkMode
+                            ? _darkCardBorderColor.withOpacity(0.8)
+                            : Colors.black45,
+                      ),
+                    ),
                     icon: const Icon(Icons.person, size: 16),
                     label: const Text('Reporter'),
                     onPressed: () => _viewProfile(context, reporterId),
@@ -342,12 +421,28 @@ class ReportsManagementPage extends StatelessWidget {
                     reportedUserId.isNotEmpty &&
                     reportedUserId != 'admin')
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _accentColor,
+                      side: BorderSide(
+                        color: isDarkMode
+                            ? _darkCardBorderColor.withOpacity(0.8)
+                            : Colors.black45,
+                      ),
+                    ),
                     icon: const Icon(Icons.person_outline, size: 16),
                     label: const Text('Reported User'),
                     onPressed: () => _viewProfile(context, reportedUserId),
                   ),
                 if (isFeedback)
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _accentColor,
+                      side: BorderSide(
+                        color: isDarkMode
+                            ? _darkCardBorderColor.withOpacity(0.8)
+                            : Colors.black45,
+                      ),
+                    ),
                     icon: const Icon(Icons.reply, size: 16),
                     label: const Text('Reply to User'),
                     onPressed: () =>
@@ -355,7 +450,7 @@ class ReportsManagementPage extends StatelessWidget {
                   ),
               ],
             ),
-            const Divider(),
+            Divider(color: isDarkMode ? Colors.white30 : Colors.black26),
             if (status == 'pending')
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -395,90 +490,174 @@ class ReportsManagementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final double topPadding = MediaQuery.of(context).padding.top +
+        kToolbarHeight +
+        kTextTabBarHeight +
+        8;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text('Reports & Feedback'),
-          foregroundColor: Colors.black,
+          title: Text(
+            'Reports & Feedback',
+            style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+          ),
+          centerTitle: true,
+          foregroundColor: isDarkMode ? Colors.white : Colors.black,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          bottom: const TabBar(
-            labelColor: Colors.black,
-            indicatorColor: Colors.black,
+          bottom: TabBar(
+            labelColor: isDarkMode ? Colors.white : Colors.black,
+            unselectedLabelColor: isDarkMode ? Colors.white60 : Colors.black54,
+            indicatorColor: _accentColor,
             tabs: [
               Tab(text: 'User Reports'),
               Tab(text: 'System Feedback'),
             ],
           ),
         ),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('reports')
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return const Center(child: Text('No reports found.'));
-            }
-
-            final reports = snapshot.data!.docs;
-            final userReports = reports
-                .where((doc) =>
-                    (doc.data() as Map<String, dynamic>)['targetType'] !=
-                    'feedback')
-                .toList();
-            final feedbacks = reports
-                .where((doc) =>
-                    (doc.data() as Map<String, dynamic>)['targetType'] ==
-                    'feedback')
-                .toList();
-
-            Map<String, List<DocumentSnapshot>> groupedFeedbacks = {};
-            for (var doc in feedbacks) {
-              final cat =
-                  (doc.data() as Map<String, dynamic>)['category'] ?? 'Other';
-              if (!groupedFeedbacks.containsKey(cat)) {
-                groupedFeedbacks[cat] = [];
-              }
-              groupedFeedbacks[cat]!.add(doc);
-            }
-
-            return TabBarView(
-              children: [
-                userReports.isEmpty
-                    ? const Center(child: Text('No user reports'))
-                    : ListView.builder(
-                        itemCount: userReports.length,
-                        itemBuilder: (context, index) => _buildReportCard(
-                            context, userReports[index], false),
+        body: Stack(
+          children: [
+            if (isDarkMode)
+              Backgroundcolor()
+            else
+              Container(color: Theme.of(context).scaffoldBackgroundColor),
+            Padding(
+              padding: EdgeInsets.only(top: topPadding),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('reports')
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No reports found.',
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white70 : Colors.black87,
+                        ),
                       ),
-                feedbacks.isEmpty
-                    ? const Center(child: Text('No system feedback'))
-                    : ListView.builder(
-                        itemCount: groupedFeedbacks.keys.length,
-                        itemBuilder: (context, index) {
-                          final category =
-                              groupedFeedbacks.keys.elementAt(index);
-                          final docs = groupedFeedbacks[category]!;
-                          return ExpansionTile(
-                            initiallyExpanded: true,
-                            title: Text('Category: $category',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            subtitle: Text('${docs.length} tickets'),
-                            children: docs
-                                .map((doc) =>
-                                    _buildReportCard(context, doc, true))
-                                .toList(),
-                          );
-                        },
-                      ),
-              ],
-            );
-          },
+                    );
+                  }
+
+                  final reports = snapshot.data!.docs;
+                  final userReports = reports
+                      .where((doc) =>
+                          (doc.data() as Map<String, dynamic>)['targetType'] !=
+                          'feedback')
+                      .toList();
+                  final feedbacks = reports
+                      .where((doc) =>
+                          (doc.data() as Map<String, dynamic>)['targetType'] ==
+                          'feedback')
+                      .toList();
+
+                  Map<String, List<DocumentSnapshot>> groupedFeedbacks = {};
+                  for (var doc in feedbacks) {
+                    final cat =
+                        (doc.data() as Map<String, dynamic>)['category'] ?? 'Other';
+                    if (!groupedFeedbacks.containsKey(cat)) {
+                      groupedFeedbacks[cat] = [];
+                    }
+                    groupedFeedbacks[cat]!.add(doc);
+                  }
+
+                  return TabBarView(
+                    children: [
+                      userReports.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No user reports',
+                                style: TextStyle(
+                                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              itemCount: userReports.length,
+                              itemBuilder: (context, index) => _buildReportCard(
+                                  context, userReports[index], false),
+                            ),
+                      feedbacks.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No system feedback',
+                                style: TextStyle(
+                                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              itemCount: groupedFeedbacks.keys.length,
+                              itemBuilder: (context, index) {
+                                final category =
+                                    groupedFeedbacks.keys.elementAt(index);
+                                final docs = groupedFeedbacks[category]!;
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? _darkCardColor
+                                        : Theme.of(context).cardColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: isDarkMode
+                                        ? Border.all(
+                                            color:
+                                                _darkCardBorderColor.withOpacity(0.45),
+                                          )
+                                        : null,
+                                  ),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dividerColor: Colors.transparent,
+                                    ),
+                                    child: ExpansionTile(
+                                      initiallyExpanded: true,
+                                      iconColor:
+                                          isDarkMode ? Colors.white70 : Colors.black54,
+                                      collapsedIconColor:
+                                          isDarkMode ? Colors.white70 : Colors.black54,
+                                      title: Text(
+                                        'Category: $category',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              isDarkMode ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        '${docs.length} tickets',
+                                        style: TextStyle(
+                                          color: isDarkMode
+                                              ? Colors.white70
+                                              : Colors.black54,
+                                        ),
+                                      ),
+                                      children: docs
+                                          .map((doc) =>
+                                              _buildReportCard(context, doc, true))
+                                          .toList(),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

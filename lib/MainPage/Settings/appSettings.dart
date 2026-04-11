@@ -36,19 +36,23 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (BuildContext context) {
         bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          backgroundColor: isDarkMode ? _darkCard : Colors.white,
           title: Text(
             'select_language'.tr(),
             style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
           ),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isDarkMode
+                ? BorderSide(color: const Color(0xFF2B4C85).withOpacity(0.45))
+                : BorderSide.none,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _languageOption(const Locale('en')),
-              _languageOption(const Locale('kk')),
-              _languageOption(const Locale('ru')),
+              _languageOption(const Locale('en'), isDarkMode),
+              _languageOption(const Locale('kk'), isDarkMode),
+              _languageOption(const Locale('ru'), isDarkMode),
             ],
           ),
         );
@@ -56,7 +60,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _languageOption(Locale locale) {
+  Widget _languageOption(Locale locale, bool isDarkMode) {
     String label;
     if (locale.languageCode == 'en') {
       label = 'english'.tr();
@@ -65,18 +69,53 @@ class _SettingsPageState extends State<SettingsPage> {
     else
       label = 'russian'.tr();
 
-    return ListTile(
-      title: Text(label),
-      onTap: () async {
-        await context.setLocale(locale);
-        // Persist selection
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('selected_language', locale.languageCode);
-        Navigator.of(context).pop();
-        setState(() {
-          _selectedLanguage = label;
-        });
-      },
+    final bool isSelected = context.locale.languageCode == locale.languageCode;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? (isDarkMode
+                ? const Color(0xFF122A66)
+                : const Color(0xFFE9F3FF))
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected
+            ? Border.all(
+                color: isDarkMode
+                    ? const Color(0xFF2B4C85).withOpacity(0.65)
+                    : const Color(0xFF1E88E5).withOpacity(0.45),
+              )
+            : null,
+      ),
+      child: ListTile(
+        dense: true,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          label,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+        trailing: isSelected
+            ? const Icon(
+                Icons.check_circle,
+                color: Color(0xFF1E88E5),
+                size: 20,
+              )
+            : null,
+        onTap: () async {
+          await context.setLocale(locale);
+          // Persist selection
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('selected_language', locale.languageCode);
+          Navigator.of(context).pop();
+          setState(() {
+            _selectedLanguage = label;
+          });
+        },
+      ),
     );
   }
 
