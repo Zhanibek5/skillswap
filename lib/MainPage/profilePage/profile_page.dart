@@ -15,19 +15,13 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final uid = FirebaseAuth.instance.currentUser!.uid;
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+
   @override
   void initState() {
     super.initState();
     _initUserStatus();
-  }
-
-  String _formatDuration(int minutes) {
-    if (minutes == 0) return "0m";
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    if (h > 0 && m > 0) return "${h}h ${m}m";
-    if (h > 0) return "${h}h";
-    return "${m}m";
   }
 
   String formatTime(timestamp) {
@@ -61,7 +55,7 @@ class _ProfilePageState extends State<ProfilePage> {
           height: MediaQuery.of(context).size.height * 0.85,
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1E1E1E)
+                ? _darkCardColor
                 : Colors.white,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(25),
@@ -157,6 +151,7 @@ class _ProfilePageState extends State<ProfilePage> {
               final int timeEarned = (data['timeEarned'] ?? 0);
               final int timeSpent = (data['timeSpent'] ?? 0);
 
+
               final String? photoUrl = data['photoUrl'];
 
               final skillsTeach = data['skillsTeach'] ?? '';
@@ -194,37 +189,39 @@ class _ProfilePageState extends State<ProfilePage> {
                               end: Alignment.bottomRight,
                               colors: Theme.of(context).brightness ==
                                       Brightness.dark
-                                  ? [
-                                      const Color(0xFF0F2027),
-                                      const Color(0xFF203A43),
-                                      const Color(0xFF2C5364)
-                                    ] // Elegant dark gradient
-                                  : [
-                                      const Color(0xFF1A73E8),
-                                      const Color(0xFF4A90E2)
-                                    ],
+                                  ? const [
+                                      Color(0xFF173A6D),
+                                      Color(0xFF0F1F3B)
+                                    ]
+                                  : [const Color(0xFF1A73E8), const Color(0xFF4A90E2)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
-                                    ? Colors.black.withOpacity(0.6)
+                                    ? Colors.blue.withOpacity(0.15)
                                     : Colors.white.withOpacity(0.4),
                                 blurRadius: 20,
-                                spreadRadius: 2,
-                                offset: const Offset(0, 0),
+                                offset: const Offset(0, 8),
                               ),
                             ],
+                            border: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Border.all(
+                                    color: _darkCardBorderColor.withOpacity(0.45),
+                                  )
+                                : null,
                           ),
                           child: Row(
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundColor: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? const Color(0xFF2A2E35)
-                                    : Colors.grey.shade200,
+                                backgroundColor:
+                                    Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? const Color(0xFF122A66)
+                                        : Colors.grey.shade200,
                                 backgroundImage:
                                     photoUrl != null && photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
@@ -292,9 +289,18 @@ class _ProfilePageState extends State<ProfilePage> {
                                   backgroundColor:
                                       Theme.of(context).brightness ==
                                               Brightness.dark
-                                          ? const Color(0xFF1E1E1E)
+                                          ? _darkCardColor
                                           : Colors.white,
                                   foregroundColor: Color(0xFF1E88E5),
+                                  side: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? BorderSide(
+                                          color:
+                                              _darkCardBorderColor.withOpacity(
+                                            0.45,
+                                          ),
+                                        )
+                                      : null,
                                 ),
                                 child: Text('edit'.tr()),
                               ),
@@ -306,17 +312,17 @@ class _ProfilePageState extends State<ProfilePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _statItem('⭐', "${rating.toStringAsFixed(1)}",
+                            _statItem(context, '⭐', "${rating.toStringAsFixed(1)}",
                                 'rating'.tr()),
-                            _statItem('⏱', '2h', 'balance'.tr()),
-                            _statItem('🌐', languagesText, 'language'.tr()),
+                            _statItem(context, '⏱', '2h', 'balance'.tr()),
+                            _statItem(context, '🌐', languagesText, 'language'.tr()),
                           ],
                         ),
 
                         SizedBox(height: 24),
 
                         // ===== MY SKILLS =====
-                        _sectionTitle('my_skills'.tr()),
+                        _sectionTitle(context, 'my_skills'.tr()),
                         Container(
                           decoration: _boxDecoration(context),
                           child: Column(
@@ -329,7 +335,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 20),
 
                         // ===== WANT TO LEARN =====
-                        _sectionTitle('want_to_learn'.tr()),
+                        _sectionTitle(context, 'want_to_learn'.tr()),
                         Container(
                           decoration: _boxDecoration(context),
                           child: Column(
@@ -342,53 +348,36 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 20),
 
                         // ===== TIME BANK =====
-                        _sectionTitle('time_bank'.tr()),
+                        _sectionTitle(context, 'time_bank'.tr()),
                         Container(
                             padding: const EdgeInsets.all(16),
                             decoration: _boxDecoration(context),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Wrap(
+                              spacing: 16,
+                              runSpacing: 10,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.arrow_upward,
-                                        color: Colors.green, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('earned'.tr()),
-                                    const SizedBox(width: 4),
-                                    Text(_formatDuration(timeEarned),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green)),
-                                  ],
+                                _timeBankMetric(
+                                  icon: Icons.arrow_upward,
+                                  iconColor: Colors.green,
+                                  label: 'earned'.tr(),
+                                  value: _formatHoursMinutes(timeEarned),
+                                  valueColor: Colors.green,
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.arrow_downward,
-                                        color: Colors.red, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('spent'.tr()),
-                                    const SizedBox(width: 4),
-                                    Text(_formatDuration(timeSpent),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.red)),
-                                  ],
+                                _timeBankMetric(
+                                  icon: Icons.arrow_downward,
+                                  iconColor: Colors.red,
+                                  label: 'spent'.tr(),
+                                  value: _formatHoursMinutes(timeSpent),
+                                  valueColor: Colors.red,
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.account_balance_wallet,
-                                        color: Color(0xFF1E88E5), size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('balance:'.tr(),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 4),
-                                    Text(_formatDuration(balanceMinutes),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E88E5))),
-                                  ],
+                                _timeBankMetric(
+                                  icon: Icons.account_balance_wallet,
+                                  iconColor: const Color(0xFF1E88E5),
+                                  label: 'balance:'.tr(),
+                                  value: _formatHoursMinutes(balanceMinutes),
+                                  valueColor: const Color(0xFF1E88E5),
+                                  labelStyle:
+                                      const TextStyle(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             )),
@@ -427,7 +416,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 ? 'Available to teach'
                                                 : 'Not teaching now',
                                             style: TextStyle(
-                                                color: Colors.grey[600],
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white70
+                                                    : Colors.grey[600],
                                                 fontSize: 13),
                                           ),
                                         ],
@@ -475,7 +468,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 ? 'Available to learn'
                                                 : 'Not learning now',
                                             style: TextStyle(
-                                                color: Colors.grey[600],
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white70
+                                                    : Colors.grey[600],
                                                 fontSize: 13),
                                           ),
                                         ],
@@ -502,20 +499,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 10),
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
+                          decoration: _boxDecoration(context, borderRadius: 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -539,12 +523,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
                               /// DESCRIPTION
                               Text(
-                                "See what other users wrote about you.",
+                                "See what other users wrote about you.",        
                                 style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white70
-                                      : Colors.black54,
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
                                 ),
                               ),
 
@@ -567,6 +548,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
+
                                   ),
                                 ),
                               ),
@@ -637,6 +619,7 @@ class _ProfilePageState extends State<ProfilePage> {
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
 
               final avg = (data['ratingAverage'] ?? 0).toDouble();
               final count = (data['ratingCount'] ?? 0);
@@ -651,7 +634,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   Text(
                     "  ($count reviews)",
-                    style: const TextStyle(color: Colors.black54, fontSize: 14),
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               );
@@ -712,11 +698,17 @@ class _ProfilePageState extends State<ProfilePage> {
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.grey.shade100,
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? _darkCardColor
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(15),
+                            border: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Border.all(
+                                    color: _darkCardBorderColor.withOpacity(0.4),
+                                  )
+                                : null,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,8 +751,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                           const SizedBox(width: 10),
                                           Text(
                                             timeText,
-                                            style: const TextStyle(
-                                                color: Colors.black45),
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white60
+                                                  : Colors.black45,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -795,32 +792,73 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // ===== WIDGETS =====
 
-  static Widget _statItem(String emoji, String value, String label) {
+  String _formatHoursMinutes(int totalMinutes) {
+    final int safeMinutes = totalMinutes < 0 ? 0 : totalMinutes;
+    final int hours = safeMinutes ~/ 60;
+    final int minutes = safeMinutes % 60;
+    return '${hours}h ${minutes}m';
+  }
+
+  Widget _timeBankMetric({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required Color valueColor,
+    TextStyle? labelStyle,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 16),
+        const SizedBox(width: 4),
+        Text(label, style: labelStyle),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statItem(BuildContext context, String emoji, String value, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Text(emoji, style: const TextStyle(fontSize: 24)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, color: Color(0xFF203068)),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : const Color(0xFF203068),
+          ),
         ),
-        Text(label, style: const TextStyle(color: Colors.white)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white),
+        ),
       ],
     );
   }
 
-  static Widget _sectionTitle(String text) {
+  Widget _sectionTitle(BuildContext context, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(
           text,
-          style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF203068)),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : const Color(0xFF203068),
+          ),
         ),
       ),
     );
@@ -896,21 +934,31 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  static BoxDecoration _boxDecoration(BuildContext context) {
+  static BoxDecoration _boxDecoration(
+    BuildContext context, {
+    double borderRadius = 16,
+  }) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      color: isDark ? _darkCardColor : Colors.white,
+      borderRadius: BorderRadius.circular(borderRadius),
       boxShadow: [
-        BoxShadow(
-          color: isDark
-              ? Colors.black.withOpacity(0.4)
-              : Colors.black.withOpacity(0.05),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
+        if (isDark)
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        if (!isDark)
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
       ],
-      border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+      border: isDark
+          ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+          : null,
     );
   }
 }

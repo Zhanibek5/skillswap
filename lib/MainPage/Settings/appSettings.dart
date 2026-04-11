@@ -351,7 +351,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                          "dark_mode".tr(),
+                                        "dark_mode".tr(),
                                         style: TextStyle(
                                           color: iconColor,
                                           fontSize: 15,
@@ -455,22 +455,33 @@ class _SettingsPageState extends State<SettingsPage> {
     return Backgroundcolor();
   }
 
+  static const Color _darkCard = Color(0xFF0F1F3B);
+
   /// 📦 CARD
   Widget _card({required List<Widget> children}) {
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        color: isDarkMode ? _darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
+          if (isDarkMode)
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          if (!isDarkMode)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
         ],
-        border: isDarkMode ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+        border: isDarkMode
+            ? Border.all(color: const Color(0xFF2B4C85).withOpacity(0.45))
+            : null,
       ),
       child: Column(children: children),
     );

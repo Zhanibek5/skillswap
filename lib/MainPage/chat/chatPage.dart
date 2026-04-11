@@ -264,95 +264,94 @@ class _ChatPageState extends State<ChatPage> {
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1E1E1E)
-                : Colors.white,
-            title: const Text("Confirm Meeting"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    "Meeting Time:\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
-                const SizedBox(height: 20),
-                const Text("Duration (minutes):"),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: selectedDuration > 5
-                          ? () {
-                              setState(() {
-                                selectedDuration -= 5;
-                              });
-                            }
-                          : null,
-                    ),
-                    Text(
-                      "$selectedDuration min",
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: selectedDuration < 180
-                          ? () {
-                              setState(() {
-                                selectedDuration += 5;
-                              });
-                            }
-                          : null,
-                    ),
-                  ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+              title: const Text("Confirm Meeting"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      "Meeting Time:\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
+                  const SizedBox(height: 20),
+                  const Text("Duration (minutes):"),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: selectedDuration > 5
+                            ? () {
+                                setState(() {
+                                  selectedDuration -= 5;
+                                });
+                              }
+                            : null,
+                      ),
+                      Text(
+                        "$selectedDuration min",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: selectedDuration < 180
+                            ? () {
+                                setState(() {
+                                  selectedDuration += 5;
+                                });
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: selectedDuration.toDouble(),
+                    min: 5,
+                    max: 180,
+                    divisions: 35,
+                    activeColor: const Color(0xFF1E88E5),
+                    onChanged: (double value) {
+                      setState(() {
+                        selectedDuration = value.toInt();
+                      });
+                    },
+                  )
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Color(0xFF1E88E5)),
+                  ),
                 ),
-                Slider(
-                  value: selectedDuration.toDouble(),
-                  min: 5,
-                  max: 180,
-                  divisions: 35,
-                  activeColor: const Color(0xFF1E88E5),
-                  onChanged: (double value) {
-                    setState(() {
-                      selectedDuration = value.toInt();
-                    });
+                OutlinedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _sendMeetingMessage(meetingTime, selectedDuration);
                   },
-                )
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1E88E5),
+                    side: const BorderSide(
+                      color: Color(0xFF1E88E5),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 10,
+                    ),
+                  ),
+                  child: const Text("Confirm"),
+                ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(color: Color(0xFF1E88E5)),
-                ),
-              ),
-              OutlinedButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await _sendMeetingMessage(meetingTime, selectedDuration);
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1E88E5),
-                  side: const BorderSide(
-                    color: Color(0xFF1E88E5),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 10,
-                  ),
-                ),
-                child: const Text("Confirm"),
-              ),
-            ],
-          );
-        });
+            );
+          }
+        );
       },
     );
   }
@@ -374,10 +373,7 @@ class _ChatPageState extends State<ChatPage> {
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
-            dialogTheme: DialogThemeData(
-                backgroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF1E1E1E)
-                    : Colors.white),
+            dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
           ),
           child: child!,
         );
@@ -393,9 +389,7 @@ class _ChatPageState extends State<ChatPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             timePickerTheme: TimePickerThemeData(
-              backgroundColor: Theme.of(context).brightness == Brightness.dark
-                  ? Color(0xFF1E1E1E)
-                  : Colors.white,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
             ),
             colorScheme: const ColorScheme.light(
               primary: Color(0xFF1E88E5),
@@ -659,11 +653,8 @@ class _ChatPageState extends State<ChatPage> {
                       fileType == 'image'
                           ? 'Выбрано: ${files.length}'
                           : 'Выбран 1 файл',
-                      style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF1E1E1E)
-                              : Colors.white,
-                          fontSize: 18)),
+                      style:
+                          TextStyle(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white, fontSize: 18)),
                 ]),
                 Expanded(
                   child: Center(
@@ -689,11 +680,7 @@ class _ChatPageState extends State<ChatPage> {
                               const SizedBox(height: 20),
                               Text(files.first.path.split('/').last,
                                   style: TextStyle(
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Color(0xFF1E1E1E)
-                                          : Colors.white,
-                                      fontSize: 18),
+                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white, fontSize: 18),
                                   textAlign: TextAlign.center),
                               Text(
                                   "${(files.first.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB",
@@ -706,9 +693,7 @@ class _ChatPageState extends State<ChatPage> {
                 Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                     child: Row(children: [
                       Expanded(
                           child: TextField(
@@ -723,12 +708,8 @@ class _ChatPageState extends State<ChatPage> {
                       IconButton(
                           icon: CircleAvatar(
                             backgroundColor: Colors.blueAccent,
-                            child: Icon(Icons.send,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Color(0xFF1E1E1E)
-                                    : Colors.white,
-                                size: 20),
+                            child:
+                                Icon(Icons.send, color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white, size: 20),
                           ),
                           onPressed: () {
                             sent = true;
@@ -1193,16 +1174,19 @@ class _ChatPageState extends State<ChatPage> {
                 ? Colors.black
                 : null,
             child: Opacity(
-              opacity:
-                  Theme.of(context).brightness == Brightness.dark ? 0.08 : 1.0,
+              opacity: Theme.of(context).brightness == Brightness.dark ? 0.5 : 1.0,
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage("assets/back.png"),
+                    image: AssetImage(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? "assets/backgr black tg.jpg"
+                          : "assets/back.png",
+                    ),
                     fit: BoxFit.cover,
-                    colorFilter: Theme.of(context).brightness == Brightness.dark
-                        ? const ColorFilter.mode(Colors.white, BlendMode.srcIn)
-                        : null,
+                    alignment: Alignment.center,
+                    // Убрали затемнение, чтобы картинка была видна полностью
+                    colorFilter: null,
                   ),
                 ),
               ),
@@ -1235,27 +1219,19 @@ class _ChatPageState extends State<ChatPage> {
                   Container(
                     padding: const EdgeInsets.only(
                         top: 50, left: 5, right: 16, bottom: 12),
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF161616)
-                        : Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF161616) : Colors.white,
                     child: Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.arrow_back,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black),
+                          icon:
+                              Icon(Icons.arrow_back, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                           onPressed: () {
                             Navigator.pop(context); // ChatsListPage сақталады
                           },
                         ),
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF2A2E35)
-                                  : Colors.grey.shade200,
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
                           child: ClipOval(
                             child: photoUrl.isNotEmpty
                                 ? Image.network(
@@ -1278,10 +1254,7 @@ class _ChatPageState extends State<ChatPage> {
                               Text(
                                 userName,
                                 style: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black,
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
                               ),
@@ -1292,10 +1265,7 @@ class _ChatPageState extends State<ChatPage> {
                                         ? "Teacher: ${widget.selectedSkills.join(", ")}"
                                         : "Learner: ${widget.selectedSkills.join(", ")}",
                                 style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white54
-                                      : Colors.black38,
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black38,
                                   fontSize: 13,
                                 ),
                               ),
@@ -1315,20 +1285,14 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                           IconButton(
                             icon: Icon(Icons.calendar_month,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black),
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                             onPressed: () {
                               _openMeetingScheduler();
                             },
                           ),
                           PopupMenuButton<String>(
                             icon: Icon(Icons.more_vert,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black),
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                             onSelected: (value) {
                               if (value == 'clear_me') clearChat(false);
                               if (value == 'clear_all') clearChat(true);
@@ -1429,15 +1393,12 @@ class _ChatPageState extends State<ChatPage> {
                         if (uiItems.isEmpty) {
                           return Center(
                             child: Container(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 40),
+                              margin: const EdgeInsets.symmetric(horizontal: 40),
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? const Color(0xFF2C2538).withOpacity(
-                                        0.85) // Telegram like purplish dark grey
-                                    : Colors.white.withOpacity(0.9),
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                  ? const Color(0xFF2C2538).withOpacity(0.85) // Telegram like purplish dark grey
+                                  : Colors.white.withOpacity(0.9),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Column(
@@ -1448,10 +1409,7 @@ class _ChatPageState extends State<ChatPage> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.white
-                                          : Colors.black,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -1459,18 +1417,14 @@ class _ChatPageState extends State<ChatPage> {
                                   Text(
                                     "Отправьте сообщение или нажмите на приветствие ниже.",
                                     style: TextStyle(
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.white70
-                                          : Colors.black54,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
                                       fontSize: 14,
                                       height: 1.3,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 20),
-                                  const Text("👋",
-                                      style: TextStyle(fontSize: 48)),
+                                  const Text("👋", style: TextStyle(fontSize: 48)),
                                 ],
                               ),
                             ),
@@ -1525,10 +1479,7 @@ class _ChatPageState extends State<ChatPage> {
                                       decoration: BoxDecoration(
                                         color: isMe
                                             ? const Color(0xFF1E88E5)
-                                            : (Theme.of(context).brightness ==
-                                                    Brightness.dark
-                                                ? const Color(0xFF232530)
-                                                : Colors.white),
+                                            : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF232530) : Colors.white),
                                         borderRadius: BorderRadius.only(
                                           topLeft: const Radius.circular(16),
                                           topRight: const Radius.circular(16),
@@ -1578,11 +1529,7 @@ class _ChatPageState extends State<ChatPage> {
                                                 style: TextStyle(
                                                   color: isMe
                                                       ? Colors.white
-                                                      : (Theme.of(context)
-                                                                  .brightness ==
-                                                              Brightness.dark
-                                                          ? Colors.white
-                                                          : Colors.black),
+                                                      : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                                                   fontSize: 15,
                                                 ),
                                               ),
@@ -1631,11 +1578,7 @@ class _ChatPageState extends State<ChatPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF232530)
-                                            .withOpacity(0.9)
-                                        : Colors.grey.shade200,
+                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF232530).withOpacity(0.9) : Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Stack(
@@ -1670,45 +1613,15 @@ class _ChatPageState extends State<ChatPage> {
                                             ElevatedButton(
                                               onPressed: () async {
                                                 // 1. Join Video Call
-                                                int? duration =
-                                                    data['duration'];
-                                                if (duration == null) {
-                                                  // Fallback for older messages: try to find 'system_meeting_created'
-                                                  final createdDocs =
-                                                      rawDocs.where((d) {
-                                                    final dData = d.data()
-                                                        as Map<String, dynamic>;
-                                                    return dData['type'] ==
-                                                            'system_meeting_created' &&
-                                                        dData['meetingTime'] ==
-                                                            data['meetingTime'];
-                                                  }).toList();
-                                                  if (createdDocs.isNotEmpty) {
-                                                    final createdData =
-                                                        createdDocs.first.data()
-                                                            as Map<String,
-                                                                dynamic>;
-                                                    duration =
-                                                        createdData['duration']
-                                                            as int?;
-                                                  }
-                                                }
-                                                // Default to 60 if still null
-                                                duration ??= 60;
-
-                                                final callDone =
-                                                    await Navigator.push(
+                                                int duration = data['duration'] ?? 60;
+                                                final callDone = await Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (_) => importWebrtc
-                                                        .VideoCallScreen(
-                                                      specificRoomId:
-                                                          widget.chatId,
-                                                      isCaller:
-                                                          shouldInitiateVideoCall,
+                                                    builder: (_) => importWebrtc.VideoCallScreen(
+                                                      specificRoomId: widget.chatId,
+                                                      isCaller: shouldInitiateVideoCall,
                                                       otherUserId: otherUserId,
-                                                      expectedDurationMinutes:
-                                                          duration!,
+                                                      expectedDurationMinutes: duration,
                                                       role: widget.mode,
                                                     ),
                                                   ),
@@ -1734,56 +1647,38 @@ class _ChatPageState extends State<ChatPage> {
                                                   );
 
                                                   // Ask to save video history
-                                                  bool? saveVideo =
-                                                      await showDialog<bool>(
+                                                  bool? saveVideo = await showDialog<bool>(
                                                     context: context,
-                                                    builder: (ctx) =>
-                                                        AlertDialog(
-                                                      title: const Text(
-                                                          'Save Video in History?'),
-                                                      content: const Text(
-                                                          'Do you want to save this video conference recording?'),
+                                                    builder: (ctx) => AlertDialog(
+                                                      title: const Text('Save Video in History?'),
+                                                      content: const Text('Do you want to save this video conference recording?'),
                                                       actions: [
                                                         TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  ctx, false),
-                                                          child:
-                                                              const Text('No'),
+                                                          onPressed: () => Navigator.pop(ctx, false),
+                                                          child: const Text('No'),
                                                         ),
                                                         TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  ctx, true),
-                                                          child:
-                                                              const Text('Yes'),
+                                                          onPressed: () => Navigator.pop(ctx, true),
+                                                          child: const Text('Yes'),
                                                         ),
                                                       ],
                                                     ),
                                                   );
 
                                                   if (saveVideo == true) {
-                                                    final user = FirebaseAuth
-                                                        .instance.currentUser;
+                                                    final user = FirebaseAuth.instance.currentUser;
                                                     if (user != null) {
-                                                      await FirebaseFirestore
-                                                          .instance
+                                                      await FirebaseFirestore.instance
                                                           .collection('users')
                                                           .doc(user.uid)
-                                                          .collection(
-                                                              'video_history')
+                                                          .collection('video_history')
                                                           .add({
                                                         'chatId': widget.chatId,
                                                         'teacherName': userName,
-                                                        'createdAt': FieldValue
-                                                            .serverTimestamp(),
+                                                        'createdAt': FieldValue.serverTimestamp(),
                                                       });
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        const SnackBar(
-                                                            content: Text(
-                                                                'Video saved in history!')),
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Video saved in history!')),
                                                       );
                                                     }
                                                   }
@@ -1870,10 +1765,7 @@ class _ChatPageState extends State<ChatPage> {
                                     decoration: BoxDecoration(
                                       color: isMe
                                           ? const Color(0xFF1E88E5)
-                                          : (Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? const Color(0xFF232530)
-                                              : Colors.white),
+                                          : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF232530) : Colors.white),
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(16),
                                         topRight: const Radius.circular(16),
@@ -1897,11 +1789,7 @@ class _ChatPageState extends State<ChatPage> {
                                                   Colors.black.withOpacity(0.1),
                                               border: Border(
                                                   left: BorderSide(
-                                                      color: Theme.of(context)
-                                                                  .brightness ==
-                                                              Brightness.dark
-                                                          ? Color(0xFF1E1E1E)
-                                                          : Colors.white,
+                                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
                                                       width: 3)),
                                               borderRadius:
                                                   BorderRadius.circular(4),
@@ -1912,11 +1800,7 @@ class _ChatPageState extends State<ChatPage> {
                                                   fontSize: 12,
                                                   color: isMe
                                                       ? Colors.white
-                                                      : (Theme.of(context)
-                                                                  .brightness ==
-                                                              Brightness.dark
-                                                          ? Colors.white
-                                                          : Colors.black87)),
+                                                      : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87)),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -2118,13 +2002,7 @@ class _ChatPageState extends State<ChatPage> {
                                                                 color: isMe
                                                                     ? Colors
                                                                         .white
-                                                                    : (Theme.of(context).brightness ==
-                                                                            Brightness
-                                                                                .dark
-                                                                        ? Colors
-                                                                            .white
-                                                                        : Colors
-                                                                            .black),
+                                                                    : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -2183,11 +2061,7 @@ class _ChatPageState extends State<ChatPage> {
                                             style: TextStyle(
                                               color: isMe
                                                   ? Colors.white
-                                                  : (Theme.of(context)
-                                                              .brightness ==
-                                                          Brightness.dark
-                                                      ? Colors.white
-                                                      : Colors.black),
+                                                  : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                                               fontSize: 15,
                                             ),
                                           ),
@@ -2262,10 +2136,7 @@ class _ChatPageState extends State<ChatPage> {
                       children: [
                         if (replyToMessage != null || editMessageId != null)
                           Container(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.white,
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
                             child: Row(
@@ -2347,10 +2218,7 @@ class _ChatPageState extends State<ChatPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF1C1C1E)
-                                        : Colors.white,
+                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1C1C1E) : Colors.white,
                                     borderRadius: BorderRadius.circular(25),
                                   ),
                                   child: isRecording
@@ -2373,11 +2241,7 @@ class _ChatPageState extends State<ChatPage> {
                                                   formatRecordingDuration(
                                                       _recordingDuration),
                                                   style: TextStyle(
-                                                      color: Theme.of(context)
-                                                                  .brightness ==
-                                                              Brightness.dark
-                                                          ? Colors.white
-                                                          : Colors.black,
+                                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                                       fontSize: 16)),
                                               const Spacer(),
                                               const Text("< Влево — отмена",
@@ -2437,10 +2301,7 @@ class _ChatPageState extends State<ChatPage> {
                                   child: IconButton(
                                     icon: Icon(
                                       Icons.send,
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Color(0xFF1E1E1E)
-                                          : Colors.white,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
                                     ),
                                     onPressed: () {
                                       sendMessage(messageController.text);
@@ -2517,10 +2378,7 @@ class _ChatPageState extends State<ChatPage> {
                                     ),
                                     child: Icon(
                                       Icons.mic,
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Color(0xFF1E1E1E)
-                                          : Colors.white,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E1E1E) : Colors.white,
                                     ),
                                   ),
                                 ),

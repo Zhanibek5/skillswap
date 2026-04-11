@@ -13,12 +13,12 @@ class Backgroundcolor extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            stops: [0.0, 0.4, 0.8, 1.0],
+            stops: [0.0, 0.35, 0.7, 1.0],
             colors: [
-              Color(0xFF0F172A), // Very dark blue/grey
-              Color(0xFF050A15),
-              Color(0xFF02040A),
-              Colors.black,
+              Color(0xFF0A1734), // Navy-based deep blue at top
+              Color(0xFF0E214A), // Slightly brighter blue
+              Color(0xFF122A66), // Rich navy-blue
+              Color(0xFF0D1B3E), // Deep midnight blue
             ],
           ),
         ),

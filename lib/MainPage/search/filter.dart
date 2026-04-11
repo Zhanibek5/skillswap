@@ -24,6 +24,9 @@ class FilterSheet extends StatefulWidget {
 }
 
 class _FilterSheetState extends State<FilterSheet> {
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+
   double rating = 0;
   String? language;
   int? minAge;
@@ -61,11 +64,16 @@ class _FilterSheetState extends State<FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: isDark ? _darkCardColor : Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        border: isDark
+            ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+            : null,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -74,13 +82,19 @@ class _FilterSheetState extends State<FilterSheet> {
             Center(
               child: Text(
                 "filter".tr(),
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
             ),
             SizedBox(height: 25),
             Text("activity".tr(),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                )),
             SizedBox(height: 10),
             Wrap(
               spacing: 10,
@@ -116,7 +130,10 @@ class _FilterSheetState extends State<FilterSheet> {
             ),
             SizedBox(height: 25),
             Text("rating".tr(),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                )),
             Row(
               children: [
                 const Icon(Icons.star, color: Colors.amber),
@@ -136,7 +153,10 @@ class _FilterSheetState extends State<FilterSheet> {
             ),
             SizedBox(height: 20),
             Text("languages_comfortable".tr(),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                )),
             SizedBox(height: 10),
             Wrap(
               spacing: 10,
@@ -163,9 +183,10 @@ class _FilterSheetState extends State<FilterSheet> {
             ),
             SizedBox(height: 25),
             Text("age".tr(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
+                  color: isDark ? Colors.white : Colors.black,
                 )),
             SizedBox(height: 10),
             RangeSlider(
@@ -177,7 +198,8 @@ class _FilterSheetState extends State<FilterSheet> {
               max: 75,
               divisions: 59,
               activeColor: const Color(0xFF1E88E5),
-              inactiveColor: Colors.grey.shade300,
+              inactiveColor:
+                  isDark ? _darkCardBorderColor.withOpacity(0.5) : Colors.grey.shade300,
               labels: RangeLabels(
                 "${minAge ?? 16}",
                 "${maxAge ?? 75}",
@@ -194,17 +216,26 @@ class _FilterSheetState extends State<FilterSheet> {
               children: [
                 Text(
                   minAge != null ? "${minAge!}" : "min_age".tr(),
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                 ),
                 Text(
                   maxAge != null ? "${maxAge!}" : "max_age".tr(),
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                 ),
               ],
             ),
             SizedBox(height: 25),
             Text("sex".tr(),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                )),
             SizedBox(height: 10),
             Wrap(
               spacing: 10,

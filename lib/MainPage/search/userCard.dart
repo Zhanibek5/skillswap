@@ -26,6 +26,10 @@ class UserCard extends StatefulWidget {
 
 class _UserCardState extends State<UserCard> {
   Set<String> selectedSkills = {};
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _darkInputColor = Color(0xFF122A66);
+
   String formatTime(timestamp) {
     if (timestamp == null) return '';
 
@@ -53,13 +57,17 @@ class _UserCardState extends State<UserCard> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: isDark ? _darkCardColor : Colors.white,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(25),
             ),
+            border: isDark
+                ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+                : null,
           ),
           child: Column(
             children: [
@@ -69,13 +77,20 @@ class _UserCardState extends State<UserCard> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       "Feedback",
                       style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                          TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(
+                        Icons.close,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       onPressed: () {
                         Navigator.pop(context);
                       },
@@ -136,6 +151,7 @@ class _UserCardState extends State<UserCard> {
   @override
   Widget build(BuildContext context) {
     final data = widget.userData;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final firstName = data['firstName'] ?? '';
     final age = data['age'] ?? '';
@@ -169,16 +185,25 @@ class _UserCardState extends State<UserCard> {
           margin: const EdgeInsets.only(bottom: 20),
           padding: const EdgeInsets.fromLTRB(12, 25, 12, 20),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+            color: isDark ? _darkCardColor : Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.black45 : Colors.black12, 
-                blurRadius: 10,
-                offset: const Offset(0, 4)
-              )
+              if (isDark)
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
             ],
-            border: Theme.of(context).brightness == Brightness.dark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+            border: isDark
+                ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +213,8 @@ class _UserCardState extends State<UserCard> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.grey.shade200,
+                    backgroundColor:
+                        isDark ? _darkInputColor : Colors.grey.shade200,
                     child: ClipOval(
                       child: photoUrl != null && photoUrl.isNotEmpty
                           ? Image.network(
@@ -220,7 +246,9 @@ class _UserCardState extends State<UserCard> {
                             skillsT.isNotEmpty
                                 ? "Teaches: ${skillsT.join(', ')}"
                                 : "No skills yet",
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.grey,
+                            ),
                           ),
                           // SizedBox(height: 3),
                           // Row(
@@ -248,7 +276,9 @@ class _UserCardState extends State<UserCard> {
                             skillsL.isNotEmpty
                                 ? "Wants to learn: ${skillsL.join(', ')}"
                                 : "No skills yet",
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.grey,
+                            ),
                           ),
                           // SizedBox(height: 3),
                           // Row(
@@ -332,12 +362,19 @@ class _UserCardState extends State<UserCard> {
                     child: languages.isNotEmpty
                         ? Row(
                             children: [
-                              const Icon(Icons.language, size: 18),
+                              Icon(
+                                Icons.language,
+                                size: 18,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                               SizedBox(width: 5),
                               Expanded(
                                 child: Text(
                                   languages.join(" / "),
                                   overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
                                 ),
                               ),
                             ],
@@ -433,12 +470,19 @@ class _UserCardState extends State<UserCard> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.white,
+                color: isDark ? _darkInputColor : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(width: 0.5, color: Colors.grey),
+                border: Border.all(
+                  width: 0.5,
+                  color: isDark
+                      ? _darkCardBorderColor.withOpacity(0.5)
+                      : Colors.grey,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.black54 : Colors.black38,
+                    color: isDark
+                        ? Colors.blue.withOpacity(0.18)
+                        : Colors.black38,
                     blurRadius: 10,
                     offset: const Offset(2, 2),
                   )
@@ -496,12 +540,18 @@ class _UserCardState extends State<UserCard> {
                 _openFeedbackSheet();
               },
               style: ElevatedButton.styleFrom(
-                foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2E35) : Colors.white,
+                foregroundColor: isDark ? Colors.white : Colors.black,
+                backgroundColor: isDark ? _darkInputColor : Colors.white,
                 elevation: 4,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(width: 0.5, color: Colors.grey)),
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    width: 0.5,
+                    color: isDark
+                        ? _darkCardBorderColor.withOpacity(0.5)
+                        : Colors.grey,
+                  ),
+                ),
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               icon: Icon(Icons.chat_bubble_outline, color: Colors.yellow[700]),
@@ -529,6 +579,7 @@ class _UserCardState extends State<UserCard> {
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
 
               final avg = (data['ratingAverage'] ?? 0).toDouble();
               final count = (data['ratingCount'] ?? 0);
@@ -543,7 +594,10 @@ class _UserCardState extends State<UserCard> {
                   ),
                   Text(
                     "  ($count reviews)",
-                    style: const TextStyle(color: Colors.black54, fontSize: 14),
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               );
@@ -604,8 +658,17 @@ class _UserCardState extends State<UserCard> {
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? _darkCardColor
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(15),
+                            border: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Border.all(
+                                    color: _darkCardBorderColor.withOpacity(0.4),
+                                  )
+                                : null,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

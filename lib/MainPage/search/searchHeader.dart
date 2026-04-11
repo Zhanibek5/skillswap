@@ -18,9 +18,14 @@ class SearchHeader extends StatefulWidget {
 
 class _SearchHeaderState extends State<SearchHeader> {
   int selectedIndex = 0;
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
+  static const Color _darkInputColor = Color(0xFF122A66);
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -28,17 +33,25 @@ class _SearchHeaderState extends State<SearchHeader> {
           /// SEARCH FIELD
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: isDark ? _darkCardColor : Colors.white.withOpacity(0.3),
               borderRadius: BorderRadius.circular(20),
+              border: isDark
+                  ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+                  : null,
             ),
             child: TextField(
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: "Search skills or people",
-                hintStyle: TextStyle(color: Colors.white70),
-                prefixIcon: Icon(Icons.search, color: Colors.white),
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.white,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: Colors.white,
+                ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 15),
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
               ),
               onChanged: widget.onSearchChanged,
             ),
@@ -52,8 +65,11 @@ class _SearchHeaderState extends State<SearchHeader> {
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: isDark ? _darkInputColor : Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
+                    border: isDark
+                        ? Border.all(color: _darkCardBorderColor.withOpacity(0.4))
+                        : null,
                   ),
                   child: Row(
                     children: [
@@ -89,14 +105,14 @@ class _SearchHeaderState extends State<SearchHeader> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           alignment: Alignment.center,
           child: Text(
             text,
             style: TextStyle(
-              color: isSelected ? Color(0xFF1E88E5) : Colors.white,
+              color: Colors.white,
               fontWeight: FontWeight.w600,
             ),
           ),

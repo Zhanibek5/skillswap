@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:video_player/video_player.dart';
 
 class SavedVideosList extends StatelessWidget {
   const SavedVideosList({super.key});
@@ -83,8 +84,13 @@ class SavedVideosList extends StatelessWidget {
                   trailing: const Icon(Icons.play_circle_fill,
                       color: Colors.blueAccent, size: 32),
                   onTap: () {
-                    // Logic to open video player or mock screen
-                    _showVideoPlayerMock(context, teacherName);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            VideoPlayerScreen(teacherName: teacherName),
+                      ),
+                    );
                   },
                 ),
               );
@@ -94,20 +100,52 @@ class SavedVideosList extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _showVideoPlayerMock(BuildContext context, String name) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Play Video'),
-        content: Text(
-            'Playing the recorded conference with $name... (This is a mock because real remote video recording requires a backend media server).'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+class VideoPlayerScreen extends StatefulWidget {
+  final String teacherName;
+  const VideoPlayerScreen({Key? key, required this.teacherName})
+      : super(key: key);
+
+  @override
+  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+}
+
+class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text('Call with ${widget.teacherName}'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.videocam_off, color: Colors.white54, size: 80),
+            const SizedBox(height: 20),
+            const Text(
+              "Видеоконференция не записана",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                "В текущей версии приложения запись WebRTC-потока на сервер не настроена. \n\nСистема сохранила только историю и время проведения данной видеоконференции.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

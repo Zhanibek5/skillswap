@@ -24,6 +24,8 @@ class SkillMainPage extends StatefulWidget {
 }
 
 class _SkillMainPageState extends State<SkillMainPage> {
+  static const Color _darkCardColor = Color(0xFF0F1F3B);
+  static const Color _darkCardBorderColor = Color(0xFF2B4C85);
   late int _selectedIndex;
 
   void changeTab(int index) {
@@ -169,8 +171,15 @@ class _SkillMainPageState extends State<SkillMainPage> {
           child: Container(
             height: 60,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1A1A).withOpacity(0.85) : Colors.white.withOpacity(0.9),
+              color: isDark
+                  ? _darkCardColor.withOpacity(0.9)
+                  : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(40),
+              border: isDark
+                  ? Border.all(
+                      color: _darkCardBorderColor.withOpacity(0.45),
+                    )
+                  : null,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
