@@ -331,15 +331,7 @@ class Signaling {
   ) async {
     var stream = await navigator.mediaDevices.getUserMedia({
       'video': {'facingMode': 'user'},
-      'audio': {
-        'mandatory': {
-          'googEchoCancellation': 'true',
-          'googAutoGainControl': 'true',
-          'googNoiseSuppression': 'true',
-          'googHighpassFilter': 'true',
-        },
-        'optional': [],
-      }
+      'audio': true
     });
 
     localVideo.srcObject = stream;
