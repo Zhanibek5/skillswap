@@ -354,34 +354,57 @@ class _ProfilePageState extends State<ProfilePage> {
                         // ===== TIME BANK =====
                         _sectionTitle(context, 'time_bank'.tr()),
                         Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 5, horizontal: 1),
                             decoration: _boxDecoration(context),
-                            child: Wrap(
-                              spacing: 16,
-                              runSpacing: 10,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _timeBankMetric(
-                                  icon: Icons.arrow_upward,
-                                  iconColor: Colors.green,
-                                  label: 'earned'.tr(),
-                                  value: _formatHoursMinutes(timeEarned),
-                                  valueColor: Colors.green,
+                                Expanded(
+                                  child: _timeBankColumn(
+                                    icon: Icons.arrow_upward_rounded,
+                                    iconColor: Colors.green,
+                                    iconBgColor: Colors.green.withOpacity(0.1),
+                                    label: 'earned'.tr(),
+                                    value: _formatHoursMinutes(timeEarned),
+                                    valueColor: Colors.green,
+                                  ),
                                 ),
-                                _timeBankMetric(
-                                  icon: Icons.arrow_downward,
-                                  iconColor: Colors.red,
-                                  label: 'spent'.tr(),
-                                  value: _formatHoursMinutes(timeSpent),
-                                  valueColor: Colors.red,
+                                Container(
+                                  height: 50,
+                                  width: 1,
+                                  color: Theme.of(context)
+                                      .dividerColor
+                                      .withOpacity(0.2),
                                 ),
-                                _timeBankMetric(
-                                  icon: Icons.account_balance_wallet,
-                                  iconColor: const Color(0xFF1E88E5),
-                                  label: 'balance:'.tr(),
-                                  value: _formatHoursMinutes(balanceMinutes),
-                                  valueColor: const Color(0xFF1E88E5),
-                                  labelStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                                Expanded(
+                                  child: _timeBankColumn(
+                                    icon: Icons.account_balance_wallet_rounded,
+                                    iconColor: const Color(0xFF1E88E5),
+                                    iconBgColor: const Color(0xFF1E88E5)
+                                        .withOpacity(0.1),
+                                    label: 'balance'.tr(),
+                                    value: _formatHoursMinutes(balanceMinutes),
+                                    valueColor: const Color(0xFF1E88E5),
+                                    isMain: true,
+                                  ),
+                                ),
+                                Container(
+                                  height: 50,
+                                  width: 1,
+                                  color: Theme.of(context)
+                                      .dividerColor
+                                      .withOpacity(0.2),
+                                ),
+                                Expanded(
+                                  child: _timeBankColumn(
+                                    icon: Icons.arrow_downward_rounded,
+                                    iconColor: Colors.red,
+                                    iconBgColor: Colors.red.withOpacity(0.1),
+                                    label: 'spent'.tr(),
+                                    value: _formatHoursMinutes(timeSpent),
+                                    valueColor: Colors.red,
+                                  ),
                                 ),
                               ],
                             )),
@@ -858,27 +881,45 @@ class _ProfilePageState extends State<ProfilePage> {
     return '${hours}h ${minutes}m';
   }
 
-  Widget _timeBankMetric({
+  Widget _timeBankColumn({
     required IconData icon,
     required Color iconColor,
+    required Color iconBgColor,
     required String label,
     required String value,
     required Color valueColor,
-    TextStyle? labelStyle,
+    bool isMain = false,
   }) {
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: iconColor, size: 16),
-        const SizedBox(width: 4),
-        Text(label, style: labelStyle),
-        const SizedBox(width: 4),
+        Container(
+          padding: EdgeInsets.all(isMain ? 10 : 8),
+          decoration: BoxDecoration(
+            color: iconBgColor,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: isMain ? 28 : 22),
+        ),
+        const SizedBox(height: 10),
         Text(
           value,
           style: TextStyle(
             fontWeight: FontWeight.bold,
+            fontSize: isMain ? 18 : 16,
             color: valueColor,
           ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isMain ? 14 : 12,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.grey[600],
+          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );

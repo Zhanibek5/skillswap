@@ -130,7 +130,7 @@ class _UserCardState extends State<UserCard> {
         'lastMessage': '',
         'lastTimestamp': FieldValue.serverTimestamp(),
         'lastSkill': selectedSkills.join(', '),
-      });
+      }, SetOptions(merge: true));
     }
 
     Navigator.push(
@@ -156,7 +156,9 @@ class _UserCardState extends State<UserCard> {
     final firstName = data['firstName'] ?? '';
     final age = data['age'] ?? '';
     final photoUrl = data['photoUrl'] ?? '';
-    final rating = (data['ratingAverage'] ?? 0).toDouble();
+    final avg = widget.mode == 'learn'
+        ? (data['teacherRating'] ?? 0).toDouble()
+        : (data['learnerRating'] ?? 0).toDouble();
 
     final skillsTeach = data['skillsTeach']?.toString() ?? '';
     final List<String> skillsT = skillsTeach
@@ -312,7 +314,7 @@ class _UserCardState extends State<UserCard> {
                           children: [
                             const Icon(Icons.star, color: Colors.amber),
                             Text(
-                              " ${rating.toStringAsFixed(1)}",
+                              " ${avg.toStringAsFixed(1)}",
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),
@@ -323,7 +325,7 @@ class _UserCardState extends State<UserCard> {
                           children: [
                             const Icon(Icons.star, color: Colors.amber),
                             Text(
-                              " ${rating.toStringAsFixed(1)}",
+                              " ${avg.toStringAsFixed(1)}",
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),
