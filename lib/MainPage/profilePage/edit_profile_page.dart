@@ -126,7 +126,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       'languages': _languages,
       'skillsTeach': _teachCtrl.text.trim(),
       'skillsLearn': _learnCtrl.text.trim(),
-      'profileCompleted': completed, // 🔥 МАҢЫЗДЫ
+      'profileCompleted': completed,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
@@ -506,9 +506,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         code.tr(), // тек UI үшін аудару
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isSelected 
-                              ? Colors.white 
-                              : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+                          color: isSelected
+                              ? Colors.white
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white70
+                                  : Colors.black87),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -544,7 +546,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             value,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+              color: isSelected
+                  ? Colors.white
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.black87),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -618,7 +624,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         lang,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+                          color: isSelected
+                              ? Colors.white
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white70
+                                  : Colors.black87),
                         ),
                       ),
                       if (isSelected) ...[

@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:skillswap/MainPage/Settings/privacy_policy_page.dart';
 import 'package:flutter/gestures.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -21,6 +22,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final formKey = GlobalKey<FormState>();
   String errorMessage = '';
   bool _obscurePassword = true;
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
 
   @override
   void dispose() {
@@ -31,9 +34,40 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void register() async {
     try {
-      await authService.value.createAccount(
+      final credential = await authService.value.createAccount(
         email: controllerEmail.text,
         password: controllerPassword.text,
+      );
+
+      final user = credential.user;
+
+      if (user == null) {
+        throw Exception("User is null");
+      }
+
+      // ✅ Send email verification
+      await user.sendEmailVerification();
+
+      // ✅ Save to Firestore
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'emailVerified': false,
+        'createdAt': FieldValue.serverTimestamp(),
+        'canTeach': true,
+        'canLearn': true,
+        'timeEarned': 0,
+        'timeSpent': 0,
+        'balance': 120,
+        'teacherRating': 0,
+        'teacherReviewCount': 0,
+        'learnerRating': 0,
+        'learnerReviewCount': 0,
+        'notificationsEnabled': true,
+      }, SetOptions(merge: true));
+
+      // ✅ UX feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Verification email sent")),
       );
 
       Navigator.pushReplacement(
@@ -216,70 +250,135 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: Text(
-            'register'.tr(),
-            style: GoogleFonts.roboto(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            title: Text(
+              'register'.tr(),
+              style: GoogleFonts.roboto(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            iconTheme: IconThemeData(
               color: Colors.white,
             ),
           ),
-          centerTitle: true,
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          iconTheme: IconThemeData(
-            color: Colors.white,
-          ),
-        ),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            Backgroundcolor(),
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 20),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              Backgroundcolor(),
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 20),
 
-                    // Title
-                    Center(
-                      child: SizedBox(
-                        width: 400,
-                        height: 400,
-                        child: Image(
-                          image: AssetImage('assets/logoWithName.png'),
-                          fit: BoxFit.cover,
+                      // Title
+                      Center(
+                        child: SizedBox(
+                          width: 400,
+                          height: 400,
+                          child: Image(
+                            image: AssetImage('assets/logoWithName.png'),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 10),
+                      SizedBox(height: 10),
 
-                    Text(
-                      'sign_up_with_email'.tr(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF203068),
+                      Text(
+                        'sign_up_with_email'.tr(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF203068),
+                        ),
                       ),
-                    ),
 
-                    SizedBox(height: 30),
+                      SizedBox(height: 30),
 
-                    // EMAIL FIELD
-                    TextFormField(
-                      controller: controllerEmail,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                          labelText: 'email'.tr(),
-                          prefixIcon: Icon(
-                            Icons.email_outlined,
+                      // EMAIL FIELD
+                      TextFormField(
+                        focusNode: _emailFocus,
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) =>
+                            FocusScope.of(context).requestFocus(_passwordFocus),
+                        controller: controllerEmail,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                            labelText: 'email'.tr(),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: Color(0xFF203068),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Color(0xFF203068),
+                                width: 1.2,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Color(0xFF203068),
+                                width: 1.2,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            labelStyle: TextStyle(
+                              color: Color(0xFF203068),
+                            )),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'please_enter_email'.tr();
+                          }
+                          if (!value.contains('@')) {
+                            return 'email_not_valid'.tr();
+                          }
+                          return null;
+                        },
+                      ),
+
+                      SizedBox(height: 20),
+
+                      // PASSWORD FIELD
+                      TextFormField(
+                        focusNode: _passwordFocus,
+                        textInputAction:
+                            TextInputAction.done, // Пернетақтада "Done" шығады
+                        onFieldSubmitted: (_) => (),
+                        controller: controllerPassword,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'password'.tr(),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
                             color: Color(0xFF203068),
+                          ),
+                          suffixIcon: IconButton(
+                            color: Color(0xFF203068),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword =
+                                    !_obscurePassword; // көрінетін/жасырын режимді ауыстыру
+                              });
+                            },
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderSide: BorderSide(
@@ -297,152 +396,99 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           labelStyle: TextStyle(
                             color: Color(0xFF203068),
-                          )),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'please_enter_email'.tr();
-                        }
-                        if (!value.contains('@')) {
-                          return 'email_not_valid'.tr();
-                        }
-                        return null;
-                      },
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // PASSWORD FIELD
-                    TextFormField(
-                      controller: controllerPassword,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'password'.tr(),
-                        prefixIcon: const Icon(
-                          Icons.lock_outline,
-                          color: Color(0xFF203068),
-                        ),
-                        suffixIcon: IconButton(
-                          color: Color(0xFF203068),
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword =
-                                  !_obscurePassword; // көрінетін/жасырын режимді ауыстыру
-                            });
-                          },
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Color(0xFF203068),
-                            width: 1.2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Color(0xFF203068),
-                            width: 1.2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        labelStyle: TextStyle(
-                          color: Color(0xFF203068),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'please_enter_password'.tr();
-                        }
-                        if (value.length < 6) {
-                          return 'password_min_6'.tr();
-                        }
-                        return null;
-                      },
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // ERROR MESSAGE
-                    if (errorMessage.isNotEmpty)
-                      Text(
-                        errorMessage,
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 14,
-                        ),
-                      ),
-
-                    SizedBox(height: 25),
-
-                    // BUTTON
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (formKey.currentState!.validate()) {
-                            _showClickWrapDialog();
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'please_enter_password'.tr();
                           }
+                          if (value.length < 6) {
+                            return 'password_min_6'.tr();
+                          }
+                          return null;
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF1E88E5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'register'.tr(),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
                       ),
-                    ),
 
-                    SizedBox(height: 25),
+                      SizedBox(height: 20),
 
-                    // Already have account?
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                      // ERROR MESSAGE
+                      if (errorMessage.isNotEmpty)
                         Text(
-                          'already_have_account'.tr(),
+                          errorMessage,
                           style: TextStyle(
-                            color: Color(0xFF203068),
+                            color: Colors.red,
+                            fontSize: 14,
                           ),
                         ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
+
+                      SizedBox(height: 25),
+
+                      // BUTTON
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (formKey.currentState!.validate()) {
+                              _showClickWrapDialog();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF1E88E5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                           child: Text(
-                            'login'.tr(),
+                            'register'.tr(),
                             style: TextStyle(
-                              color: Color(0xFF1E88E5),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 35),
-                    Center(
-                      child: Text(
-                        "SkillSwap",
-                        style: TextStyle(
-                          color: Colors.grey,
+                      ),
+
+                      SizedBox(height: 25),
+
+                      // Already have account?
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'already_have_account'.tr(),
+                            style: TextStyle(
+                              color: Color(0xFF203068),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'login'.tr(),
+                              style: TextStyle(
+                                color: Color(0xFF1E88E5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 35),
+                      Center(
+                        child: Text(
+                          "SkillSwap",
+                          style: TextStyle(
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: 10),
-                  ],
+                      SizedBox(height: 10),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ));
+            ],
+          )),
+    );
   }
 }

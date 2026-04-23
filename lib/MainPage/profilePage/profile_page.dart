@@ -21,7 +21,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _initUserStatus();
   }
 
   String formatTime(timestamp) {
@@ -94,41 +93,6 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
-  }
-
-  void _initUserStatus() async {
-    final doc = FirebaseFirestore.instance.collection('users').doc(uid);
-    final snapshot = await doc.get();
-
-    if (!snapshot.exists) {
-      await doc.set({
-        'canTeach': true,
-        'canLearn': true,
-        'timeEarned': 0,
-        'timeSpent': 0,
-        'balance': 120, // in minutes
-        'teacherRating': 0,
-        'teacherReviewCount': 0,
-        'learnerRating': 0,
-        'learnerReviewCount': 0,
-        'notificationsEnabled': true, // ✅ default ON
-      });
-    } else {
-      final data = snapshot.data()!;
-
-      if (!data.containsKey('canTeach') || !data.containsKey('canLearn')) {
-        await doc.update({
-          'canTeach': true,
-          'canLearn': true,
-        });
-      }
-
-      if (!data.containsKey('notificationsEnabled')) {
-        await doc.update({
-          'notificationsEnabled': true,
-        });
-      }
-    }
   }
 
   @override

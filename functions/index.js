@@ -4,6 +4,24 @@ const admin = require('firebase-admin')
 
 admin.initializeApp()
 
+exports.deleteUnverifiedUsers = onSchedule('every 24 hours', async () => {
+	const result = await admin.auth().listUsers()
+	const now = new Date()
+
+	for (const user of result.users) {
+		if (!user.emailVerified) {
+			const createdAt = new Date(user.metadata.creationTime)
+
+			if (now - createdAt > 24 * 60 * 60 * 1000) {
+				await admin.auth().deleteUser(user.uid)
+				await admin.firestore().collection('users').doc(user.uid).delete()
+
+				console.log('Deleted:', user.uid)
+			}
+		}
+	}
+})
+
 // 🔹 1. КЕЗДЕСУ ЖАСАЛҒАНДА (Тек кездесу хабарламасын өңдейді)
 exports.onMeetingCreated = onDocumentCreated(
 	'chats/{chatId}/messages/{messageId}',

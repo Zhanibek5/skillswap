@@ -5,6 +5,7 @@ import 'package:skillswap/MainPage/skillMain.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class VerifyEmailPage extends StatefulWidget {
   const VerifyEmailPage({super.key});
@@ -40,7 +41,13 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     if (user!.emailVerified) {
       timer?.cancel();
 
-      setState(() => isEmailVerified = true);
+      // ✅ Firestore update
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'emailVerified': true,
+      });
 
       Navigator.pushReplacement(
         context,

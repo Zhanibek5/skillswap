@@ -150,7 +150,6 @@ class MyApp extends StatelessWidget {
         'loginPage/delete_account_page.dart': (_) => const DeleteAccountPage(),
         'MainPage/skillMain.dart': (_) => SkillMainPage(),
         'loginPage/verify_email.dart': (_) => const VerifyEmailPage(),
-        'secondPage/loading.dart': (_) => const Screen()
       },
 
       // initialRoute: 'MainPage/skillMain.dart',

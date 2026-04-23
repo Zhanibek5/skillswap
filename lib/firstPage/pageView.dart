@@ -70,17 +70,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _showLanguageDialog() async {
-    showDialog(
+  void _showLanguageDialog() {
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('select_language'.tr()),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content: Column(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                'select_language'.tr(),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
               _languageOption(Locale('en')),
               _languageOption(Locale('kk')),
               _languageOption(Locale('ru')),
@@ -95,24 +101,59 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     String label;
     if (locale.languageCode == 'en') {
       label = 'english'.tr();
-    } else if (locale.languageCode == 'kk')
+    } else if (locale.languageCode == 'kk') {
       label = 'kazakh'.tr();
-    else
+    } else {
       label = 'russian'.tr();
+    }
 
-    return ListTile(
-      title: Text(label),
+    bool isSelected = context.locale.languageCode == locale.languageCode;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
       onTap: () async {
         await context.setLocale(locale);
-        // Persist selection
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('selected_language', locale.languageCode);
+
         if (!mounted) return;
-        Navigator.of(context).pop();
+        Navigator.pop(context);
+
         setState(() {
           _selectedLanguage = label;
         });
       },
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.language,
+              color: isSelected ? Colors.blue : Colors.grey,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isSelected) Icon(Icons.check_circle, color: Colors.blue),
+          ],
+        ),
+      ),
     );
   }
 

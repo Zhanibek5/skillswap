@@ -20,6 +20,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final TextEditingController controllerEmail = TextEditingController();
   final formKey = GlobalKey<FormState>();
   String errorMessage = '';
+  final FocusNode _emailFocus = FocusNode();
 
   @override
   void initState() {
@@ -71,153 +72,162 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: Text(
-            textAlign: TextAlign.center,
-            'reset_password'.tr(),
-            style: GoogleFonts.roboto(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          centerTitle: true,
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          iconTheme: IconThemeData(color: Colors.white),
-        ),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            Backgroundcolor(),
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 20),
-                    Center(
-                      child: SizedBox(
-                        width: 400,
-                        height: 400,
-                        child: Image(
-                          image: AssetImage('assets/logoWithName.png'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'enter_email_for_reset'.tr(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDarkMode
-                            ? Colors.white70
-                            : const Color(0xFF203068),
-                      ),
-                    ),
-                    SizedBox(height: 30),
-                    TextFormField(
-                      controller: controllerEmail,
-                      keyboardType: TextInputType.emailAddress,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                      cursorColor: _accentColor,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor:
-                            isDarkMode ? _darkCardColor : Colors.white.withOpacity(0.95),
-                        labelText: 'email'.tr(),
-                        prefixIcon: Icon(
-                          Icons.email_outlined,
-                          color: isDarkMode
-                              ? Colors.white70
-                              : const Color(0xFF203068),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? _darkCardBorderColor.withOpacity(0.55)
-                                : const Color(0xFF203068),
-                            width: 1.2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: _accentColor,
-                            width: 1.4,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        labelStyle: TextStyle(
-                          color: isDarkMode
-                              ? Colors.white70
-                              : const Color(0xFF203068),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'please_enter_email'.tr();
-                        }
-                        if (!value.contains("@") || !value.contains(".")) {
-                          return 'email_not_valid'.tr();
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 20),
-                    if (errorMessage.isNotEmpty)
-                      Text(
-                        errorMessage,
-                        style: const TextStyle(color: Colors.red, fontSize: 14),
-                      ),
-                    SizedBox(height: 30),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (formKey.currentState!.validate()) {
-                            resetPassword();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _accentColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          textAlign: TextAlign.center,
-                          'send_reset_link'.tr(),
-                          style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 150),
-                    Center(
-                      child: Text(
-                        "SkillSwap",
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 30),
-                  ],
-                ),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            title: Text(
+              textAlign: TextAlign.center,
+              'reset_password'.tr(),
+              style: GoogleFonts.roboto(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
-          ],
-        ));
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            iconTheme: IconThemeData(color: Colors.white),
+          ),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              Backgroundcolor(),
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 20),
+                      Center(
+                        child: SizedBox(
+                          width: 400,
+                          height: 400,
+                          child: Image(
+                            image: AssetImage('assets/logoWithName.png'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'enter_email_for_reset'.tr(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF203068),
+                        ),
+                      ),
+                      SizedBox(height: 30),
+                      TextFormField(
+                        focusNode: _emailFocus,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => (),
+                        controller: controllerEmail,
+                        keyboardType: TextInputType.emailAddress,
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        cursorColor: _accentColor,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: isDarkMode
+                              ? _darkCardColor
+                              : Colors.white.withOpacity(0.95),
+                          labelText: 'email'.tr(),
+                          prefixIcon: Icon(
+                            Icons.email_outlined,
+                            color: isDarkMode
+                                ? Colors.white70
+                                : const Color(0xFF203068),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDarkMode
+                                  ? _darkCardBorderColor.withOpacity(0.55)
+                                  : const Color(0xFF203068),
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: _accentColor,
+                              width: 1.4,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          labelStyle: TextStyle(
+                            color: isDarkMode
+                                ? Colors.white70
+                                : const Color(0xFF203068),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'please_enter_email'.tr();
+                          }
+                          if (!value.contains("@") || !value.contains(".")) {
+                            return 'email_not_valid'.tr();
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 20),
+                      if (errorMessage.isNotEmpty)
+                        Text(
+                          errorMessage,
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 14),
+                        ),
+                      SizedBox(height: 30),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (formKey.currentState!.validate()) {
+                              resetPassword();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accentColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            textAlign: TextAlign.center,
+                            'send_reset_link'.tr(),
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 150),
+                      Center(
+                        child: Text(
+                          "SkillSwap",
+                          style: TextStyle(
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          )),
+    );
   }
 }
