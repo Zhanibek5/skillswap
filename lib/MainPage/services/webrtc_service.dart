@@ -8,7 +8,15 @@ class WebRTCService {
   Future<MediaStream> initLocalStream() async {
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': true,
-      'video': {'facingMode': 'user'}
+      'video': {
+        'facingMode': 'user',
+        'mandatory': {
+          'minWidth': '480',
+          'minHeight': '640',
+          'minFrameRate': '30',
+        },
+        'optional': [],
+      }
     });
     return _localStream!;
   }

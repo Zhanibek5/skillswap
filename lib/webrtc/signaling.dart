@@ -8,6 +8,31 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 typedef StreamStateCallback = void Function(MediaStream stream);
 
 class Signaling {
+  Future<Map<String, dynamic>> getTwilioIceServers() async {
+    try {
+      final accountSid = 'ACca9d1693ae210a9509514151879f6b1a';
+      final authToken = '869d1feae5b8c5f3a11ad6ded38d0503';
+      final auth = base64Encode(utf8.encode('\$accountSid:\$authToken'));
+
+      final httpClient = HttpClient();
+      final request = await httpClient.postUrl(Uri.parse('https://api.twilio.com/2010-04-01/Accounts/\$accountSid/Tokens.json'));
+      request.headers.add('Authorization', 'Basic \$auth');
+      
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+      final data = jsonDecode(responseBody);
+      
+      if (data != null && data['ice_servers'] != null) {
+        return {
+          'iceServers': data['ice_servers'],
+        };
+      }
+    } catch (e) {
+      print('Twilio API Error: \$e');
+    }
+    return configuration; // Возврат на запасные серверы в случае ошибки
+  }
+
   Map<String, dynamic> configuration = {
     'iceServers': [
       // Надежный список бесплатных STUN-серверов от крупнейших компаний (Google, Mozilla, Twilio и др.)
@@ -273,7 +298,8 @@ class Signaling {
 
         print(
             'Create PeerConnection for join with configuration: $configuration');
-        peerConnection = await createPeerConnection(configuration);
+        var config = await getTwilioIceServers();
+        peerConnection = await createPeerConnection(config);
         registerPeerConnectionListeners();
 
         await _attachLocalStream();
@@ -341,7 +367,15 @@ class Signaling {
     RTCVideoRenderer remoteVideo,
   ) async {
     var stream = await navigator.mediaDevices.getUserMedia({
-      'video': {'facingMode': 'user'},
+      'video': {
+        'facingMode': 'user',
+        'mandatory': {
+          'minWidth': '480',
+          'minHeight': '640',
+          'minFrameRate': '30',
+        },
+        'optional': [],
+      },
       'audio': true
     });
 
