@@ -920,60 +920,61 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                       focusNode.requestFocus();
                     },
                   ),
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Удалить',
-                      style: TextStyle(color: Colors.red)),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    // 1. Delete the message
-                    await FirebaseFirestore.instance
-                        .collection('chats')
-                        .doc(widget.chatId)
-                        .collection('messages')
-                        .doc(messageId)
-                        .delete();
-
-                    // 2. Fetch the latest message remaining to update the chat room's lastMessage
-                    final lastMessageQuery = await FirebaseFirestore.instance
-                        .collection('chats')
-                        .doc(widget.chatId)
-                        .collection('messages')
-                        .orderBy('timestamp', descending: true)
-                        .limit(1)
-                        .get();
-
-                    String newLastMessage = '';
-                    String newLastType = 'text';
-
-                    if (lastMessageQuery.docs.isNotEmpty) {
-                      final data = lastMessageQuery.docs.first.data();
-                      newLastMessage =
-                          data.containsKey('text') ? data['text'] : '';
-                      newLastType =
-                          data.containsKey('type') ? data['type'] : 'text';
-
+                if (isMe)
+                  ListTile(
+                    leading: const Icon(Icons.delete, color: Colors.red),
+                    title: const Text('Удалить',
+                        style: TextStyle(color: Colors.red)),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      // 1. Delete the message
                       await FirebaseFirestore.instance
                           .collection('chats')
                           .doc(widget.chatId)
-                          .update({
-                        'lastMessage': newLastMessage,
-                        'lastType': newLastType,
-                        if (data['timestamp'] != null)
-                          'lastTimestamp': data['timestamp'],
-                      });
-                    } else {
-                      // Chat is empty now
-                      await FirebaseFirestore.instance
+                          .collection('messages')
+                          .doc(messageId)
+                          .delete();
+
+                      // 2. Fetch the latest message remaining to update the chat room's lastMessage
+                      final lastMessageQuery = await FirebaseFirestore.instance
                           .collection('chats')
                           .doc(widget.chatId)
-                          .update({
-                        'lastMessage': '',
-                        'lastType': 'text',
-                      });
-                    }
-                  },
-                ),
+                          .collection('messages')
+                          .orderBy('timestamp', descending: true)
+                          .limit(1)
+                          .get();
+
+                      String newLastMessage = '';
+                      String newLastType = 'text';
+
+                      if (lastMessageQuery.docs.isNotEmpty) {
+                        final data = lastMessageQuery.docs.first.data();
+                        newLastMessage =
+                            data.containsKey('text') ? data['text'] : '';
+                        newLastType =
+                            data.containsKey('type') ? data['type'] : 'text';
+
+                        await FirebaseFirestore.instance
+                            .collection('chats')
+                            .doc(widget.chatId)
+                            .update({
+                          'lastMessage': newLastMessage,
+                          'lastType': newLastType,
+                          if (data['timestamp'] != null)
+                            'lastTimestamp': data['timestamp'],
+                        });
+                      } else {
+                        // Chat is empty now
+                        await FirebaseFirestore.instance
+                            .collection('chats')
+                            .doc(widget.chatId)
+                            .update({
+                          'lastMessage': '',
+                          'lastType': 'text',
+                        });
+                      }
+                    },
+                  ),
               ],
             ),
           );
@@ -1353,23 +1354,48 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                         if (widget.mode != 'support' &&
                             widget.mode != 'support_admin' &&
                             widget.mode != 'admin_view') ...[
-                          IconButton(
-                            icon: const Icon(Icons.warning_amber_rounded,
-                                color: Colors.red),
-                            onPressed: () {
-                              ReportDialog.show(context, otherUserId, 'chat',
-                                  targetId: widget.chatId);
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.calendar_month,
+                          PopupMenuButton<String>(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[900]
+                                    : Colors.white,
+                            icon: Icon(Icons.more_vert,
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
                                     ? Colors.white
                                     : Colors.black),
-                            onPressed: () {
-                              _openMeetingScheduler();
+                            onSelected: (value) {
+                              if (value == 'report') {
+                                ReportDialog.show(context, otherUserId, 'chat',
+                                    targetId: widget.chatId);
+                              } else if (value == 'schedule') {
+                                _openMeetingScheduler();
+                              }
                             },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'schedule',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_month),
+                                    SizedBox(width: 8),
+                                    Text('Create schedule'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'report',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded,
+                                        color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Report user',
+                                        style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           // PopupMenuButton<String>(
                           //   icon: Icon(Icons.more_vert,

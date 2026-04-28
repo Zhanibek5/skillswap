@@ -28,27 +28,40 @@ exports.onMeetingCreated = onDocumentCreated(
 	async event => {
 		const data = event.data.data()
 		if (!data || data.type !== 'system_meeting_created') return
+
 		const chatId = event.params.chatId
 		const senderId = data.senderId
+
+		const chatDoc = await admin
+			.firestore()
+			.collection('chats')
+			.doc(chatId)
+			.get()
+		const chatData = chatDoc.data()
+
+		const participants = chatData.participants || []
+		const recipientId = participants.find(id => id !== senderId)
+
+		if (!recipientId) return
+
 		const senderDoc = await admin
 			.firestore()
 			.collection('users')
 			.doc(senderId)
 			.get()
+		const senderData = senderDoc.exists ? senderDoc.data() : null
+		const senderName = senderData?.firstName || 'Пайдаланушы'
 
-		const senderData = senderDoc.data()
-		const title = await getChatTitle(chatId, senderId)
+		const skill = chatData.lastSkill ? ` • ${chatData.lastSkill}` : ''
+		const title = `${senderName}${skill}`
 
-		await sendNotification(
-			chatId,
-			{
-				title: title,
-				body: 'Кездесу жоспарланды',
-				type: 'meeting',
-			},
-			null,
-			senderData
-		)
+		await sendToUser(recipientId, chatId, {
+			title: title,
+			body: 'Кездесу жоспарланды',
+			type: 'meeting',
+			senderData: senderData,
+			chatData: chatData,
+		})
 	}
 )
 
@@ -181,22 +194,8 @@ exports.sendMeetingNotifications = onSchedule(
 				const diffMs = meetingTime - now
 
 				const participants = chatData.participants || []
-				// 🔹 senderData алу: өз ID-сын алып тастап, қалған қатысушыны алу
-				let senderData = null
-				const otherUserId =
-					participants.find(id => id !== meetingData.senderId) ||
-					participants[0]
+				const skill = chatData.lastSkill ? ` • ${chatData.lastSkill}` : ''
 
-				if (otherUserId) {
-					const userDoc = await admin
-						.firestore()
-						.collection('users')
-						.doc(otherUserId)
-						.get()
-					senderData = userDoc.exists ? userDoc.data() : null
-				}
-
-				const title = await getChatTitle(chatId, meetingData.senderId)
 				// 🔹 10 минут қалғанда хабарлау
 				if (diffMs > 0 && diffMs <= 10 * 60 * 1000) {
 					const exists = await messagesRef
@@ -220,16 +219,20 @@ exports.sendMeetingNotifications = onSchedule(
 							'system_meeting_10min'
 						)
 
-						await sendNotification(
-							chatId,
-							{
-								title: `⏰ ${title.replace('📅 ', '')}`,
+						for (const userId of participants) {
+							const otherUserId = participants.find(id => id !== userId) || userId
+							const otherUserDoc = await admin.firestore().collection('users').doc(otherUserId).get()
+							const otherUserName = otherUserDoc.exists ? otherUserDoc.data().firstName || 'Пайдаланушы' : 'Пайдаланушы'
+							const otherUserData = otherUserDoc.exists ? otherUserDoc.data() : null
+
+							await sendToUser(userId, chatId, {
+								title: `⏰ ${otherUserName}${skill}`,
 								body: 'Кездесу басталуына аз қалды',
 								type: 'meeting',
-							},
-							null,
-							senderData
-						)
+								senderData: otherUserData,
+								chatData: chatData
+							})
+						}
 					}
 				}
 
@@ -256,16 +259,20 @@ exports.sendMeetingNotifications = onSchedule(
 							'system_meeting_started'
 						)
 
-						await sendNotification(
-							chatId,
-							{
-								title: `🔔 ${title.replace('📅 ', '')}`,
+						for (const userId of participants) {
+							const otherUserId = participants.find(id => id !== userId) || userId
+							const otherUserDoc = await admin.firestore().collection('users').doc(otherUserId).get()
+							const otherUserName = otherUserDoc.exists ? otherUserDoc.data().firstName || 'Пайдаланушы' : 'Пайдаланушы'
+							const otherUserData = otherUserDoc.exists ? otherUserDoc.data() : null
+
+							await sendToUser(userId, chatId, {
+								title: `🔔 ${otherUserName}${skill}`,
 								body: 'Кездесу уақыты келді!',
 								type: 'meeting',
-							},
-							null,
-							senderData
-						)
+								senderData: otherUserData,
+								chatData: chatData
+							})
+						}
 					}
 				}
 			}
@@ -286,6 +293,10 @@ async function sendToUser(userId, chatId, payload) {
 	try {
 		await admin.messaging().send({
 			token: token,
+			notification: {
+				title: payload.title,
+				body: payload.body,
+			},
 			data: {
 				title: payload.title,
 				body: payload.body,
@@ -383,6 +394,10 @@ async function sendNotification(
 				try {
 					await admin.messaging().send({
 						token: token,
+						notification: {
+							title: notification.title,
+							body: notification.body,
+						},
 						data: {
 							title: notification.title,
 							body: notification.body,
