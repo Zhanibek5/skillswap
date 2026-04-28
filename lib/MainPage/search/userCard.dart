@@ -165,6 +165,7 @@ class _UserCardState extends State<UserCard> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
+        duration: Duration(seconds: 3),
       ),
     );
   }
@@ -435,12 +436,11 @@ class _UserCardState extends State<UserCard> {
                             final currentUserData = currentUserDoc.data();
 
                             if (currentUserData?['profileCompleted'] != true) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      "Profile is not complete. Please complete it first."),
-                                ),
-                              );
+                              showSnackBar(
+                                  context,
+                                  "Profile is not complete. Please complete it first.",
+                                  Icons.warning_amber_rounded,
+                                  Colors.blueGrey);
                               return;
                             }
 
@@ -472,11 +472,13 @@ class _UserCardState extends State<UserCard> {
                               }
                             }
 
-                            // ✅ БӘРІ ДҰРЫС БОЛСА CHAT БАСТАЙМЫЗ
+                            final filteredSkills = selectedSkills
+                                .where((skill) => skillsToShow.contains(skill))
+                                .toList();
                             startChat(
                               currentUserId: currentUserId,
                               otherUserId: widget.userId,
-                              selectedSkills: selectedSkills.toList(),
+                              selectedSkills: filteredSkills,
                               mode: widget.mode,
                               context: context,
                             );

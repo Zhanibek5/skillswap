@@ -589,11 +589,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     await FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.chatId)
-        .update({
+        .set({
+      'participants': [currentUserId, widget.otherUserId], // 🔥 қос!
       'lastMessage': text,
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': 'text',
-    });
+    }, SetOptions(merge: true));
 
     setState(() {
       replyToMessage = null;
@@ -2344,27 +2345,27 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                           ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
+                              horizontal: 12, vertical: 15),
                           color: Colors.transparent,
                           child: Row(
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                    isEmojiVisible
-                                        ? Icons.keyboard
-                                        : Icons.emoji_emotions_outlined,
-                                    color: Colors.grey),
-                                onPressed: () {
-                                  setState(() {
-                                    isEmojiVisible = !isEmojiVisible;
-                                  });
-                                  if (isEmojiVisible) {
-                                    focusNode.unfocus();
-                                  } else {
-                                    focusNode.requestFocus();
-                                  }
-                                },
-                              ),
+                              // IconButton(
+                              //   icon: Icon(
+                              //       isEmojiVisible
+                              //           ? Icons.keyboard
+                              //           : Icons.emoji_emotions_outlined,
+                              //       color: Colors.grey),
+                              //   onPressed: () {
+                              //     setState(() {
+                              //       isEmojiVisible = !isEmojiVisible;
+                              //     });
+                              //     if (isEmojiVisible) {
+                              //       focusNode.unfocus();
+                              //     } else {
+                              //       focusNode.requestFocus();
+                              //     }
+                              //   },
+                              // ),
                               Expanded(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -2417,6 +2418,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                           ),
                                           child: Row(
                                             children: [
+                                              SizedBox(
+                                                width: 10,
+                                              ),
                                               Expanded(
                                                 child: Scrollbar(
                                                   child: TextField(

@@ -21,6 +21,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
   static const Color _darkCardColor = Color(0xFF0F1F3B);
   static const Color _darkCardBorderColor = Color(0xFF2B4C85);
   static const Color _darkInputColor = Color(0xFF122A66);
+  static const Color _darkTextColor = Colors.white;
 
   String formatTime(Timestamp? timestamp) {
     if (timestamp == null) return '';
@@ -296,7 +297,9 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                                           ? FontWeight.bold
                                                           : FontWeight.normal,
                                                       color: unread > 0
-                                                          ? Colors.black
+                                                          ? (isDark
+                                                              ? Colors.white
+                                                              : Colors.black)
                                                           : Colors.grey,
                                                     ),
                                                   ),

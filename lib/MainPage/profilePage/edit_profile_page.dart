@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:skillswap/MainPage/search/userCard.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -131,7 +132,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }, SetOptions(merge: true));
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('profile_saved'.tr())),
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'profile_saved'.tr(),
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Color(0xFF1E88E5), // сенің app color
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: Duration(seconds: 3),
+      ),
     );
   }
 
@@ -386,7 +407,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 50),
                 Center(
                   child: Text(
                     "SkillSwap",

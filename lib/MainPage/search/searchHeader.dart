@@ -78,8 +78,8 @@ class _SearchHeaderState extends State<SearchHeader> {
                     children: [
                       // Moving indicator
                       AnimatedAlign(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.fastOutSlowIn,
                         alignment: selectedIndex == 0
                             ? Alignment.centerLeft
                             : Alignment.centerRight,
@@ -88,7 +88,7 @@ class _SearchHeaderState extends State<SearchHeader> {
                           child: Container(
                             margin: const EdgeInsets.all(2),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: const Color(0xFF1E88E5),
                               borderRadius: BorderRadius.circular(18),
                               boxShadow: [
                                 BoxShadow(
@@ -138,15 +138,15 @@ class _SearchHeaderState extends State<SearchHeader> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           alignment: Alignment.center,
           child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.fastOutSlowIn,
             style: TextStyle(
-              color: Colors.white,
+              color: isSelected ? Colors.white : Colors.white70,
               fontWeight: FontWeight.w600,
             ),
             child: Text(text),
