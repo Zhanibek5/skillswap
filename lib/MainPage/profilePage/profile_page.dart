@@ -114,7 +114,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
               final bool canTeach = data['canTeach'] ?? false;
               final bool canLearn = data['canLearn'] ?? false;
-              final rating = (data['ratingAverage'] ?? 0).toDouble();
+              final rating = (data['teacherRating'] ?? 0).toDouble();
               final int balanceMinutes = (data['balance'] ?? 120);
               final int timeEarned = (data['timeEarned'] ?? 0);
               final int timeSpent = (data['timeSpent'] ?? 0);

@@ -94,6 +94,27 @@ void main() async {
   if (Platform.isAndroid) {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    final data = message.data;
+
+    final title = data['title'] ?? 'New Message';
+    final body = data['body'] ?? '';
+
+    flutterLocalNotificationsPlugin.show(
+      id: (data['chatId'] ?? '').hashCode,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'skillswap_channel',
+          'SkillSwap Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+      payload: data['chatId'],
+    );
+  });
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('en'), Locale('kk'), Locale('ru')],
@@ -176,6 +197,7 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
 
     _checkFirstLaunch();
+
     setupNotifications();
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null && message.data['chatId'] != null) {

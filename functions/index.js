@@ -286,10 +286,6 @@ async function sendToUser(userId, chatId, payload) {
 	try {
 		await admin.messaging().send({
 			token: token,
-			notification: {
-				title: payload.title,
-				body: payload.body,
-			},
 			data: {
 				title: payload.title,
 				body: payload.body,
@@ -300,13 +296,6 @@ async function sendToUser(userId, chatId, payload) {
 					payload.chatData.participants.find(id => id !== userId) || ''
 				),
 				selectedSkills: JSON.stringify(payload.chatData.selectedSkills || []),
-			},
-			android: {
-				priority: 'high',
-				notification: {
-					channelId: 'skillswap_channel',
-					tag: chatId, // Хабарламаларды бір чатқа топтастыру
-				},
 			},
 		})
 	} catch (e) {
@@ -394,10 +383,6 @@ async function sendNotification(
 				try {
 					await admin.messaging().send({
 						token: token,
-						notification: {
-							title: notification.title,
-							body: notification.body,
-						},
 						data: {
 							title: notification.title,
 							body: notification.body,
@@ -406,14 +391,6 @@ async function sendNotification(
 							chatId: chatId,
 							otherUserId: String(participants.find(id => id !== userId) || ''),
 							selectedSkills: String(chatData.lastSkill || ''),
-						},
-						android: {
-							priority: 'high',
-							notification: {
-								channelId: 'skillswap_channel',
-								sound: 'default',
-								tag: chatId, // 🔥 Бұл бір чаттың хабарламаларын біріктіреді
-							},
 						},
 					})
 				} catch (e) {

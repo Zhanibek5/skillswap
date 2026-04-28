@@ -67,7 +67,27 @@ class _RegisterPageState extends State<RegisterPage> {
 
       // ✅ UX feedback
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Verification email sent")),
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.mark_email_read, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Verification email sent. Check your inbox or spam.",
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Color(0xFF1E88E5), // сенің app color
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: Duration(seconds: 3),
+        ),
       );
 
       Navigator.pushReplacement(
@@ -104,6 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

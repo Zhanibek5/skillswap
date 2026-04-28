@@ -148,6 +148,27 @@ class _UserCardState extends State<UserCard> {
     });
   }
 
+  void showSnackBar(
+      BuildContext context, String message, IconData icon, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            SizedBox(width: 10),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.userData;
@@ -423,7 +444,6 @@ class _UserCardState extends State<UserCard> {
                               return;
                             }
 
-                            // 🔥 OTHER USER ACTIVITY CHECK
                             final otherUserDoc = await FirebaseFirestore
                                 .instance
                                 .collection('users')
@@ -434,22 +454,20 @@ class _UserCardState extends State<UserCard> {
 
                             if (widget.mode == 'learn') {
                               if (otherUserData?['canTeach'] != true) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        "This user is not teaching currently."),
-                                  ),
-                                );
+                                showSnackBar(
+                                    context,
+                                    "This user is not teaching currently.",
+                                    Icons.info_outline,
+                                    Colors.blueGrey);
                                 return;
                               }
                             } else {
                               if (otherUserData?['canLearn'] != true) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        "This user is not learning currently."),
-                                  ),
-                                );
+                                showSnackBar(
+                                    context,
+                                    "This user is not learning currently.",
+                                    Icons.info_outline,
+                                    Colors.blueGrey);
                                 return;
                               }
                             }

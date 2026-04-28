@@ -91,6 +91,7 @@ class _ReportDialogContentState extends State<_ReportDialogContent> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: Colors.white,
       title: const Text('Report User'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -122,7 +123,12 @@ class _ReportDialogContentState extends State<_ReportDialogContent> {
                   height: 16,
                   child: CircularProgressIndicator(
                       color: Colors.white, strokeWidth: 2))
-              : const Text('Submit Report'),
+              : const Text(
+                  'Submit Report',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ],
     );

@@ -33,7 +33,35 @@ class _LoginPageState extends State<LoginPage> {
   void signIn() async {
     try {
       await authService.value.signIn(
-          email: controllerEmail.text, password: controllerPassword.text);
+        email: controllerEmail.text,
+        password: controllerPassword.text,
+      );
+
+      User? user = FirebaseAuth.instance.currentUser;
+
+      await user?.reload();
+      user = FirebaseAuth.instance.currentUser;
+
+      if (user != null && !user.emailVerified) {
+        await FirebaseAuth.instance.signOut();
+
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            backgroundColor: Colors.white,
+            title: Text("Email not verified"),
+            content: Text(
+                "Please verify your email by clicking the link we sent to your inbox. If you don’t see the email, please check your spam or junk folder."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
 
       Navigator.pushReplacement(
         context,
