@@ -115,7 +115,7 @@ class _ProfilePageState extends State<ProfilePage> {
               final bool canTeach = data['canTeach'] ?? false;
               final bool canLearn = data['canLearn'] ?? false;
               final rating = (data['teacherRating'] ?? 0).toDouble();
-              final int balanceMinutes = (data['balance'] ?? 120);
+              final int balanceMinutes = (data['timeBalance'] ?? data['balance'] ?? 120);
               final int timeEarned = (data['timeEarned'] ?? 0);
               final int timeSpent = (data['timeSpent'] ?? 0);
 
@@ -281,7 +281,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           children: [
                             _statItem(context, '⭐',
                                 "${rating.toStringAsFixed(1)}", 'rating'.tr()),
-                            _statItem(context, '⏱', '2h', 'balance'.tr()),
+                            _statItem(context, '⏱', _formatHoursMinutes(balanceMinutes), 'balance'.tr()),
                             _statItem(
                                 context, '🌐', languagesText, 'language'.tr()),
                           ],

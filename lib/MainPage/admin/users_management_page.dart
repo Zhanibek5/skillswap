@@ -86,6 +86,108 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
         .update({'isBanned': !isCurrentlyBanned});
   }
 
+  void _showAddTimeDialog(String userId, String userName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        int hoursToAdd = 1;
+        final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: isDarkMode ? _darkCardColor : Colors.white,
+              title: Text(
+                'Add Time to $userName',
+                style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Select hours to add (1 - 24):',
+                    style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.remove_circle_outline, color: _accentColor),
+                        onPressed: hoursToAdd > 1
+                            ? () => setState(() => hoursToAdd--)
+                            : null,
+                      ),
+                      Text(
+                        '$hoursToAdd h',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline, color: _accentColor),
+                        onPressed: hoursToAdd < 24
+                            ? () => setState(() => hoursToAdd++)
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      // Atomically add time bounds
+                      final userRef = _firestore.collection('users').doc(userId);
+                      await _firestore.runTransaction((transaction) async {
+                        final snap = await transaction.get(userRef);
+                        if (snap.exists) {
+                          final data = snap.data()!;
+                          int tBal = data['timeBalance'] ?? data['balance'] ?? 0;
+                          
+                          transaction.update(userRef, {
+                            'timeBalance': tBal + (hoursToAdd * 60),
+                            'balance': tBal + (hoursToAdd * 60), 
+                          });
+                        }
+                      });
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Successfully added $hoursToAdd hour(s)."),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Error: $e"),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Add Time', style: TextStyle(color: _accentColor)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -186,6 +288,11 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            IconButton(
+                              icon: const Icon(Icons.more_time, color: _accentColor),
+                              tooltip: 'Add Time Balance',
+                              onPressed: () => _showAddTimeDialog(userId, "$firstName $lastName"),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.manage_accounts, color: _accentColor),
                               tooltip: 'Change Role',

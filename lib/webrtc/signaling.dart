@@ -176,7 +176,7 @@ class Signaling {
   }
 
   Future<String> createRoom(RTCVideoRenderer remoteRenderer,
-      {String? specificRoomId}) async {
+      {String? specificRoomId, String? callerId, String? receiverId, String? role}) async {
     FirebaseFirestore db = FirebaseFirestore.instance;
     DocumentReference roomRef;
 
@@ -221,7 +221,24 @@ class Signaling {
     await peerConnection!.setLocalDescription(offer);
     print('Created offer: $offer');
 
-    Map<String, dynamic> roomWithOffer = {'offer': offer.toMap()};
+    String teacherId = '';
+    String learnerId = '';
+    
+    if (role == 'teach') {
+      teacherId = callerId ?? '';
+      learnerId = receiverId ?? '';
+    } else if (role == 'learn') {
+      learnerId = callerId ?? '';
+      teacherId = receiverId ?? '';
+    }
+
+    Map<String, dynamic> roomWithOffer = {
+      'offer': offer.toMap(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'waiting',
+      'teacherId': teacherId,
+      'learnerId': learnerId,
+    };
 
     await roomRef.set(roomWithOffer);
     print('New room created with SDK offer. Room ID: $roomId');
@@ -329,7 +346,9 @@ class Signaling {
         await peerConnection!.setLocalDescription(answer);
 
         Map<String, dynamic> roomWithAnswer = {
-          'answer': {'type': answer.type, 'sdp': answer.sdp}
+          'answer': {'type': answer.type, 'sdp': answer.sdp},
+          'startedAt': FieldValue.serverTimestamp(),
+          'status': 'active',
         };
 
         await roomRef.update(roomWithAnswer);

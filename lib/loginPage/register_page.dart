@@ -57,7 +57,8 @@ class _RegisterPageState extends State<RegisterPage> {
         'canLearn': true,
         'timeEarned': 0,
         'timeSpent': 0,
-        'balance': 120,
+        'timeBalance': 60, // Новое поле для баланса минут по плану
+        'balance': 120,    // Оставим старое поле на всякий случай
         'teacherRating': 0,
         'teacherReviewCount': 0,
         'learnerRating': 0,

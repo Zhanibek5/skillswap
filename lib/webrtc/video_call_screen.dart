@@ -37,6 +37,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   int _secondsRemaining = 0;
   int _secondsSpent = 0;
   bool _callActuallyStarted = false;
+  int _maxCallDurationMinutes = 60;
 
   String _formatDuration(int seconds) {
     final h = seconds ~/ 3600;
@@ -96,7 +97,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             _callActuallyStarted = true;
 
             final startTime = DateTime.now();
-            final expectedSeconds = widget.expectedDurationMinutes * 60;
+            // 💡 Используем _maxCallDurationMinutes, который мы вычислили ранее!
+            final expectedSeconds = _maxCallDurationMinutes * 60;
             bool warned5m = false;
             bool warned1m = false;
             bool warned10s = false;
@@ -270,6 +272,66 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     try {
       await [Permission.camera, Permission.microphone].request();
 
+      String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      
+      // 💡 Проверяем баланс Learner'а
+      String learnerId = widget.role == 'learn' ? currentUserId : (widget.otherUserId ?? '');
+      int learnerBalance = 0;
+      
+      if (learnerId.isNotEmpty) {
+        DocumentSnapshot learnerDoc = await FirebaseFirestore.instance.collection('users').doc(learnerId).get();
+        if (learnerDoc.exists) {
+          var lData = learnerDoc.data() as Map<String, dynamic>;
+          learnerBalance = lData['timeBalance'] ?? lData['balance'] ?? 0;
+        }
+      }
+
+      if (learnerBalance <= 0) {
+        _showWarning("Недостаточно времени. Баланс минут: 0.");
+        Navigator.pop(context);
+        return;
+      }
+
+      // Лимит звонка не может превышать ни ожидаемое время, ни текущий баланс
+      setState(() {
+        _maxCallDurationMinutes = widget.expectedDurationMinutes < learnerBalance 
+            ? widget.expectedDurationMinutes 
+            : learnerBalance;
+      });
+
+      // Проверим срок комнаты ДО попытки подключить камеру (для caller тоже чтобы не открывать если всё пропало)
+      if (widget.specificRoomId != null) {
+        DocumentSnapshot checkSn = await FirebaseFirestore.instance
+            .collection('rooms')
+            .doc(widget.specificRoomId)
+            .get();
+
+        if (checkSn.exists) {
+          var checkData = checkSn.data() as Map<String, dynamic>;
+          String s = checkData['status'] ?? '';
+          Timestamp? cTime = checkData['createdAt'];
+          
+          if (s == 'expired' || s == 'completed') {
+            _showWarning("Конференция уже закрыта или была отменена.");
+            Navigator.pop(context);
+            return;
+          }
+
+          if (cTime != null && s == 'waiting') {
+            if (DateTime.now().difference(cTime.toDate()).inMinutes >= 10) {
+              await FirebaseFirestore.instance
+                  .collection('rooms')
+                  .doc(widget.specificRoomId)
+                  .update({'status': 'expired'});
+                  
+              _showWarning("Время ожидания вышло. Конференция закрыта(10 мин).");
+              Navigator.pop(context);
+              return;
+            }
+          }
+        }
+      }
+
       await signaling.openUserMedia(_localRenderer, _remoteRenderer);
       if (mounted) {
         setState(() {
@@ -279,9 +341,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
 
       if (widget.isCaller) {
+        String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
         roomId = await signaling.createRoom(
           _remoteRenderer,
           specificRoomId: widget.specificRoomId,
+          callerId: currentUserId,
+          receiverId: widget.otherUserId,
+          role: widget.role,
         );
         if (mounted) {
           setState(() {
@@ -293,6 +359,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
 
       await Future.delayed(const Duration(seconds: 2));
+
       await signaling.joinRoom(widget.specificRoomId!, _remoteRenderer);
       if (mounted) {
         setState(() {
@@ -326,45 +393,72 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _isLeaving = true;
     _callTimer?.cancel();
 
-    // Balance calculation
-    if (_secondsSpent > 0 && widget.role != null) {
+    // 💡 Этап 4: Атомарная транзакция для безопасного списания баланса
+    if (widget.specificRoomId != null && _secondsSpent > 0 && widget.role != null) {
       int minutesSpent = (_secondsSpent / 60).ceil();
-      if (minutesSpent > widget.expectedDurationMinutes) {
-        minutesSpent = widget.expectedDurationMinutes;
+      if (minutesSpent > _maxCallDurationMinutes) {
+        minutesSpent = _maxCallDurationMinutes;
       }
 
       if (minutesSpent > 0) {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid != null) {
-          final userRef =
-              FirebaseFirestore.instance.collection('users').doc(uid);
-          try {
-            await FirebaseFirestore.instance
-                .runTransaction((transaction) async {
-              final snap = await transaction.get(userRef);
-              if (snap.exists) {
-                final data = snap.data()!;
-                int bal = data['balance'] ?? 120;
-                int earn = data['timeEarned'] ?? 0;
-                int spent = data['timeSpent'] ?? 0;
+        try {
+          final roomRef = FirebaseFirestore.instance.collection('rooms').doc(widget.specificRoomId);
+          
+          await FirebaseFirestore.instance.runTransaction((transaction) async {
+            final roomSnap = await transaction.get(roomRef);
+            if (!roomSnap.exists) return;
 
-                if (widget.role == 'teach') {
-                  bal += minutesSpent;
-                  earn += minutesSpent;
-                } else if (widget.role == 'learn') {
-                  bal -= minutesSpent;
-                  spent += minutesSpent;
-                }
-                transaction.update(userRef, {
-                  'balance': bal,
-                  'timeEarned': earn,
-                  'timeSpent': spent,
+            final roomData = roomSnap.data() as Map<String, dynamic>;
+            String status = roomData['status'] ?? '';
+            
+            // Если кто-то уже закрыл звонок и списал баланс — выходим
+            if (status == 'completed') return;
+
+            String teacherId = roomData['teacherId'] ?? '';
+            String learnerId = roomData['learnerId'] ?? '';
+
+            if (teacherId.isNotEmpty) {
+              final teacherRef = FirebaseFirestore.instance.collection('users').doc(teacherId);
+              final tSnap = await transaction.get(teacherRef);
+              if (tSnap.exists) {
+                var tData = tSnap.data() as Map<String, dynamic>;
+                int tBal = tData['timeBalance'] ?? tData['balance'] ?? 0;
+                int tEarn = tData['timeEarned'] ?? 0;
+                
+                transaction.update(teacherRef, {
+                  'timeBalance': tBal + minutesSpent,
+                  'balance': tBal + minutesSpent, // Обновляем оба поля для обратной совместимости
+                  'timeEarned': tEarn + minutesSpent,
                 });
               }
+            }
+
+            if (learnerId.isNotEmpty) {
+              final learnerRef = FirebaseFirestore.instance.collection('users').doc(learnerId);
+              final lSnap = await transaction.get(learnerRef);
+              if (lSnap.exists) {
+                var lData = lSnap.data() as Map<String, dynamic>;
+                int lBal = lData['timeBalance'] ?? lData['balance'] ?? 0;
+                int lSpent = lData['timeSpent'] ?? 0;
+                
+                transaction.update(learnerRef, {
+                  'timeBalance': lBal - minutesSpent,
+                  'balance': lBal - minutesSpent,
+                  'timeSpent': lSpent + minutesSpent,
+                });
+              }
+            }
+
+            // Помечаем комнату как завершенную
+            transaction.update(roomRef, {
+              'status': 'completed',
+              'endedAt': FieldValue.serverTimestamp(),
+              'durationMinutes': minutesSpent,
             });
-          } catch (e) {
-            print("Error updating balance: $e");
-          }
+            
+          });
+        } catch (e) {
+          print("Error executing safe balance transaction: $e");
         }
       }
     }
