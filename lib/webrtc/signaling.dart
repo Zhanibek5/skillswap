@@ -10,12 +10,23 @@ typedef StreamStateCallback = void Function(MediaStream stream);
 class Signaling {
   Map<String, dynamic> configuration = {
     'iceServers': [
+      // Надежный список бесплатных STUN-серверов от крупнейших компаний (Google, Mozilla, Twilio и др.)
+      // Это позволит пробивать NAT в 80-90% случаев при звонках между разными провайдерами и городами.
       {
         'urls': [
+          'stun:stun.l.google.com:19302',
           'stun:stun1.l.google.com:19302',
-          'stun:stun2.l.google.com:19302'
+          'stun:stun2.l.google.com:19302',
+          'stun:stun3.l.google.com:19302',
+          'stun:stun4.l.google.com:19302',
+          'stun:stun.services.mozilla.com',
+          'stun:stun.twilio.com:3478',
         ]
       },
+      // Бесплатный TURN-сервер (помогает в оставшихся 10-20% случаев со сложным NAT и LTE/4G-сетями).
+      // ВНИМАНИЕ: Если звонки на мобильном интернете 4G всё ещё будут обрываться,
+      // вам придется зарегистрироваться на metered.ca или twilio.com, получить личные логин/пароль 
+      // и подставить их сюда вместо "openrelayproject".
       {
         'urls': [
           'turn:openrelay.metered.ca:80',
