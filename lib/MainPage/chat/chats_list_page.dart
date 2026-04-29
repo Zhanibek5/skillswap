@@ -269,6 +269,12 @@ class _ChatsListPageState extends State<ChatsListPage> {
                               if (lastType == 'system_meeting_started') {
                                 lastMessage = 'meeting_started'.tr();
                               }
+                              if (lastType == 'system_meeting_expired') {
+                                lastMessage = 'meeting_expired'.tr();
+                              }
+                              if (lastType == 'system_meeting_completed') {
+                                lastMessage = 'meeting_completed'.tr();
+                              }
 
                               final timestamp = chatData['lastTimestamp'];
                               final timeText = formatTime(timestamp);

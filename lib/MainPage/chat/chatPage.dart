@@ -109,6 +109,79 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     return null;
   }
 
+  DateTime? _timestampToDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
+  DateTime? _meetingJoinDeadline(Map<String, dynamic> data) {
+    final explicitDeadline = _timestampToDate(data['joinDeadline']);
+    if (explicitDeadline != null) return explicitDeadline;
+
+    final meetingTime = _timestampToDate(data['meetingTime']);
+    return meetingTime?.add(const Duration(minutes: 10));
+  }
+
+  bool _isSameMeetingRoom(
+    Map<String, dynamic> messageData,
+    Map<String, dynamic>? roomData,
+  ) {
+    if (roomData == null) return false;
+
+    final messageMeetingId = messageData['meetingId']?.toString();
+    final roomMeetingId = roomData['meetingId']?.toString();
+    if (messageMeetingId != null && roomMeetingId != null) {
+      return messageMeetingId == roomMeetingId;
+    }
+    if (messageMeetingId != null && roomMeetingId == null) {
+      final roomTime = _timestampToDate(roomData['meetingTime']);
+      if (roomTime == null) return false;
+    }
+
+    final messageTime = _timestampToDate(messageData['meetingTime']);
+    final roomTime = _timestampToDate(roomData['meetingTime']);
+    if (messageTime != null && roomTime != null) {
+      return messageTime.millisecondsSinceEpoch ==
+          roomTime.millisecondsSinceEpoch;
+    }
+
+    return roomMeetingId == null;
+  }
+
+  bool _isMeetingExpired(
+    Map<String, dynamic> messageData,
+    Map<String, dynamic>? roomData,
+  ) {
+    if (messageData['type'] == 'system_meeting_expired') return true;
+
+    if (_isSameMeetingRoom(messageData, roomData)) {
+      final status = roomData?['status']?.toString();
+      if (status == 'expired') return true;
+      if (status == 'active' || status == 'completed') return false;
+    }
+
+    final deadline = _meetingJoinDeadline(messageData);
+    return deadline != null && DateTime.now().isAfter(deadline);
+  }
+
+  bool _isMeetingCompleted(
+    Map<String, dynamic> messageData,
+    Map<String, dynamic>? roomData,
+  ) {
+    if (messageData['type'] == 'system_meeting_completed') return true;
+    return _isSameMeetingRoom(messageData, roomData) &&
+        roomData?['status'] == 'completed';
+  }
+
+  bool _isMeetingActive(
+    Map<String, dynamic> messageData,
+    Map<String, dynamic>? roomData,
+  ) {
+    return _isSameMeetingRoom(messageData, roomData) &&
+        roomData?['status'] == 'active';
+  }
+
   Future<void> playAudio(String url, int durationSecs) async {
     try {
       String prevUrl = playingUrl;
@@ -281,10 +354,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         .doc(widget.chatId)
         .collection('messages');
 
-    await chatRef.add({
+    final meetingRef = chatRef.doc();
+
+    await meetingRef.set({
       'senderId': currentUserId,
       'type': 'system_meeting_created',
+      'meetingId': meetingRef.id,
+      'meetingStatus': 'scheduled',
       'meetingTime': Timestamp.fromDate(meetingTime),
+      'joinDeadline':
+          Timestamp.fromDate(meetingTime.add(const Duration(minutes: 10))),
       'duration': duration,
       'timestamp': FieldValue.serverTimestamp(),
       'readBy': [],
@@ -1755,158 +1834,262 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                           ],
                                           if (type == 'system_meeting_10min')
                                             Text('ten_min_left'.tr()),
-                                          if (type ==
-                                              'system_meeting_started') ...[
+                                          if (type == 'system_meeting_expired')
                                             Text(
-                                              'meeting_started'.tr(),
+                                              'meeting_expired'.tr(),
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold),
                                             ),
-                                            const SizedBox(height: 8),
-                                            ElevatedButton(
-                                              onPressed: () async {
-                                                // 1. Join Video Call
-                                                int duration =
-                                                    data['duration'] ?? 60;
-                                                final callRole =
-                                                    await _getCurrentUserCallRole();
-                                                if (callRole == null) {
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                            'error_occurred'
-                                                                .tr()),
-                                                      ),
-                                                    );
-                                                  }
-                                                  return;
+                                          if (type ==
+                                              'system_meeting_completed')
+                                            Text(
+                                              'meeting_completed'.tr(),
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          if (type == 'system_meeting_started')
+                                            StreamBuilder<DocumentSnapshot>(
+                                              stream: FirebaseFirestore.instance
+                                                  .collection('rooms')
+                                                  .doc(widget.chatId)
+                                                  .snapshots(),
+                                              builder: (context, roomSnapshot) {
+                                                final roomData = roomSnapshot
+                                                        .data
+                                                        ?.data()
+                                                    as Map<String, dynamic>?;
+                                                final isCompleted =
+                                                    _isMeetingCompleted(
+                                                        data, roomData);
+                                                final isExpired =
+                                                    _isMeetingExpired(
+                                                        data, roomData);
+                                                final isActive =
+                                                    _isMeetingActive(
+                                                        data, roomData);
+
+                                                if (isCompleted) {
+                                                  return Text(
+                                                    'meeting_completed'.tr(),
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  );
                                                 }
-                                                if (!context.mounted) return;
-                                                final callDone =
-                                                    await Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) => importWebrtc
-                                                        .VideoCallScreen(
-                                                      specificRoomId:
-                                                          widget.chatId,
-                                                      isCaller:
-                                                          shouldInitiateVideoCall,
-                                                      otherUserId: otherUserId,
-                                                      expectedDurationMinutes:
-                                                          duration,
-                                                      role: callRole,
+
+                                                if (isExpired) {
+                                                  return Text(
+                                                    'meeting_expired'.tr(),
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  );
+                                                }
+
+                                                if (isActive) {
+                                                  return Text(
+                                                    'meeting_in_progress'.tr(),
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  );
+                                                }
+
+                                                return Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      'meeting_started'.tr(),
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
                                                     ),
-                                                  ),
+                                                    const SizedBox(height: 8),
+                                                    ElevatedButton(
+                                                      onPressed: () async {
+                                                        // 1. Join Video Call
+                                                        int duration =
+                                                            data['duration'] ??
+                                                                60;
+                                                        final callRole =
+                                                            await _getCurrentUserCallRole();
+                                                        if (callRole == null) {
+                                                          if (context.mounted) {
+                                                            ScaffoldMessenger
+                                                                    .of(context)
+                                                                .showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                    'error_occurred'
+                                                                        .tr()),
+                                                              ),
+                                                            );
+                                                          }
+                                                          return;
+                                                        }
+                                                        if (!context.mounted) {
+                                                          return;
+                                                        }
+                                                        final callDone =
+                                                            await Navigator
+                                                                .push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (_) =>
+                                                                importWebrtc
+                                                                    .VideoCallScreen(
+                                                              specificRoomId:
+                                                                  widget.chatId,
+                                                              isCaller:
+                                                                  shouldInitiateVideoCall,
+                                                              otherUserId:
+                                                                  otherUserId,
+                                                              expectedDurationMinutes:
+                                                                  duration,
+                                                              role: callRole,
+                                                              meetingId: data[
+                                                                      'meetingId']
+                                                                  ?.toString(),
+                                                              meetingTime:
+                                                                  meetingDt,
+                                                            ),
+                                                          ),
+                                                        );
+
+                                                        // 2. Show Review if call finished
+                                                        if (callDone == true) {
+                                                          await Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (_) =>
+                                                                  ReviewDialog(
+                                                                userName:
+                                                                    userName,
+                                                                chatId: widget
+                                                                    .chatId,
+                                                                otherUserId:
+                                                                    otherUserId,
+                                                                selectedSkills: [
+                                                                  widget
+                                                                      .selectedSkills
+                                                                      .join(
+                                                                          ", ")
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          );
+
+                                                          // Ask to save video history
+                                                          bool? saveVideo =
+                                                              await showDialog<
+                                                                  bool>(
+                                                            context: context,
+                                                            builder: (ctx) =>
+                                                                AlertDialog(
+                                                              backgroundColor:
+                                                                  Colors.white,
+                                                              title: Text(
+                                                                  'save_video'
+                                                                      .tr()),
+                                                              content: Text(
+                                                                  'save_video_desc'
+                                                                      .tr()),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                          ctx,
+                                                                          false),
+                                                                  child: Text(
+                                                                      'no'.tr()),
+                                                                ),
+                                                                TextButton(
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                          ctx,
+                                                                          true),
+                                                                  child: Text(
+                                                                      'yes'
+                                                                          .tr()),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+
+                                                          if (saveVideo ==
+                                                              true) {
+                                                            final user =
+                                                                FirebaseAuth
+                                                                    .instance
+                                                                    .currentUser;
+                                                            if (user != null) {
+                                                              await FirebaseFirestore
+                                                                  .instance
+                                                                  .collection(
+                                                                      'users')
+                                                                  .doc(user.uid)
+                                                                  .collection(
+                                                                      'video_history')
+                                                                  .add({
+                                                                'chatId': widget
+                                                                    .chatId,
+                                                                'teacherName':
+                                                                    userName,
+                                                                'createdAt':
+                                                                    FieldValue
+                                                                        .serverTimestamp(),
+                                                              });
+                                                              if (context
+                                                                  .mounted) {
+                                                                ScaffoldMessenger.of(
+                                                                        context)
+                                                                    .showSnackBar(
+                                                                  SnackBar(
+                                                                      content: Text(
+                                                                          'video_saved'
+                                                                              .tr())),
+                                                                );
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        backgroundColor:
+                                                            Colors.blueAccent,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                        shadowColor:
+                                                            Colors.black54,
+                                                        elevation: 5,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(15),
+                                                        ),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 20,
+                                                          vertical: 5,
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        'join'.tr(),
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 );
-
-                                                // 2. Show Review if call finished
-                                                if (callDone == true) {
-                                                  await Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          ReviewDialog(
-                                                        userName: userName,
-                                                        chatId: widget.chatId,
-                                                        otherUserId:
-                                                            otherUserId,
-                                                        selectedSkills: [
-                                                          widget.selectedSkills
-                                                              .join(", ")
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  );
-
-                                                  // Ask to save video history
-                                                  bool? saveVideo =
-                                                      await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (ctx) =>
-                                                        AlertDialog(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      title: Text(
-                                                          'save_video'.tr()),
-                                                      content: Text(
-                                                          'save_video_desc'
-                                                              .tr()),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  ctx, false),
-                                                          child:
-                                                              Text('no'.tr()),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  ctx, true),
-                                                          child:
-                                                              Text('yes'.tr()),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-
-                                                  if (saveVideo == true) {
-                                                    final user = FirebaseAuth
-                                                        .instance.currentUser;
-                                                    if (user != null) {
-                                                      await FirebaseFirestore
-                                                          .instance
-                                                          .collection('users')
-                                                          .doc(user.uid)
-                                                          .collection(
-                                                              'video_history')
-                                                          .add({
-                                                        'chatId': widget.chatId,
-                                                        'teacherName': userName,
-                                                        'createdAt': FieldValue
-                                                            .serverTimestamp(),
-                                                      });
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        SnackBar(
-                                                            content: Text(
-                                                                'video_saved'
-                                                                    .tr())),
-                                                      );
-                                                    }
-                                                  }
-                                                }
                                               },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.blueAccent,
-                                                foregroundColor: Colors.white,
-                                                shadowColor: Colors.black54,
-                                                elevation: 5,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(15),
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                  vertical: 5,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                'join'.tr(),
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            )
-                                          ],
+                                            ),
                                           const SizedBox(height: 20),
                                         ],
                                       ),

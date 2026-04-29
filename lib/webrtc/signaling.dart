@@ -15,13 +15,14 @@ class Signaling {
       final auth = base64Encode(utf8.encode('\$accountSid:\$authToken'));
 
       final httpClient = HttpClient();
-      final request = await httpClient.postUrl(Uri.parse('https://api.twilio.com/2010-04-01/Accounts/\$accountSid/Tokens.json'));
+      final request = await httpClient.postUrl(Uri.parse(
+          'https://api.twilio.com/2010-04-01/Accounts/\$accountSid/Tokens.json'));
       request.headers.add('Authorization', 'Basic \$auth');
-      
+
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
       final data = jsonDecode(responseBody);
-      
+
       if (data != null && data['ice_servers'] != null) {
         return {
           'iceServers': data['ice_servers'],
@@ -50,7 +51,7 @@ class Signaling {
       },
       // Бесплатный TURN-сервер (помогает в оставшихся 10-20% случаев со сложным NAT и LTE/4G-сетями).
       // ВНИМАНИЕ: Если звонки на мобильном интернете 4G всё ещё будут обрываться,
-      // вам придется зарегистрироваться на metered.ca или twilio.com, получить личные логин/пароль 
+      // вам придется зарегистрироваться на metered.ca или twilio.com, получить личные логин/пароль
       // и подставить их сюда вместо "openrelayproject".
       {
         'urls': [
@@ -80,6 +81,7 @@ class Signaling {
   StreamSubscription? _roomSub;
   StreamSubscription? _callerCandidateSub;
   StreamSubscription? _calleeCandidateSub;
+  bool _preserveRoomDocument = false;
 
   Future<void> _deleteCollection(CollectionReference collection) async {
     final snapshot = await collection.get();
@@ -175,8 +177,15 @@ class Signaling {
     onAddRemoteStream?.call(remoteStream!);
   }
 
-  Future<String> createRoom(RTCVideoRenderer remoteRenderer,
-      {String? specificRoomId, String? callerId, String? receiverId, String? role}) async {
+  Future<String> createRoom(
+    RTCVideoRenderer remoteRenderer, {
+    String? specificRoomId,
+    String? callerId,
+    String? receiverId,
+    String? role,
+    String? meetingId,
+    DateTime? meetingTime,
+  }) async {
     FirebaseFirestore db = FirebaseFirestore.instance;
     DocumentReference roomRef;
 
@@ -187,9 +196,12 @@ class Signaling {
 
     if (specificRoomId != null) {
       roomRef = db.collection('rooms').doc(specificRoomId);
-      await _clearRoom(roomRef);
+      await _deleteCollection(roomRef.collection('callerCandidates'));
+      await _deleteCollection(roomRef.collection('calleeCandidates'));
+      _preserveRoomDocument = true;
     } else {
       roomRef = db.collection('rooms').doc();
+      _preserveRoomDocument = false;
     }
 
     roomId = roomRef.id;
@@ -223,7 +235,7 @@ class Signaling {
 
     String teacherId = '';
     String learnerId = '';
-    
+
     if (role == 'teach') {
       teacherId = callerId ?? '';
       learnerId = receiverId ?? '';
@@ -238,6 +250,14 @@ class Signaling {
       'status': 'waiting',
       'teacherId': teacherId,
       'learnerId': learnerId,
+      'joinedLearner': role == 'learn',
+      'joinedTeacher': role == 'teach',
+      'preserveRoom': specificRoomId != null,
+      if (meetingId != null) 'meetingId': meetingId,
+      if (meetingTime != null) 'meetingTime': Timestamp.fromDate(meetingTime),
+      if (meetingTime != null)
+        'joinDeadline':
+            Timestamp.fromDate(meetingTime.add(const Duration(minutes: 10))),
     };
 
     await roomRef.set(roomWithOffer);
@@ -291,11 +311,17 @@ class Signaling {
     return roomId!;
   }
 
-  Future<void> joinRoom(String roomId, RTCVideoRenderer remoteVideo) async {
+  Future<void> joinRoom(
+    String roomId,
+    RTCVideoRenderer remoteVideo, {
+    String? role,
+    String? userId,
+  }) async {
     FirebaseFirestore db = FirebaseFirestore.instance;
     print("Joining room: $roomId");
     DocumentReference roomRef = db.collection('rooms').doc(roomId);
     this.roomId = roomId;
+    _preserveRoomDocument = true;
     _hasRemoteDescription = false;
     _isJoining = false;
     _isApplyingAnswer = false;
@@ -349,6 +375,9 @@ class Signaling {
           'answer': {'type': answer.type, 'sdp': answer.sdp},
           'startedAt': FieldValue.serverTimestamp(),
           'status': 'active',
+          if (role == 'learn') 'joinedLearner': true,
+          if (role == 'teach') 'joinedTeacher': true,
+          if (userId != null) 'lastJoinedUserId': userId,
         };
 
         await roomRef.update(roomWithAnswer);
@@ -466,7 +495,25 @@ class Signaling {
       var roomRef = db.collection('rooms').doc(roomId);
 
       try {
-        await _clearRoom(roomRef);
+        await _deleteCollection(roomRef.collection('callerCandidates'));
+        await _deleteCollection(roomRef.collection('calleeCandidates'));
+
+        final roomSnapshot = await roomRef.get();
+        final data = roomSnapshot.data() as Map<String, dynamic>?;
+        final shouldPreserve =
+            _preserveRoomDocument || data?['preserveRoom'] == true;
+        if (roomSnapshot.exists &&
+            shouldPreserve &&
+            data?['status'] == 'waiting') {
+          await roomRef.update({
+            'offer': FieldValue.delete(),
+            'answer': FieldValue.delete(),
+            'callerLeftAt': FieldValue.serverTimestamp(),
+          });
+        }
+        if (roomSnapshot.exists && !shouldPreserve) {
+          await roomRef.delete();
+        }
       } catch (e) {
         print("Could not clean up DB on hangup: $e");
       }
@@ -489,6 +536,7 @@ class Signaling {
     _hasRemoteDescription = false;
     _isJoining = false;
     _isApplyingAnswer = false;
+    _preserveRoomDocument = false;
     _pendingRemoteCandidates.clear();
   }
 

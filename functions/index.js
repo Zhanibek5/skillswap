@@ -37,6 +37,7 @@ exports.onMeetingCreated = onDocumentCreated(
 			.collection('chats')
 			.doc(chatId)
 			.get()
+		if (!chatDoc.exists) return
 		const chatData = chatDoc.data()
 
 		const participants = chatData.participants || []
@@ -63,14 +64,6 @@ exports.onMeetingCreated = onDocumentCreated(
 			finalTitle = `${senderName} • ${chatData.lastSkill}`;
 		}
 
-<<<<<<< HEAD
-		await sendToUser(recipientId, chatId, {
-			title: finalTitle,
-			body: 'Кездесу жоспарланды',
-			type: 'meeting',
-			senderData: senderData,
-			chatData: chatData,
-=======
 		const chatRef = admin.firestore().collection('chats').doc(chatId)
 		let shouldNotify = false
 
@@ -92,12 +85,11 @@ exports.onMeetingCreated = onDocumentCreated(
 			if (Object.keys(updateData).length > 0) {
 				tx.update(chatRef, updateData)
 			}
->>>>>>> c642037 (my local changes with translation)
 		})
 
 		if (shouldNotify) {
 			await sendToUser(recipientId, chatId, {
-				title: title,
+				title: finalTitle,
 				body: 'meeting_scheduled',
 				type: 'meeting',
 				senderData: senderData,
@@ -241,7 +233,9 @@ exports.sendMeetingNotifications = onSchedule(
 				const meetingData = meetingDoc.data()
 				if (!meetingData.meetingTime) continue
 
+				const meetingId = meetingData.meetingId || meetingDoc.id
 				const meetingTime = meetingData.meetingTime.toDate().getTime()
+				const joinDeadline = meetingTime + 10 * 60 * 1000
 				const diffMs = meetingTime - now
 
 				const participants = chatData.participants || []
@@ -258,7 +252,9 @@ exports.sendMeetingNotifications = onSchedule(
 						await messagesRef.add({
 							senderId: 'system',
 							type: 'system_meeting_10min',
+							meetingId,
 							meetingTime: meetingData.meetingTime,
+							joinDeadline: admin.firestore.Timestamp.fromMillis(joinDeadline),
 							duration: meetingData.duration || 60,
 							timestamp: admin.firestore.FieldValue.serverTimestamp(),
 							readBy: [],
@@ -308,13 +304,8 @@ exports.sendMeetingNotifications = onSchedule(
 							}
 
 							await sendToUser(userId, chatId, {
-<<<<<<< HEAD
 								title: finalTitle,
-								body: 'Кездесу басталуына аз қалды',
-=======
-								title: `⏰ ${otherUserName}${skill}`,
 								body: 'soon_start',
->>>>>>> c642037 (my local changes with translation)
 								type: 'meeting',
 								senderData: otherUserData,
 								chatData: chatData,
@@ -335,7 +326,10 @@ exports.sendMeetingNotifications = onSchedule(
 						await messagesRef.add({
 							senderId: 'system',
 							type: 'system_meeting_started',
+							meetingId,
+							meetingStatus: 'started',
 							meetingTime: meetingData.meetingTime,
+							joinDeadline: admin.firestore.Timestamp.fromMillis(joinDeadline),
 							duration: meetingData.duration || 60,
 							timestamp: admin.firestore.FieldValue.serverTimestamp(),
 							readBy: [],
@@ -385,17 +379,73 @@ exports.sendMeetingNotifications = onSchedule(
 							}
 
 							await sendToUser(userId, chatId, {
-<<<<<<< HEAD
 								title: finalTitle,
-								body: 'Кездесу уақыты келді!',
-=======
-								title: `🔔 ${otherUserName}${skill}`,
 								body: 'time_to_meet',
->>>>>>> c642037 (my local changes with translation)
 								type: 'meeting',
 								senderData: otherUserData,
 								chatData: chatData,
 							})
+						}
+					}
+				}
+
+				if (now >= joinDeadline) {
+					const expiredExists = await messagesRef
+						.where('type', '==', 'system_meeting_expired')
+						.where('meetingId', '==', meetingId)
+						.limit(1)
+						.get()
+					const completedExists = await messagesRef
+						.where('type', '==', 'system_meeting_completed')
+						.where('meetingId', '==', meetingId)
+						.limit(1)
+						.get()
+
+					if (expiredExists.empty && completedExists.empty) {
+						const roomRef = admin.firestore().collection('rooms').doc(chatId)
+						const roomDoc = await roomRef.get()
+						const roomData = roomDoc.exists ? roomDoc.data() : null
+						const roomMeetingId = roomData?.meetingId
+						const sameMeeting = roomMeetingId
+							? roomMeetingId === meetingId
+							: roomData?.meetingTime?.toMillis?.() === meetingTime
+						const roomStatus = sameMeeting ? roomData?.status : null
+
+						if (roomStatus !== 'active' && roomStatus !== 'completed') {
+							await roomRef.set(
+								{
+									status: 'expired',
+									meetingId,
+									meetingTime: meetingData.meetingTime,
+									joinDeadline:
+										admin.firestore.Timestamp.fromMillis(joinDeadline),
+									expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+									preserveRoom: true,
+								},
+								{ merge: true }
+							)
+
+							await messagesRef.doc(`system_meeting_expired_${meetingId}`).set(
+								{
+									senderId: 'system',
+									type: 'system_meeting_expired',
+									meetingId,
+									meetingStatus: 'expired',
+									meetingTime: meetingData.meetingTime,
+									joinDeadline:
+										admin.firestore.Timestamp.fromMillis(joinDeadline),
+									duration: meetingData.duration || 60,
+									timestamp: admin.firestore.FieldValue.serverTimestamp(),
+									readBy: [],
+								},
+								{ merge: true }
+							)
+
+							await updateChatLastMessageAndUnread(
+								chatId,
+								'meeting_expired',
+								'system_meeting_expired'
+							)
 						}
 					}
 				}
@@ -409,32 +459,53 @@ async function sendToUser(userId, chatId, payload) {
 	if (!userDoc.exists) return
 
 	const userData = userDoc.data()
-	if (userData.notificationsEnabled === false || !userData.fcmTokens) return
+	if (userData.notificationsEnabled === false) return
 
-	// Дубликат болмас үшін соңғы активті токенді ғана аламыз
-	const token = userData.fcmTokens[userData.fcmTokens.length - 1]
+	if (!Array.isArray(userData.fcmTokens) || userData.fcmTokens.length === 0) {
+		return
+	}
 
-	try {
-		await admin.messaging().send({
-			token: token,
-			notification: {
-				title: payload.title,
-				body: payload.body,
-			},
-			data: {
-				title: payload.title,
-				body: payload.body,
-				userImage: payload.senderData?.photoUrl || '',
-				type: payload.type,
-				chatId: chatId,
-				otherUserId: String(
-					payload.chatData.participants.find(id => id !== userId) || ''
-				),
-				selectedSkills: JSON.stringify(payload.chatData.selectedSkills || []),
-			},
-		})
-	} catch (e) {
-		console.error('FCM Error:', e)
+	const tokens = [...new Set(userData.fcmTokens)].filter(Boolean)
+	const selectedSkills = Array.isArray(payload.chatData.selectedSkills)
+		? payload.chatData.selectedSkills.join(', ')
+		: String(payload.chatData.lastSkill || '')
+
+	for (const token of tokens) {
+		try {
+			await admin.messaging().send({
+				token: token,
+				notification: {
+					title: String(payload.title || ''),
+					body: String(payload.body || ''),
+				},
+				data: {
+					title: String(payload.title || ''),
+					body: String(payload.body || ''),
+					userImage: String(payload.senderData?.photoUrl || ''),
+					type: String(payload.type || ''),
+					chatId: String(chatId),
+					otherUserId: String(
+						payload.chatData.participants.find(id => id !== userId) || ''
+					),
+					selectedSkills: selectedSkills,
+				},
+			})
+		} catch (e) {
+			console.error('FCM Error:', e)
+
+			if (
+				e.code === 'messaging/registration-token-not-registered' ||
+				e.code === 'messaging/invalid-registration-token'
+			) {
+				await admin
+					.firestore()
+					.collection('users')
+					.doc(userId)
+					.update({
+						fcmTokens: admin.firestore.FieldValue.arrayRemove(token),
+					})
+			}
+		}
 	}
 }
 

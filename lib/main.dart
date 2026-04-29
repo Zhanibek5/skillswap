@@ -264,6 +264,16 @@ class _AuthGateState extends State<AuthGate> {
 
       if (token != null) {
         print("🔥 FCM TOKEN: $token");
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            'fcmTokens': FieldValue.arrayUnion([token]),
+            'tokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
       }
     }
   }

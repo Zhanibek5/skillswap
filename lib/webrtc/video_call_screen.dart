@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'signaling.dart';
 
 class VideoCallScreen extends StatefulWidget {
@@ -13,6 +14,8 @@ class VideoCallScreen extends StatefulWidget {
   final String? otherUserId;
   final int expectedDurationMinutes;
   final String? role;
+  final String? meetingId;
+  final DateTime? meetingTime;
 
   const VideoCallScreen({
     super.key,
@@ -21,6 +24,8 @@ class VideoCallScreen extends StatefulWidget {
     this.otherUserId,
     this.expectedDurationMinutes = 60,
     this.role,
+    this.meetingId,
+    this.meetingTime,
   });
 
   @override
@@ -198,6 +203,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           .listen((snap) {
         if (snap.exists && mounted) {
           final data = snap.data()!;
+          final roomMeetingId = data['meetingId']?.toString();
+          final isSameMeeting = widget.meetingId == null ||
+              roomMeetingId == null ||
+              roomMeetingId == widget.meetingId;
+          final status = data['status']?.toString();
+
+          if (isSameMeeting && (status == 'expired' || status == 'completed')) {
+            _showWarning(status == 'expired'
+                ? 'meeting_expired'.tr()
+                : 'meeting_completed'.tr());
+            _leaveCall(callFinished: status == 'completed');
+            return;
+          }
+
           String myRole = widget.isCaller ? 'caller' : 'callee';
           String otherRole = widget.isCaller ? 'callee' : 'caller';
 
@@ -225,6 +244,67 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         }
       }, SetOptions(merge: true));
     }
+  }
+
+  DateTime? get _joinDeadline =>
+      widget.meetingTime?.add(const Duration(minutes: 10));
+
+  Future<void> _markMeetingExpired() async {
+    if (widget.specificRoomId == null) return;
+
+    final data = <String, dynamic>{
+      'status': 'expired',
+      'expiredAt': FieldValue.serverTimestamp(),
+      'preserveRoom': true,
+    };
+
+    if (widget.meetingId != null) {
+      data['meetingId'] = widget.meetingId;
+    }
+    if (widget.meetingTime != null) {
+      data['meetingTime'] = Timestamp.fromDate(widget.meetingTime!);
+      data['joinDeadline'] = Timestamp.fromDate(_joinDeadline!);
+    }
+
+    await FirebaseFirestore.instance
+        .collection('rooms')
+        .doc(widget.specificRoomId)
+        .set(data, SetOptions(merge: true));
+  }
+
+  Future<void> _addMeetingStatusMessage({
+    required String type,
+    required String lastMessage,
+    required int durationMinutes,
+  }) async {
+    if (widget.specificRoomId == null || widget.meetingId == null) return;
+
+    final chatRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.specificRoomId);
+    final messageRef =
+        chatRef.collection('messages').doc('${type}_${widget.meetingId}');
+
+    final messageData = <String, dynamic>{
+      'senderId': 'system',
+      'type': type,
+      'meetingId': widget.meetingId,
+      'duration': durationMinutes,
+      'timestamp': FieldValue.serverTimestamp(),
+      'readBy': [],
+    };
+
+    if (widget.meetingTime != null) {
+      messageData['meetingTime'] = Timestamp.fromDate(widget.meetingTime!);
+      messageData['joinDeadline'] = Timestamp.fromDate(_joinDeadline!);
+    }
+
+    await messageRef.set(messageData, SetOptions(merge: true));
+    await chatRef.update({
+      'lastMessage': lastMessage,
+      'lastTimestamp': FieldValue.serverTimestamp(),
+      'lastType': type,
+    });
   }
 
   Future<void> _initializeRenderers() async {
@@ -273,13 +353,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       await [Permission.camera, Permission.microphone].request();
 
       String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-      
+
+      final deadline = _joinDeadline;
+      if (deadline != null && DateTime.now().isAfter(deadline)) {
+        await _markMeetingExpired();
+        await _addMeetingStatusMessage(
+          type: 'system_meeting_expired',
+          lastMessage: 'meeting_expired',
+          durationMinutes: widget.expectedDurationMinutes,
+        );
+        _showWarning('meeting_expired'.tr());
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+
       // 💡 Проверяем баланс Learner'а
-      String learnerId = widget.role == 'learn' ? currentUserId : (widget.otherUserId ?? '');
+      String learnerId =
+          widget.role == 'learn' ? currentUserId : (widget.otherUserId ?? '');
       int learnerBalance = 0;
-      
+
       if (learnerId.isNotEmpty) {
-        DocumentSnapshot learnerDoc = await FirebaseFirestore.instance.collection('users').doc(learnerId).get();
+        DocumentSnapshot learnerDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(learnerId)
+            .get();
         if (learnerDoc.exists) {
           var lData = learnerDoc.data() as Map<String, dynamic>;
           learnerBalance = lData['timeBalance'] ?? lData['balance'] ?? 0;
@@ -294,9 +391,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       // Лимит звонка не может превышать ни ожидаемое время, ни текущий баланс
       setState(() {
-        _maxCallDurationMinutes = widget.expectedDurationMinutes < learnerBalance 
-            ? widget.expectedDurationMinutes 
-            : learnerBalance;
+        _maxCallDurationMinutes =
+            widget.expectedDurationMinutes < learnerBalance
+                ? widget.expectedDurationMinutes
+                : learnerBalance;
       });
 
       // Проверим срок комнаты ДО попытки подключить камеру (для caller тоже чтобы не открывать если всё пропало)
@@ -309,22 +407,40 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (checkSn.exists) {
           var checkData = checkSn.data() as Map<String, dynamic>;
           String s = checkData['status'] ?? '';
+          final roomMeetingId = checkData['meetingId']?.toString();
+          final sameMeeting =
+              widget.meetingId == null || roomMeetingId == widget.meetingId;
           Timestamp? cTime = checkData['createdAt'];
-          
-          if (s == 'expired' || s == 'completed') {
+
+          if (sameMeeting && (s == 'expired' || s == 'completed')) {
             _showWarning("Конференция уже закрыта или была отменена.");
             Navigator.pop(context);
             return;
           }
 
-          if (cTime != null && s == 'waiting') {
+          if (sameMeeting && cTime != null && s == 'waiting') {
             if (DateTime.now().difference(cTime.toDate()).inMinutes >= 10) {
               await FirebaseFirestore.instance
                   .collection('rooms')
                   .doc(widget.specificRoomId)
-                  .update({'status': 'expired'});
-                  
-              _showWarning("Время ожидания вышло. Конференция закрыта(10 мин).");
+                  .set({
+                'status': 'expired',
+                'expiredAt': FieldValue.serverTimestamp(),
+                'meetingId': widget.meetingId,
+                if (widget.meetingTime != null)
+                  'meetingTime': Timestamp.fromDate(widget.meetingTime!),
+                if (_joinDeadline != null)
+                  'joinDeadline': Timestamp.fromDate(_joinDeadline!),
+                'preserveRoom': true,
+              }, SetOptions(merge: true));
+              await _addMeetingStatusMessage(
+                type: 'system_meeting_expired',
+                lastMessage: 'meeting_expired',
+                durationMinutes: widget.expectedDurationMinutes,
+              );
+
+              _showWarning(
+                  "Время ожидания вышло. Конференция закрыта(10 мин).");
               Navigator.pop(context);
               return;
             }
@@ -348,6 +464,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           callerId: currentUserId,
           receiverId: widget.otherUserId,
           role: widget.role,
+          meetingId: widget.meetingId,
+          meetingTime: widget.meetingTime,
         );
         if (mounted) {
           setState(() {
@@ -360,7 +478,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       await Future.delayed(const Duration(seconds: 2));
 
-      await signaling.joinRoom(widget.specificRoomId!, _remoteRenderer);
+      await signaling.joinRoom(
+        widget.specificRoomId!,
+        _remoteRenderer,
+        role: widget.role,
+        userId: currentUserId,
+      );
       if (mounted) {
         setState(() {
           callStarted = true;
@@ -394,53 +517,61 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _callTimer?.cancel();
 
     // 💡 Этап 4: Атомарная транзакция для безопасного списания баланса
-    if (widget.specificRoomId != null && _secondsSpent > 0 && widget.role != null) {
+    if (widget.specificRoomId != null && widget.role != null) {
       int minutesSpent = (_secondsSpent / 60).ceil();
       if (minutesSpent > _maxCallDurationMinutes) {
         minutesSpent = _maxCallDurationMinutes;
       }
 
-      if (minutesSpent > 0) {
+      bool completedWritten = false;
+
+      if (minutesSpent > 0 || _callActuallyStarted) {
         try {
-          final roomRef = FirebaseFirestore.instance.collection('rooms').doc(widget.specificRoomId);
-          
+          final roomRef = FirebaseFirestore.instance
+              .collection('rooms')
+              .doc(widget.specificRoomId);
+
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             final roomSnap = await transaction.get(roomRef);
             if (!roomSnap.exists) return;
 
             final roomData = roomSnap.data() as Map<String, dynamic>;
             String status = roomData['status'] ?? '';
-            
+
             // Если кто-то уже закрыл звонок и списал баланс — выходим
-            if (status == 'completed') return;
+            if (status == 'completed' || status == 'expired') return;
+            if (status != 'active' && !_callActuallyStarted) return;
 
             String teacherId = roomData['teacherId'] ?? '';
             String learnerId = roomData['learnerId'] ?? '';
 
-            if (teacherId.isNotEmpty) {
-              final teacherRef = FirebaseFirestore.instance.collection('users').doc(teacherId);
+            if (minutesSpent > 0 && teacherId.isNotEmpty) {
+              final teacherRef =
+                  FirebaseFirestore.instance.collection('users').doc(teacherId);
               final tSnap = await transaction.get(teacherRef);
               if (tSnap.exists) {
                 var tData = tSnap.data() as Map<String, dynamic>;
                 int tBal = tData['timeBalance'] ?? tData['balance'] ?? 0;
                 int tEarn = tData['timeEarned'] ?? 0;
-                
+
                 transaction.update(teacherRef, {
                   'timeBalance': tBal + minutesSpent,
-                  'balance': tBal + minutesSpent, // Обновляем оба поля для обратной совместимости
+                  'balance': tBal +
+                      minutesSpent, // Обновляем оба поля для обратной совместимости
                   'timeEarned': tEarn + minutesSpent,
                 });
               }
             }
 
-            if (learnerId.isNotEmpty) {
-              final learnerRef = FirebaseFirestore.instance.collection('users').doc(learnerId);
+            if (minutesSpent > 0 && learnerId.isNotEmpty) {
+              final learnerRef =
+                  FirebaseFirestore.instance.collection('users').doc(learnerId);
               final lSnap = await transaction.get(learnerRef);
               if (lSnap.exists) {
                 var lData = lSnap.data() as Map<String, dynamic>;
                 int lBal = lData['timeBalance'] ?? lData['balance'] ?? 0;
                 int lSpent = lData['timeSpent'] ?? 0;
-                
+
                 transaction.update(learnerRef, {
                   'timeBalance': lBal - minutesSpent,
                   'balance': lBal - minutesSpent,
@@ -454,9 +585,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               'status': 'completed',
               'endedAt': FieldValue.serverTimestamp(),
               'durationMinutes': minutesSpent,
+              'preserveRoom': true,
+              if (widget.meetingId != null) 'meetingId': widget.meetingId,
+              if (widget.meetingTime != null)
+                'meetingTime': Timestamp.fromDate(widget.meetingTime!),
+              if (_joinDeadline != null)
+                'joinDeadline': Timestamp.fromDate(_joinDeadline!),
             });
-            
+            completedWritten = true;
           });
+          if (completedWritten) {
+            await _addMeetingStatusMessage(
+              type: 'system_meeting_completed',
+              lastMessage: 'meeting_completed',
+              durationMinutes: minutesSpent,
+            );
+            callFinished = true;
+          }
         } catch (e) {
           print("Error executing safe balance transaction: $e");
         }
