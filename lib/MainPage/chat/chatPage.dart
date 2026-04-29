@@ -20,6 +20,8 @@ import 'package:swipe_to/swipe_to.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart' as foundation;
 
+import 'package:skillswap/MainPage/chat/services/chat_service.dart';
+
 class ChatPage extends StatefulWidget {
   final String chatId;
   final String otherUserId;
@@ -459,7 +461,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     });
 
     _initAudio();
-    checkAndSendInitialMessage();
     markMessagesAsRead();
     FirebaseFirestore.instance.collection('chats').doc(widget.chatId).update({
       'unreadCount.$currentUserId': 0,
@@ -506,44 +507,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     await recorder.openRecorder();
   }
 
-  Future<void> checkAndSendInitialMessage() async {
-    if (widget.mode == 'support' ||
-        widget.mode == 'admin_view' ||
-        widget.mode == 'support_admin') {
-      return;
-    }
-
-    final chatDoc = await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .get();
-
-    final chatData = chatDoc.data();
-    if (chatData != null && chatData['initialMessageSent'] == true) {
-      return;
-    }
-
-    final messages = await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .collection('messages')
-        .limit(1)
-        .get();
-
-    if (messages.docs.isEmpty) {
-      final text = widget.mode == 'learn'
-          ? 'Сәлеметсіз бе! Мен сізден ${widget.selectedSkills.join(", ")} үйренгім келеді.'
-          : 'Сәлеметсіз бе! Мен сізге ${widget.selectedSkills.join(", ")} үйреткім келеді.';
-
-      await sendMessage(text);
-
-      await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(widget.chatId)
-          .update({'initialMessageSent': true});
-    }
-  }
-
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
@@ -565,36 +528,21 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       return;
     }
 
-    final messageData = {
-      'senderId': currentUserId,
-      'text': text,
-      'type': 'text',
-      'timestamp': FieldValue.serverTimestamp(),
-      'readBy': [currentUserId],
-    };
+    final replyData = replyToMessage != null
+        ? {
+            'text': replyToMessage!['text'] ?? 'Attachment',
+            'senderId': replyToMessage!['senderId'],
+          }
+        : null;
 
-    if (replyToMessage != null) {
-      messageData['replyTo'] = {
-        'text': replyToMessage!['text'] ?? 'Attachment',
-        'senderId': replyToMessage!['senderId'],
-      };
-    }
-
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .collection('messages')
-        .add(messageData);
-
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .set({
-      'participants': [currentUserId, widget.otherUserId], // 🔥 қос!
-      'lastMessage': text,
-      'lastTimestamp': FieldValue.serverTimestamp(),
-      'lastType': 'text',
-    }, SetOptions(merge: true));
+    await ChatService().sendMessage(
+      chatId: widget.chatId,
+      senderId: currentUserId,
+      receiverId: widget.otherUserId,
+      text: text,
+      type: 'text',
+      replyTo: replyData,
+    );
 
     setState(() {
       replyToMessage = null;

@@ -3,10 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'skillChip.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/MainPage/chat/chatPage.dart';
-import 'package:skillswap/MainPage/chat/chat_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/MainPage/skillMain.dart';
 import 'package:skillswap/MainPage/admin/report_dialog.dart';
+
+import 'package:skillswap/MainPage/chat/services/chat_service.dart';
 
 class UserCard extends StatefulWidget {
   final String userId;
@@ -116,21 +117,51 @@ class _UserCardState extends State<UserCard> {
     required String mode, // learn or teach
     required BuildContext context,
   }) async {
-    final chatId = generateChatId(currentUserId, otherUserId);
+    final skillString = selectedSkills.join(', ');
+    final learnerId = mode == 'learn' ? currentUserId : otherUserId;
+    final teacherId = mode == 'teach' ? currentUserId : otherUserId;
 
-    final chatDoc = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    // Search for existing contract-specific chat to avoid duplicates
+    final existingChats = await FirebaseFirestore.instance
+        .collection('chats')
+        .where('participants', arrayContains: currentUserId)
+        .where('lastSkill', isEqualTo: skillString)
+        .where('learnerId', isEqualTo: learnerId)
+        .where('teacherId', isEqualTo: teacherId)
+        .limit(1)
+        .get();
 
-    final doc = await chatDoc.get();
+    String chatId;
 
-    if (!doc.exists) {
-      await chatDoc.set({
+    if (existingChats.docs.isNotEmpty) {
+      chatId = existingChats.docs.first.id;
+    } else {
+      // Create new UUID chat
+      final chatRef = FirebaseFirestore.instance.collection('chats').doc();
+      chatId = chatRef.id;
+
+      await chatRef.set({
         'participants': [currentUserId, otherUserId],
-        'learnerId': mode == 'learn' ? currentUserId : otherUserId,
-        'teacherId': mode == 'teach' ? currentUserId : otherUserId,
+        'learnerId': learnerId,
+        'teacherId': teacherId,
         'lastMessage': '',
         'lastTimestamp': FieldValue.serverTimestamp(),
-        'lastSkill': selectedSkills.join(', '),
-      }, SetOptions(merge: true));
+        'lastSkill': skillString,
+        'chatType': 'contract', // Identify this as a new-style UUID chat
+        'initiatorRole': mode,
+        'initialMessageSent': true,
+      });
+
+      final initialText = mode == 'learn'
+          ? 'Сәлеметсіз бе! Мен сізден $skillString үйренгім келеді.'
+          : 'Сәлеметсіз бе! Мен сізге $skillString үйреткім келеді.';
+
+      await ChatService().sendMessage(
+        chatId: chatId,
+        senderId: currentUserId,
+        receiverId: otherUserId,
+        text: initialText,
+      );
     }
 
     Navigator.push(

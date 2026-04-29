@@ -192,6 +192,24 @@ class _ChatsListPageState extends State<ChatsListPage> {
                               final name = userData['firstName'] ?? 'User';
                               final photoUrl = userData['photoUrl'] ?? '';
                               final skill = chatData['lastSkill'] ?? '';
+                              final chatType = chatData['chatType'] ?? 'basic';
+
+                              String tagText = '';
+                              Color tagColor = Colors.blue;
+                              Color tagTextColor = Colors.blue;
+
+                              if (chatType == 'contract' && skill.isNotEmpty) {
+                                final isTeaching = chatData['teacherId'] == currentUserId;
+                                if (isTeaching) {
+                                  tagText = '📚 Учит ' + skill;
+                                  tagColor = Colors.purple;
+                                  tagTextColor = isDark ? Colors.purple[300]! : Colors.purple;
+                                } else {
+                                  tagText = '🎓 Изучает ' + skill;
+                                  tagColor = Colors.green;
+                                  tagTextColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+                                }
+                              }
 
                               String lastMessage =
                                   chatData['lastMessage'] ?? '';
@@ -264,14 +282,41 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                                       .spaceBetween,
                                               children: [
                                                 Expanded(
-                                                  child: Text(
-                                                    "$name • $skill",
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
+                                                  child: Row(
+                                                    children: [
+                                                      Flexible(
+                                                        child: Text(
+                                                          chatType == 'contract' ? name : (skill.isEmpty ? name : "$name • $skill"),
+                                                          overflow: TextOverflow.ellipsis,
+                                                          style: const TextStyle(
+                                                            fontWeight: FontWeight.w600,
+                                                            fontSize: 15,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      if (tagText.isNotEmpty) ...[
+                                                        const SizedBox(width: 8),
+                                                        Flexible(
+                                                          child: Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                            decoration: BoxDecoration(
+                                                              color: tagColor.withOpacity(0.15),
+                                                              borderRadius: BorderRadius.circular(6),
+                                                              border: Border.all(color: tagColor.withOpacity(0.5), width: 0.5),
+                                                            ),
+                                                            child: Text(
+                                                              tagText,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              style: TextStyle(
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: tagTextColor,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ],
                                                   ),
                                                 ),
                                                 Text(
