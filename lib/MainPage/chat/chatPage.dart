@@ -92,6 +92,23 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     });
   }
 
+  Future<String?> _getCurrentUserCallRole() async {
+    if (amILearner) return 'learn';
+    if (amITeacher) return 'teach';
+    if (widget.mode == 'learn' || widget.mode == 'teach') return widget.mode;
+
+    final chatDoc = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .get();
+    final data = chatDoc.data();
+    if (data == null) return null;
+
+    if (data['learnerId'] == currentUserId) return 'learn';
+    if (data['teacherId'] == currentUserId) return 'teach';
+    return null;
+  }
+
   Future<void> playAudio(String url, int durationSecs) async {
     try {
       String prevUrl = playingUrl;
@@ -1751,6 +1768,23 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                 // 1. Join Video Call
                                                 int duration =
                                                     data['duration'] ?? 60;
+                                                final callRole =
+                                                    await _getCurrentUserCallRole();
+                                                if (callRole == null) {
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                            'error_occurred'
+                                                                .tr()),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return;
+                                                }
+                                                if (!context.mounted) return;
                                                 final callDone =
                                                     await Navigator.push(
                                                   context,
@@ -1764,7 +1798,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                       otherUserId: otherUserId,
                                                       expectedDurationMinutes:
                                                           duration,
-                                                      role: widget.mode,
+                                                      role: callRole,
                                                     ),
                                                   ),
                                                 );
