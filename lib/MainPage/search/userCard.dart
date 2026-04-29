@@ -153,8 +153,8 @@ class _UserCardState extends State<UserCard> {
       });
 
       final initialText = mode == 'learn'
-          ? 'Сәлеметсіз бе! Мен сізден $skillString үйренгім келеді.'
-          : 'Сәлеметсіз бе! Мен сізге $skillString үйреткім келеді.';
+          ? 'learn_msg'.tr(namedArgs: {'skills': skillString})
+          : 'teach_msg'.tr(namedArgs: {'skills': skillString});
 
       await ChatService().sendMessage(
         chatId: chatId,
