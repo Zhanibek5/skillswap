@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class UsersManagementPage extends StatefulWidget {
   const UsersManagementPage({super.key});
@@ -26,8 +27,9 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
             return AlertDialog(
               backgroundColor: isDarkMode ? _darkCardColor : Colors.white,
               title: Text(
-                'Change Role',
-                style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                'change_role'.tr(),
+                style:
+                    TextStyle(color: isDarkMode ? Colors.white : Colors.black),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -53,8 +55,8 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
+                  child: Text(
+                    'cancel'.tr(),
                     style: TextStyle(color: _accentColor),
                   ),
                 ),
@@ -66,8 +68,8 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                         .update({'role': selectedRole});
                     if (context.mounted) Navigator.pop(context);
                   },
-                  child: const Text(
-                    'Save',
+                  child: Text(
+                    'save'.tr(),
                     style: TextStyle(color: _accentColor),
                   ),
                 ),
@@ -99,21 +101,24 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
               backgroundColor: isDarkMode ? _darkCardColor : Colors.white,
               title: Text(
                 'Add Time to $userName',
-                style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                style:
+                    TextStyle(color: isDarkMode ? Colors.white : Colors.black),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'Select hours to add (1 - 24):',
-                    style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87),
+                    style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        icon: Icon(Icons.remove_circle_outline, color: _accentColor),
+                        icon: Icon(Icons.remove_circle_outline,
+                            color: _accentColor),
                         onPressed: hoursToAdd > 1
                             ? () => setState(() => hoursToAdd--)
                             : null,
@@ -127,7 +132,8 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.add_circle_outline, color: _accentColor),
+                        icon:
+                            Icon(Icons.add_circle_outline, color: _accentColor),
                         onPressed: hoursToAdd < 24
                             ? () => setState(() => hoursToAdd++)
                             : null,
@@ -139,22 +145,25 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  child: const Text('Cancel',
+                      style: TextStyle(color: Colors.grey)),
                 ),
                 TextButton(
                   onPressed: () async {
                     try {
                       // Atomically add time bounds
-                      final userRef = _firestore.collection('users').doc(userId);
+                      final userRef =
+                          _firestore.collection('users').doc(userId);
                       await _firestore.runTransaction((transaction) async {
                         final snap = await transaction.get(userRef);
                         if (snap.exists) {
                           final data = snap.data()!;
-                          int tBal = data['timeBalance'] ?? data['balance'] ?? 0;
-                          
+                          int tBal =
+                              data['timeBalance'] ?? data['balance'] ?? 0;
+
                           transaction.update(userRef, {
                             'timeBalance': tBal + (hoursToAdd * 60),
-                            'balance': tBal + (hoursToAdd * 60), 
+                            'balance': tBal + (hoursToAdd * 60),
                           });
                         }
                       });
@@ -162,7 +171,8 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text("Successfully added $hoursToAdd hour(s)."),
+                            content:
+                                Text("Successfully added $hoursToAdd hour(s)."),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -178,7 +188,8 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                       }
                     }
                   },
-                  child: const Text('Add Time', style: TextStyle(color: _accentColor)),
+                  child: const Text('Add Time',
+                      style: TextStyle(color: _accentColor)),
                 ),
               ],
             );
@@ -195,7 +206,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          'User Management',
+          'user_management'.tr(),
           style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
         centerTitle: true,
@@ -219,7 +230,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Text(
-                      'No users found.',
+                      'no_users_found'.tr(),
                       style: TextStyle(
                         color: isDarkMode ? Colors.white70 : Colors.black87,
                       ),
@@ -230,10 +241,12 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                 final users = snapshot.data!.docs;
 
                 return ListView.builder(
-                  padding: const EdgeInsets.only(top: kToolbarHeight + 8, bottom: 20),
+                  padding: const EdgeInsets.only(
+                      top: kToolbarHeight + 8, bottom: 20),
                   itemCount: users.length,
                   itemBuilder: (context, index) {
-                    final userData = users[index].data() as Map<String, dynamic>;
+                    final userData =
+                        users[index].data() as Map<String, dynamic>;
                     final userId = users[index].id;
 
                     final firstName = userData['firstName'] ?? 'No Name';
@@ -244,8 +257,11 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                     final photoUrl = userData['photoUrl'];
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      color: isDarkMode ? _darkCardColor : Theme.of(context).cardColor,
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      color: isDarkMode
+                          ? _darkCardColor
+                          : Theme.of(context).cardColor,
                       shadowColor: isDarkMode
                           ? Colors.blue.withOpacity(0.2)
                           : Colors.black.withOpacity(0.08),
@@ -259,14 +275,16 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor:
-                              isDarkMode ? const Color(0xFF122A66) : Colors.grey.shade300,
+                          backgroundColor: isDarkMode
+                              ? const Color(0xFF122A66)
+                              : Colors.grey.shade300,
                           backgroundImage:
                               photoUrl != null ? NetworkImage(photoUrl) : null,
                           child: photoUrl == null
                               ? Icon(
                                   Icons.person,
-                                  color: isDarkMode ? Colors.black : Colors.black,
+                                  color:
+                                      isDarkMode ? Colors.black : Colors.black,
                                 )
                               : null,
                         ),
@@ -278,7 +296,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                           ),
                         ),
                         subtitle: Text(
-                          '$email\nRole: ${role.toUpperCase()}',
+                          '$email ${'role'.tr()} ${role.toUpperCase()}',
                           style: TextStyle(
                             color: isDarkMode ? Colors.white70 : Colors.black54,
                             height: 1.4,
@@ -289,13 +307,16 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.more_time, color: _accentColor),
-                              tooltip: 'Add Time Balance',
-                              onPressed: () => _showAddTimeDialog(userId, "$firstName $lastName"),
+                              icon: const Icon(Icons.more_time,
+                                  color: _accentColor),
+                              tooltip: 'add_time_balance'.tr(),
+                              onPressed: () => _showAddTimeDialog(
+                                  userId, "$firstName $lastName"),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.manage_accounts, color: _accentColor),
-                              tooltip: 'Change Role',
+                              icon: const Icon(Icons.manage_accounts,
+                                  color: _accentColor),
+                              tooltip: 'change_role'.tr(),
                               onPressed: () => _showRoleDialog(userId, role),
                             ),
                             IconButton(
@@ -303,7 +324,9 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
                                 isBanned ? Icons.lock : Icons.lock_open,
                                 color: isBanned ? Colors.red : Colors.green,
                               ),
-                              tooltip: isBanned ? 'Unban User' : 'Ban User',
+                              tooltip: isBanned
+                                  ? 'unban_user'.tr()
+                                  : 'ban_user'.tr(),
                               onPressed: () => _toggleBan(userId, isBanned),
                             ),
                           ],

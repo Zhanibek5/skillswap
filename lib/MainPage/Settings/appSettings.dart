@@ -75,9 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: isSelected
-            ? (isDarkMode
-                ? const Color(0xFF122A66)
-                : const Color(0xFFE9F3FF))
+            ? (isDarkMode ? const Color(0xFF122A66) : const Color(0xFFE9F3FF))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: isSelected
@@ -248,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         children: [
                           _item(
                             Icons.manage_accounts,
-                            'Manage Users',
+                            'manage_users'.tr(),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -261,7 +259,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           _divider(),
                           _item(
                             Icons.report_problem,
-                            'Manage Reports',
+                            'manage_reports'.tr(),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -274,7 +272,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           _divider(),
                           _item(
                             Icons.admin_panel_settings,
-                            'Other Admins',
+                            'other_admins'.tr(),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -347,7 +345,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        "Notification",
+                                        'notification'.tr(),
                                         style: TextStyle(
                                           color: iconColor,
                                           fontSize: 15,

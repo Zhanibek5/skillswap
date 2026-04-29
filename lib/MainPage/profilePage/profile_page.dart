@@ -38,7 +38,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (date.day == now.day - 1 &&
         date.month == now.month &&
         date.year == now.year) {
-      return "Yesterday";
+      return 'yesterday'.tr();
     }
 
     return DateFormat('dd MMM').format(date);
@@ -70,8 +70,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Text(
                       mode == 'learn'
-                          ? "Learners Feedback"
-                          : "Teachers Feedback",
+                          ? 'learners_feedback'.tr()
+                          : 'teachers_feedback'.tr(),
                       style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.bold),
                     ),
@@ -397,15 +397,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Can Teach',
+                                            'can_teach'.tr(),
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16),
                                           ),
                                           Text(
                                             canTeach
-                                                ? 'Available to teach'
-                                                : 'Not teaching now',
+                                                ? 'available_to_teach'.tr()
+                                                : 'not_teaching_now'.tr(),
                                             style: TextStyle(
                                                 color: Theme.of(context)
                                                             .brightness ==
@@ -449,15 +449,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Can Learn',
+                                            'can_learn'.tr(),
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16),
                                           ),
                                           Text(
                                             canLearn
-                                                ? 'Available to learn'
-                                                : 'Not learning now',
+                                                ? 'available_to_learn'.tr()
+                                                : 'not_learning_now'.tr(),
                                             style: TextStyle(
                                                 color: Theme.of(context)
                                                             .brightness ==
@@ -496,12 +496,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               /// TITLE
                               Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.rate_review,
                                       color: Color(0xFF1E88E5)),
                                   SizedBox(width: 8),
                                   Text(
-                                    "Feedback",
+                                    'feedback'.tr(),
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -514,7 +514,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                               /// DESCRIPTION
                               Text(
-                                "See what other users wrote about you.",
+                                'see_feedback'.tr(),
                                 style: TextStyle(
                                   color: Theme.of(context).brightness ==
                                           Brightness.dark
@@ -533,7 +533,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     _openFeedbackSheet('learn');
                                   },
                                   icon: const Icon(Icons.visibility),
-                                  label: const Text("Learners Feedback"),
+                                  label: Text('learners_feedback'.tr()),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF1E88E5),
                                     foregroundColor: Colors.white,
@@ -553,7 +553,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     _openFeedbackSheet('teach');
                                   },
                                   icon: const Icon(Icons.visibility),
-                                  label: const Text("Teachers Feedback"),
+                                  label: Text('teachers_feedback'.tr()),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF1E88E5),
                                     foregroundColor: Colors.white,
@@ -589,12 +589,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.video_library,
                                       color: Color(0xFF1E88E5)),
                                   SizedBox(width: 8),
                                   Text(
-                                    "History",
+                                    'history'.tr(),
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -604,7 +604,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                "Watch your saved videos",
+                                'watch_saved_videos'.tr(),
                                 style: TextStyle(
                                   color: Theme.of(context).brightness ==
                                           Brightness.dark
@@ -625,7 +625,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     );
                                   },
                                   icon: const Icon(Icons.play_circle_fill),
-                                  label: const Text("Saved Video in History"),
+                                  label: Text('saved_video_history'.tr()),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF1E88E5),
                                     foregroundColor: Colors.white,
@@ -698,7 +698,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   Text(
-                    "  ($count reviews)",
+                    'reviews'.tr(namedArgs: {'count': count.toString()}),
                     style: TextStyle(
                       color: isDark ? Colors.white70 : Colors.black54,
                       fontSize: 14,
@@ -732,7 +732,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                 final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
-                  return const Center(child: Text("No feedback yet"));
+                  return Center(child: Text('no_feedback'.tr()));
                 }
 
                 return ListView.builder(

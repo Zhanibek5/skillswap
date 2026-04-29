@@ -38,7 +38,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
     if (date.day == now.day - 1 &&
         date.month == now.month &&
         date.year == now.year) {
-      return "Yesterday";
+      return 'yesterday'.tr();
     }
 
     return DateFormat('dd MMM').format(date);
@@ -107,7 +107,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         color: isDark ? Colors.white : Colors.black,
                       ),
                       decoration: InputDecoration(
-                        hintText: "Search by name or skill",
+                        hintText: 'search_by_name_or_skill'.tr(),
                         hintStyle: TextStyle(
                           color: isDark ? Colors.white70 : Colors.grey,
                         ),
@@ -152,8 +152,8 @@ class _ChatsListPageState extends State<ChatsListPage> {
                       });
 
                       if (chats.isEmpty) {
-                        return const Center(
-                          child: Text("No chats yet"),
+                        return Center(
+                          child: Text('no_chats_yet'.tr()),
                         );
                       }
 
@@ -218,13 +218,13 @@ class _ChatsListPageState extends State<ChatsListPage> {
                               final lastType = chatData['lastType'] ?? 'text';
 
                               if (lastType == 'system_meeting_created') {
-                                lastMessage = "📅 Кездесу жоспарланды";
+                                lastMessage = 'meeting_scheduled_icon'.tr();
                               }
                               if (lastType == 'system_meeting_10min') {
-                                lastMessage = "⏰ 10 минут қалды";
+                                lastMessage = 'ten_min_left'.tr();
                               }
                               if (lastType == 'system_meeting_started') {
-                                lastMessage = "🔔 Кездесу басталды";
+                                lastMessage = 'meeting_started'.tr();
                               }
 
                               final timestamp = chatData['lastTimestamp'];

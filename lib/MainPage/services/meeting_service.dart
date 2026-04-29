@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class MeetingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -91,7 +92,7 @@ class MeetingService {
           'status': 'finished',
           'user1Penalty': 0.5,
           'user2Penalty': 0.5,
-          'message': 'Please schedule another meeting time',
+          'message': 'schedule_another_meeting'.tr(),
         });
       }
     }

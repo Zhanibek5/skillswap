@@ -3,6 +3,7 @@ import 'star_rating_widget.dart';
 import 'review_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ReviewDialog extends StatefulWidget {
   final String userName;
@@ -129,7 +130,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
 
                     /// Title
                     Text(
-                      "How was your lesson?",
+                      'how_was_lesson'.tr(),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -141,7 +142,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                     SizedBox(height: 5),
 
                     Text(
-                      "Your feedback helps improve learning quality",
+                      'feedback_help_improve'.tr(),
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade500,
@@ -191,8 +192,8 @@ class _ReviewDialogState extends State<ReviewDialog> {
                                   !chatLoaded
                                       ? ""
                                       : amILearner
-                                          ? "Teacher: ${widget.selectedSkills.join(", ")}"
-                                          : "Learner: ${widget.selectedSkills.join(", ")}",
+                                          ? "${'teacher'.tr()} ${widget.selectedSkills.join(", ")}"
+                                          : "${'learner'.tr()} ${widget.selectedSkills.join(", ")}",
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.grey.shade600,
@@ -209,7 +210,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
 
                     /// Rating
                     Text(
-                      "Rate this user",
+                      'rate_user'.tr(),
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey.shade800,
@@ -233,7 +234,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
                       controller: controller,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        hintText: "Write your feedback...",
+                        hintText: 'write_feedback'.tr(),
                         filled: true,
                         fillColor: Colors.grey.shade100,
                         contentPadding: const EdgeInsets.all(14),
@@ -261,8 +262,8 @@ class _ReviewDialogState extends State<ReviewDialog> {
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            child: const Text(
-                              "Skip",
+                            child: Text(
+                              'skip'.tr(),
                               style: TextStyle(color: Color(0xFF1E88E5)),
                             ),
                           ),
@@ -284,9 +285,8 @@ class _ReviewDialogState extends State<ReviewDialog> {
                               onPressed: () async {
                                 if (rating == 0) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          "Please give a rating before submitting your feedback"),
+                                    SnackBar(
+                                      content: Text('rate_required'.tr()),
                                     ),
                                   );
                                   return;
@@ -314,8 +314,8 @@ class _ReviewDialogState extends State<ReviewDialog> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                "Submit",
+                              child: Text(
+                                'submit'.tr(),
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold),

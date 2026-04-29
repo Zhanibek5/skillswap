@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class VideoMeetingPage extends StatefulWidget {
   final String meetingId; // Firestore-дағы кездесу ID
@@ -31,7 +32,7 @@ class _VideoMeetingPageState extends State<VideoMeetingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Video Meeting"),
+        title: Text('video_meeting'.tr()),
         backgroundColor: Colors.blueAccent,
         actions: [
           IconButton(
@@ -66,8 +67,8 @@ class _VideoMeetingPageState extends State<VideoMeetingPage> {
             Expanded(
               child: Container(
                 color: Colors.black12,
-                child: const Center(
-                  child: Text("Video stream goes here"),
+                child: Center(
+                  child: Text('video_stream_here'.tr()),
                 ),
               ),
             ),
@@ -80,7 +81,7 @@ class _VideoMeetingPageState extends State<VideoMeetingPage> {
                   });
                   Navigator.pop(context); // Video бітсе ChatPage-қа қайту
                 },
-                child: const Text("Leave Meeting"),
+                child: Text('leave_meeting'.tr()),
               ),
             ),
           ],

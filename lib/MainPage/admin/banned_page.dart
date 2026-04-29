@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/loginPage/login_page.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class BannedPage extends StatelessWidget {
   final String? reason;
@@ -24,20 +25,20 @@ class BannedPage extends StatelessWidget {
             children: [
               const Icon(Icons.block, size: 80, color: Colors.red),
               SizedBox(height: 20),
-              const Text(
-                'Account Suspended',
+              Text(
+                'account_suspended'.tr(),
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              const Text(
-                'Your account has been restricted by an administrator.',
+              Text(
+                'account_restricted'.tr(),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 16),
               if (reason != null && reason!.isNotEmpty)
                 Text(
-                  'Reason: $reason',
+                  '${'reason'.tr()} $reason',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 16,
@@ -46,7 +47,7 @@ class BannedPage extends StatelessWidget {
                 ),
               SizedBox(height: 8),
               Text(
-                'Duration: $expirationText',
+                '${'duration'.tr()} $expirationText',
                 textAlign: TextAlign.center,
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -61,7 +62,7 @@ class BannedPage extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text('Logout'),
+                label: Text('logout'.tr()),
               ),
             ],
           ),

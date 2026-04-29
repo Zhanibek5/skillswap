@@ -198,8 +198,9 @@ class _FilterSheetState extends State<FilterSheet> {
               max: 75,
               divisions: 59,
               activeColor: const Color(0xFF1E88E5),
-              inactiveColor:
-                  isDark ? _darkCardBorderColor.withOpacity(0.5) : Colors.grey.shade300,
+              inactiveColor: isDark
+                  ? _darkCardBorderColor.withOpacity(0.5)
+                  : Colors.grey.shade300,
               labels: RangeLabels(
                 "${minAge ?? 16}",
                 "${maxAge ?? 75}",

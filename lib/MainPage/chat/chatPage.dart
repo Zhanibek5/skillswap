@@ -19,6 +19,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:swipe_to/swipe_to.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:easy_localization/easy_localization.dart';
 
 import 'package:skillswap/MainPage/chat/services/chat_service.dart';
 
@@ -276,7 +277,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         .collection('chats')
         .doc(widget.chatId)
         .update({
-      'lastMessage': '📅 Кездесу жоспарланды',
+      'lastMessage': 'meeting_scheduled_icon'.tr(),
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': 'system_meeting_created',
     });
@@ -292,15 +293,15 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             backgroundColor: Theme.of(context).brightness == Brightness.dark
                 ? const Color(0xFF1E1E1E)
                 : Colors.white,
-            title: const Text("Confirm Meeting"),
+            title: Text('confirm_meeting'.tr()),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    "Meeting Time:\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
+                    "${'meeting_time'.tr()}\n${meetingTime.day}.${meetingTime.month}.${meetingTime.year}  ${meetingTime.hour}:${meetingTime.minute.toString().padLeft(2, '0')}"),
                 const SizedBox(height: 20),
-                const Text("Duration (minutes):"),
+                Text('duration_minutes'.tr()),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -315,7 +316,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                           : null,
                     ),
                     Text(
-                      "$selectedDuration min",
+                      "$selectedDuration ${'min'.tr()}",
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -348,8 +349,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Cancel",
+                child: Text(
+                  'cancel'.tr(),
                   style: TextStyle(color: Color(0xFF1E88E5)),
                 ),
               ),
@@ -371,7 +372,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                     vertical: 10,
                   ),
                 ),
-                child: const Text("Confirm"),
+                child: Text("confirm".tr()),
               ),
             ],
           );
@@ -507,6 +508,46 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     await recorder.openRecorder();
   }
 
+  Future<void> checkAndSendInitialMessage() async {
+    if (widget.mode == 'support' ||
+        widget.mode == 'admin_view' ||
+        widget.mode == 'support_admin') {
+      return;
+    }
+
+    final chatDoc = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .get();
+
+    final chatData = chatDoc.data();
+    if (chatData != null && chatData['initialMessageSent'] == true) {
+      return;
+    }
+
+    final messages = await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .limit(1)
+        .get();
+
+    final skills = widget.selectedSkills.join(", ");
+
+    if (messages.docs.isEmpty) {
+      final text = widget.mode == 'learn'
+          ? 'learn_from_user'.tr(namedArgs: {'skills': skills})
+          : 'teach_user'.tr(namedArgs: {'skills': skills});
+
+      await sendMessage(text);
+
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .update({'initialMessageSent': true});
+    }
+  }
+
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
@@ -520,21 +561,24 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         'text': text,
         'isEdited': true,
       });
+
       setState(() {
         editMessageId = null;
         replyToMessage = null;
       });
+
       messageController.clear();
       return;
     }
 
     final replyData = replyToMessage != null
         ? {
-            'text': replyToMessage!['text'] ?? 'Attachment',
+            'text': replyToMessage!['text'] ?? 'audio_message'.tr(),
             'senderId': replyToMessage!['senderId'],
           }
         : null;
 
+    // 🔥 1. Message жіберу
     await ChatService().sendMessage(
       chatId: widget.chatId,
       senderId: currentUserId,
@@ -544,9 +588,21 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       replyTo: replyData,
     );
 
+    // 🔥 2. Chat summary update (participants + lastMessage)
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .set({
+      'participants': [currentUserId, widget.otherUserId],
+      'lastMessage': text,
+      'lastTimestamp': FieldValue.serverTimestamp(),
+      'lastType': 'text',
+    }, SetOptions(merge: true));
+
     setState(() {
       replyToMessage = null;
     });
+
     messageController.clear();
   }
 
@@ -644,8 +700,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                       onPressed: () => Navigator.pop(context)),
                   Text(
                       fileType == 'image'
-                          ? 'Выбрано: ${files.length}'
-                          : 'Выбран 1 файл',
+                          ? '${'selected'.tr()} ${files.length}'
+                          : 'one_file_selected'.tr(),
                       style: TextStyle(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF1E1E1E)
@@ -701,8 +757,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                           child: TextField(
                         controller: captionController,
                         style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: "Добавить подпись...",
+                        decoration: InputDecoration(
+                          hintText: "add_caption".tr(),
                           hintStyle: TextStyle(color: Colors.white54),
                           border: InputBorder.none,
                         ),
@@ -749,12 +805,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               children: [
                 ListTile(
                   leading: const Icon(Icons.reply),
-                  title: const Text('Ответить'),
+                  title: Text('reply'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     setState(() {
                       replyToMessage = {
-                        'text': '📷 Альбом',
+                        'text': 'album'.tr(),
                         'senderId': data['senderId'],
                       };
                     });
@@ -763,8 +819,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                 ),
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Удалить',
-                      style: TextStyle(color: Colors.red)),
+                  title:
+                      Text('delete'.tr(), style: TextStyle(color: Colors.red)),
                   onTap: () async {
                     Navigator.pop(context);
                     for (var doc in aDocs) {
@@ -827,7 +883,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               children: [
                 ListTile(
                   leading: const Icon(Icons.reply),
-                  title: const Text('Ответить'),
+                  title: Text('reply'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     setState(() {
@@ -841,7 +897,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                 ),
                 ListTile(
                   leading: const Icon(Icons.copy),
-                  title: const Text('Копировать'),
+                  title: Text('copy'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     foundation.defaultTargetPlatform ==
@@ -851,14 +907,14 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                         ? Clipboard.setData(
                             ClipboardData(text: data['text'] ?? ''))
                         : null;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Скопировано')));
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('copied'.tr())));
                   },
                 ),
                 if (isMe && data['type'] == 'text')
                   ListTile(
                     leading: const Icon(Icons.edit),
-                    title: const Text('Изменить'),
+                    title: Text('edit'.tr()),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() {
@@ -871,7 +927,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                 if (isMe)
                   ListTile(
                     leading: const Icon(Icons.delete, color: Colors.red),
-                    title: const Text('Удалить',
+                    title: Text('delete'.tr(),
                         style: TextStyle(color: Colors.red)),
                     onTap: () async {
                       Navigator.pop(context);
@@ -941,7 +997,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildAttachOption(Icons.image, Colors.purple, "Gallery",
+                _buildAttachOption(Icons.image, Colors.purple, 'gallery'.tr(),
                     () async {
                   Navigator.pop(context);
                   final picked = await ImagePicker().pickMultiImage();
@@ -950,7 +1006,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                         picked.map((e) => File(e.path)).toList(), 'image');
                   }
                 }),
-                _buildAttachOption(Icons.camera_alt, Colors.pink, "Camera",
+                _buildAttachOption(Icons.camera_alt, Colors.pink, 'camera'.tr(),
                     () async {
                   Navigator.pop(context);
                   final picked =
@@ -960,7 +1016,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   }
                 }),
                 _buildAttachOption(
-                    Icons.insert_drive_file, Colors.orange, "File", () async {
+                    Icons.insert_drive_file, Colors.orange, 'file'.tr(),
+                    () async {
                   Navigator.pop(context);
                   final picked = await FilePicker.platform.pickFiles();
                   if (picked != null && picked.files.single.path != null) {
@@ -1058,7 +1115,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         .collection('chats')
         .doc(widget.chatId)
         .update({
-      'lastMessage': '🎤 Аудио хабарлама',
+      'lastMessage': 'audio_message'.tr(),
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': 'audio',
     });
@@ -1286,8 +1343,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                 !chatLoaded
                                     ? ""
                                     : amILearner
-                                        ? "Teacher: ${widget.selectedSkills.join(", ")}"
-                                        : "Learner: ${widget.selectedSkills.join(", ")}",
+                                        ? "${'teacher'.tr()} ${widget.selectedSkills.join(", ")}"
+                                        : "${'learner'.tr()} ${widget.selectedSkills.join(", ")}",
                                 style: TextStyle(
                                   color: Theme.of(context).brightness ==
                                           Brightness.dark
@@ -1321,24 +1378,24 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                               }
                             },
                             itemBuilder: (context) => [
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'schedule',
                                 child: Row(
                                   children: [
                                     Icon(Icons.calendar_month),
                                     SizedBox(width: 8),
-                                    Text('Create schedule'),
+                                    Text('create_schedule'.tr()),
                                   ],
                                 ),
                               ),
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'report',
                                 child: Row(
                                   children: [
                                     Icon(Icons.warning_amber_rounded,
                                         color: Colors.red),
                                     SizedBox(width: 8),
-                                    Text('Report user',
+                                    Text('report_user'.tr(),
                                         style: TextStyle(color: Colors.red)),
                                   ],
                                 ),
@@ -1466,7 +1523,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    "Здесь пока ничего нет...",
+                                    'empty_chat'.tr(),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -1479,7 +1536,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    "Отправьте сообщение или нажмите на приветствие ниже.",
+                                    'start_chat_hint'.tr(),
                                     style: TextStyle(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
@@ -1668,8 +1725,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                         children: [
                                           if (type ==
                                               'system_meeting_created') ...[
-                                            const Text(
-                                              "📅 Кездесу жоспарланды",
+                                            Text(
+                                              'meeting_scheduled_icon'.tr(),
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold),
                                             ),
@@ -1680,11 +1737,11 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                               ),
                                           ],
                                           if (type == 'system_meeting_10min')
-                                            const Text("⏰ 10 минут қалды"),
+                                            Text('ten_min_left'.tr()),
                                           if (type ==
                                               'system_meeting_started') ...[
-                                            const Text(
-                                              "🔔 Кездесу басталды",
+                                            Text(
+                                              'meeting_started'.tr(),
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold),
                                             ),
@@ -1737,24 +1794,27 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                     context: context,
                                                     builder: (ctx) =>
                                                         AlertDialog(
-                                                      title: const Text(
-                                                          'Save Video in History?'),
-                                                      content: const Text(
-                                                          'Do you want to save this video conference recording?'),
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      title: Text(
+                                                          'save_video'.tr()),
+                                                      content: Text(
+                                                          'save_video_desc'
+                                                              .tr()),
                                                       actions: [
                                                         TextButton(
                                                           onPressed: () =>
                                                               Navigator.pop(
                                                                   ctx, false),
                                                           child:
-                                                              const Text('No'),
+                                                              Text('no'.tr()),
                                                         ),
                                                         TextButton(
                                                           onPressed: () =>
                                                               Navigator.pop(
                                                                   ctx, true),
                                                           child:
-                                                              const Text('Yes'),
+                                                              Text('yes'.tr()),
                                                         ),
                                                       ],
                                                     ),
@@ -1779,9 +1839,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                       ScaffoldMessenger.of(
                                                               context)
                                                           .showSnackBar(
-                                                        const SnackBar(
+                                                        SnackBar(
                                                             content: Text(
-                                                                'Video saved in history!')),
+                                                                'video_saved'
+                                                                    .tr())),
                                                       );
                                                     }
                                                   }
@@ -1803,8 +1864,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                   vertical: 5,
                                                 ),
                                               ),
-                                              child: const Text(
-                                                "Қосылу",
+                                              child: Text(
+                                                'join'.tr(),
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -2111,7 +2172,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                           children: [
                                                             Text(
                                                               data['fileName'] ??
-                                                                  'Файл',
+                                                                  'file'.tr(),
                                                               style: TextStyle(
                                                                 color: isMe
                                                                     ? Colors
@@ -2197,7 +2258,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                               Padding(
                                                 padding: const EdgeInsets.only(
                                                     right: 4.0),
-                                                child: Text('изменено',
+                                                child: Text('edited'.tr(),
                                                     style: TextStyle(
                                                         fontSize: 10,
                                                         color: isMe
@@ -2282,8 +2343,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                     children: [
                                       Text(
                                         editMessageId != null
-                                            ? "Изменить сообщение"
-                                            : "В ответ",
+                                            ? 'edit_message'.tr()
+                                            : 'in_reply'.tr(),
                                         style: const TextStyle(
                                             color: Colors.blueAccent,
                                             fontWeight: FontWeight.bold,
@@ -2293,7 +2354,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                         editMessageId != null
                                             ? messageController.text
                                             : (replyToMessage!['text'] ??
-                                                'Вложение'),
+                                                'attachment'.tr()),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -2378,7 +2439,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                           : Colors.black,
                                                       fontSize: 16)),
                                               const Spacer(),
-                                              const Text("< Влево — отмена",
+                                              Text('swipe_left_cancel'.tr(),
                                                   style: TextStyle(
                                                       color: Colors.grey,
                                                       fontSize: 14)),
@@ -2405,9 +2466,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                                     textCapitalization:
                                                         TextCapitalization
                                                             .sentences,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                      hintText: "Message...",
+                                                    decoration: InputDecoration(
+                                                      hintText:
+                                                          'message_hint'.tr(),
                                                       border: InputBorder.none,
                                                       isCollapsed:
                                                           true, // remove extra padding
@@ -2452,9 +2513,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                 GestureDetector(
                                   onTap: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            "Аудио жазу үшін басып тұрыңыз"),
+                                      SnackBar(
+                                        content: Text('hold_to_record'.tr()),
                                         duration: Duration(seconds: 1),
                                       ),
                                     );

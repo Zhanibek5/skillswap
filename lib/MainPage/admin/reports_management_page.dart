@@ -6,6 +6,7 @@ import 'package:skillswap/MainPage/chat/chatPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 
 class ReportsManagementPage extends StatelessWidget {
   const ReportsManagementPage({super.key});
@@ -38,7 +39,7 @@ class ReportsManagementPage extends StatelessWidget {
                 child: Scaffold(
                   appBar: AppBar(
                       title: Text(
-                        'User Profile View',
+                        'user_profile_view'.tr(),
                         style: TextStyle(
                           color: isDarkMode ? Colors.white : Colors.black,
                         ),
@@ -73,7 +74,7 @@ class ReportsManagementPage extends StatelessWidget {
           return AlertDialog(
             backgroundColor: isDarkMode ? _darkCardColor : Colors.white,
             title: Text(
-              'Ban User',
+              'ban_user'.tr(),
               style: TextStyle(
                 color: isDarkMode ? Colors.white : Colors.black,
               ),
@@ -87,7 +88,7 @@ class ReportsManagementPage extends StatelessWidget {
                     color: isDarkMode ? Colors.white : Colors.black87,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'Reason for ban',
+                    labelText: 'ban_reason'.tr(),
                     labelStyle: TextStyle(
                       color: isDarkMode ? Colors.white70 : Colors.black54,
                     ),
@@ -133,15 +134,15 @@ class ReportsManagementPage extends StatelessWidget {
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
+                  child: Text(
+                    'cancel'.tr(),
                     style: TextStyle(color: _accentColor),
                   )),
               ElevatedButton(
                 onPressed: () async {
                   if (reasonController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Reason is required')));
+                        SnackBar(content: Text('reason_required'.tr())));
                     return;
                   }
 
@@ -169,13 +170,12 @@ class ReportsManagementPage extends StatelessWidget {
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('User banned and report resolved.')),
+                      SnackBar(content: Text('user_banned'.tr())),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Ban'),
+                child: Text('ban'.tr()),
               )
             ],
           );
@@ -243,7 +243,8 @@ class ReportsManagementPage extends StatelessWidget {
       BuildContext context, DocumentSnapshot reportDoc, bool isFeedback) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final Color primaryText = isDarkMode ? Colors.white : Colors.black87;
-    final Color secondaryText = isDarkMode ? Colors.white70 : Colors.grey.shade700;
+    final Color secondaryText =
+        isDarkMode ? Colors.white70 : Colors.grey.shade700;
     final data = reportDoc.data() as Map<String, dynamic>;
     final reportId = reportDoc.id;
 
@@ -289,8 +290,8 @@ class ReportsManagementPage extends StatelessWidget {
               children: [
                 Text(
                     isFeedback
-                        ? 'Category: ${category ?? "General"}'
-                        : 'Type: $targetType',
+                        ? '${'category'.tr()} ${category ?? 'general'.tr()}'
+                        : '${'type'.tr()} $targetType',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: primaryText,
@@ -314,7 +315,7 @@ class ReportsManagementPage extends StatelessWidget {
             ),
             SizedBox(height: 8),
             if (isFeedback && location != null) ...[
-              Text('Subcategory: $location',
+              Text('${'subcategory'.tr()} $location',
                   style: TextStyle(
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
@@ -323,20 +324,20 @@ class ReportsManagementPage extends StatelessWidget {
               const SizedBox(height: 8),
             ],
             if (!isFeedback)
-              Text('Reported User ID:\n$reportedUserId',
+              Text('${'reported_user_id'.tr()}\n$reportedUserId',
                   style: TextStyle(fontSize: 12, color: secondaryText)),
             const SizedBox(height: 4),
-            Text('From User ID: $reporterId',
+            Text('${'from_user_id'.tr()} $reporterId',
                 style: TextStyle(fontSize: 12, color: secondaryText)),
             const SizedBox(height: 12),
             Text(
-              'Reason / Message:',
+              'message_reason'.tr(),
               style: TextStyle(fontWeight: FontWeight.bold, color: primaryText),
             ),
             Text(reason, style: TextStyle(fontSize: 14, color: primaryText)),
             const SizedBox(height: 8),
             if (attachments != null && attachments.isNotEmpty) ...[
-              Text('Attachments:',
+              Text('attachments'.tr(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: primaryText,
@@ -355,7 +356,9 @@ class ReportsManagementPage extends StatelessWidget {
                         width: 80,
                         height: 80,
                         margin: const EdgeInsets.only(right: 8),
-                        color: isDarkMode ? _darkCardBorderColor : Colors.grey.shade300,
+                        color: isDarkMode
+                            ? _darkCardBorderColor
+                            : Colors.grey.shade300,
                         child: const Icon(Icons.videocam),
                       );
                     }
@@ -373,7 +376,7 @@ class ReportsManagementPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
             ],
-            Text('Date: $dateStr',
+            Text('${'date'.tr()} $dateStr',
                 style: TextStyle(fontSize: 12, color: secondaryText)),
             Divider(color: isDarkMode ? Colors.white30 : Colors.black26),
             Wrap(
@@ -390,7 +393,7 @@ class ReportsManagementPage extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.chat, size: 16),
-                    label: const Text('View Chat'),
+                    label: Text('view_chat'.tr()),
                     onPressed: () {
                       Navigator.push(
                           context,
@@ -414,7 +417,7 @@ class ReportsManagementPage extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.person, size: 16),
-                    label: const Text('Reporter'),
+                    label: Text('reporter'.tr()),
                     onPressed: () => _viewProfile(context, reporterId),
                   ),
                 if (!isFeedback &&
@@ -430,7 +433,7 @@ class ReportsManagementPage extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.person_outline, size: 16),
-                    label: const Text('Reported User'),
+                    label: Text('reported_user'.tr()),
                     onPressed: () => _viewProfile(context, reportedUserId),
                   ),
                 if (isFeedback)
@@ -444,7 +447,7 @@ class ReportsManagementPage extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.reply, size: 16),
-                    label: const Text('Reply to User'),
+                    label: Text('reply_user'.tr()),
                     onPressed: () =>
                         _replyToFeedback(context, reporterId, reason),
                   ),
@@ -459,7 +462,7 @@ class ReportsManagementPage extends StatelessWidget {
                     onPressed: () {
                       _updateReportStatus(reportId, 'rejected');
                     },
-                    child: const Text('Reject/Close',
+                    child: Text('reject_close'.tr(),
                         style: TextStyle(color: Colors.red)),
                   ),
                   if (!isFeedback)
@@ -469,7 +472,7 @@ class ReportsManagementPage extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent),
-                      child: const Text('Ban User'),
+                      child: Text('ban_user'.tr()),
                     ),
                   if (isFeedback)
                     ElevatedButton(
@@ -478,7 +481,7 @@ class ReportsManagementPage extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green),
-                      child: const Text('Mark Resolved'),
+                      child: Text('mark_resolved'.tr()),
                     ),
                 ],
               ),
@@ -501,7 +504,7 @@ class ReportsManagementPage extends StatelessWidget {
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           title: Text(
-            'Reports & Feedback',
+            'reports_feedback'.tr(),
             style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
           ),
           centerTitle: true,
@@ -514,8 +517,8 @@ class ReportsManagementPage extends StatelessWidget {
             unselectedLabelColor: isDarkMode ? Colors.white60 : Colors.black54,
             indicatorColor: _accentColor,
             tabs: [
-              Tab(text: 'User Reports'),
-              Tab(text: 'System Feedback'),
+              Tab(text: 'user_report'.tr()),
+              Tab(text: 'system_feedback'.tr()),
             ],
           ),
         ),
@@ -539,7 +542,7 @@ class ReportsManagementPage extends StatelessWidget {
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(
                       child: Text(
-                        'No reports found.',
+                        'no_reports'.tr(),
                         style: TextStyle(
                           color: isDarkMode ? Colors.white70 : Colors.black87,
                         ),
@@ -562,7 +565,8 @@ class ReportsManagementPage extends StatelessWidget {
                   Map<String, List<DocumentSnapshot>> groupedFeedbacks = {};
                   for (var doc in feedbacks) {
                     final cat =
-                        (doc.data() as Map<String, dynamic>)['category'] ?? 'Other';
+                        (doc.data() as Map<String, dynamic>)['category'] ??
+                            'Other';
                     if (!groupedFeedbacks.containsKey(cat)) {
                       groupedFeedbacks[cat] = [];
                     }
@@ -574,9 +578,11 @@ class ReportsManagementPage extends StatelessWidget {
                       userReports.isEmpty
                           ? Center(
                               child: Text(
-                                'No user reports',
+                                'no_user_reports'.tr(),
                                 style: TextStyle(
-                                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black87,
                                 ),
                               ),
                             )
@@ -589,9 +595,11 @@ class ReportsManagementPage extends StatelessWidget {
                       feedbacks.isEmpty
                           ? Center(
                               child: Text(
-                                'No system feedback',
+                                'no_system_feedback'.tr(),
                                 style: TextStyle(
-                                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black87,
                                 ),
                               ),
                             )
@@ -612,8 +620,8 @@ class ReportsManagementPage extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(16),
                                     border: isDarkMode
                                         ? Border.all(
-                                            color:
-                                                _darkCardBorderColor.withOpacity(0.45),
+                                            color: _darkCardBorderColor
+                                                .withOpacity(0.45),
                                           )
                                         : null,
                                   ),
@@ -623,20 +631,23 @@ class ReportsManagementPage extends StatelessWidget {
                                     ),
                                     child: ExpansionTile(
                                       initiallyExpanded: true,
-                                      iconColor:
-                                          isDarkMode ? Colors.white70 : Colors.black54,
-                                      collapsedIconColor:
-                                          isDarkMode ? Colors.white70 : Colors.black54,
+                                      iconColor: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                      collapsedIconColor: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
                                       title: Text(
-                                        'Category: $category',
+                                        '${'category'.tr()} $category',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color:
-                                              isDarkMode ? Colors.white : Colors.black87,
+                                          color: isDarkMode
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       subtitle: Text(
-                                        '${docs.length} tickets',
+                                        '${docs.length} ${'tickets'.tr()}',
                                         style: TextStyle(
                                           color: isDarkMode
                                               ? Colors.white70
@@ -644,8 +655,8 @@ class ReportsManagementPage extends StatelessWidget {
                                         ),
                                       ),
                                       children: docs
-                                          .map((doc) =>
-                                              _buildReportCard(context, doc, true))
+                                          .map((doc) => _buildReportCard(
+                                              context, doc, true))
                                           .toList(),
                                     ),
                                   ),

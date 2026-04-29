@@ -46,7 +46,7 @@ class _UserCardState extends State<UserCard> {
     if (date.day == now.day - 1 &&
         date.month == now.month &&
         date.year == now.year) {
-      return "Yesterday";
+      return 'yesterday'.tr();
     }
 
     return DateFormat('dd MMM').format(date);
@@ -80,8 +80,8 @@ class _UserCardState extends State<UserCard> {
                   children: [
                     Text(
                       widget.mode == 'learn'
-                          ? "Learners Feedback"
-                          : "Teachers Feedback",
+                          ? 'learners_feedback'.tr()
+                          : 'teachers_feedback'.tr(),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -299,8 +299,8 @@ class _UserCardState extends State<UserCard> {
                         if (widget.mode == 'learn') ...[
                           Text(
                             skillsT.isNotEmpty
-                                ? "Teaches: ${skillsT.join(', ')}"
-                                : "No skills yet",
+                                ? "${'teacher'.tr()} ${skillsT.join(', ')}"
+                                : 'no_skills_yet'.tr(),
                             style: TextStyle(
                               color: isDark ? Colors.white70 : Colors.grey,
                             ),
@@ -329,8 +329,8 @@ class _UserCardState extends State<UserCard> {
                         ] else ...[
                           Text(
                             skillsL.isNotEmpty
-                                ? "Wants to learn: ${skillsL.join(', ')}"
-                                : "No skills yet",
+                                ? "${'wants_to_learn'.tr()} ${skillsL.join(', ')}"
+                                : 'no_skills_yet'.tr(),
                             style: TextStyle(
                               color: isDark ? Colors.white70 : Colors.grey,
                             ),
@@ -387,7 +387,7 @@ class _UserCardState extends State<UserCard> {
                       IconButton(
                         icon: const Icon(Icons.warning_amber_rounded,
                             color: Colors.red, size: 20),
-                        tooltip: 'Report User',
+                        tooltip: 'report_user'.tr(),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         onPressed: () {
@@ -467,11 +467,8 @@ class _UserCardState extends State<UserCard> {
                             final currentUserData = currentUserDoc.data();
 
                             if (currentUserData?['profileCompleted'] != true) {
-                              showSnackBar(
-                                  context,
-                                  "Profile is not complete. Please complete it first.",
-                                  Icons.warning_amber_rounded,
-                                  Colors.blueGrey);
+                              showSnackBar(context, 'profile_not_complete'.tr(),
+                                  Icons.warning_amber_rounded, Colors.blueGrey);
                               return;
                             }
 
@@ -485,20 +482,14 @@ class _UserCardState extends State<UserCard> {
 
                             if (widget.mode == 'learn') {
                               if (otherUserData?['canTeach'] != true) {
-                                showSnackBar(
-                                    context,
-                                    "This user is not teaching currently.",
-                                    Icons.info_outline,
-                                    Colors.blueGrey);
+                                showSnackBar(context, 'not_teaching'.tr(),
+                                    Icons.info_outline, Colors.blueGrey);
                                 return;
                               }
                             } else {
                               if (otherUserData?['canLearn'] != true) {
-                                showSnackBar(
-                                    context,
-                                    "This user is not learning currently.",
-                                    Icons.info_outline,
-                                    Colors.blueGrey);
+                                showSnackBar(context, 'not_learning'.tr(),
+                                    Icons.info_outline, Colors.blueGrey);
                                 return;
                               }
                             }
@@ -520,8 +511,8 @@ class _UserCardState extends State<UserCard> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    child: const Text(
-                      "Exchange",
+                    child: Text(
+                      'exchange'.tr(),
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -566,7 +557,9 @@ class _UserCardState extends State<UserCard> {
                         ),
                         SizedBox(width: 6),
                         Text(
-                          canTeach ? "Ready to teach" : "Not teaching now",
+                          canTeach
+                              ? 'ready_to_teach'.tr()
+                              : 'not_teaching_now'.tr(),
                           style: TextStyle(
                             color: canTeach ? Colors.green : Colors.red,
                             fontWeight: FontWeight.w600,
@@ -584,7 +577,9 @@ class _UserCardState extends State<UserCard> {
                         ),
                         SizedBox(width: 6),
                         Text(
-                          canLearn ? "Ready to learn" : "Not learning now",
+                          canLearn
+                              ? 'ready_to_learn'.tr()
+                              : 'not_learning_now'.tr(),
                           style: TextStyle(
                             color: canLearn ? Colors.green : Colors.red,
                             fontWeight: FontWeight.w600,
@@ -686,7 +681,7 @@ class _UserCardState extends State<UserCard> {
                         fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   Text(
-                    "  ($count reviews)",
+                    'reviews'.tr(namedArgs: {'count': count.toString()}),
                     style: TextStyle(
                       color: isDark ? Colors.white70 : Colors.black54,
                       fontSize: 14,
@@ -715,7 +710,8 @@ class _UserCardState extends State<UserCard> {
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(
-                      child: Text("Қате орын алды: ${snapshot.error}"));
+                      child:
+                          Text("${'error_occurred'.tr()} ${snapshot.error}"));
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -723,7 +719,7 @@ class _UserCardState extends State<UserCard> {
 
                 final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
-                  return const Center(child: Text("No comments yet"));
+                  return Center(child: Text('no_comments'.tr()));
                 }
 
                 return ListView.builder(
@@ -735,7 +731,7 @@ class _UserCardState extends State<UserCard> {
                     final comment = data['comment'] ?? '';
                     final timestamp = data['createdAt'];
                     final fromUserId = data['fromUserId'];
-                    final username = data['fromUserName'] ?? 'username';
+                    final username = data['fromUserName'] ?? 'username'.tr();
                     final photoUrl = data['fromUserPhoto'];
                     final timeText = formatTime(timestamp);
 

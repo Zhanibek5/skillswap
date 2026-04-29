@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ReviewService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -26,7 +27,7 @@ class ReviewService {
         .get();
 
     if (existing.docs.isNotEmpty) {
-      throw Exception("You already reviewed this meeting");
+      throw Exception('already_reviewed_meeting'.tr());
     }
 
     final chatDoc = await _firestore.collection('chats').doc(meetingId).get();

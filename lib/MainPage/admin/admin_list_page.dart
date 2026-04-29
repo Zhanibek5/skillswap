@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,7 +19,7 @@ class AdminListPage extends StatelessWidget {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          'Admin & Moderators',
+          'admin_moderators'.tr(),
           style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
         centerTitle: true,
@@ -44,7 +45,7 @@ class AdminListPage extends StatelessWidget {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
                   child: Text(
-                    'No admins found.',
+                    'no_admins_found'.tr(),
                     style: TextStyle(
                       color: isDarkMode ? Colors.white70 : Colors.black87,
                     ),
@@ -52,13 +53,14 @@ class AdminListPage extends StatelessWidget {
                 );
               }
 
-              final admins =
-                  snapshot.data!.docs.where((doc) => doc.id != currentUid).toList();
+              final admins = snapshot.data!.docs
+                  .where((doc) => doc.id != currentUid)
+                  .toList();
 
               if (admins.isEmpty) {
                 return Center(
                   child: Text(
-                    'No other admins found.',
+                    'no_other_admins'.tr(),
                     style: TextStyle(
                       color: isDarkMode ? Colors.white70 : Colors.black87,
                     ),

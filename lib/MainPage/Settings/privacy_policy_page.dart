@@ -55,54 +55,44 @@ class PrivacyPolicyPage extends StatelessWidget {
                       ),
                   ],
                   border: isDarkMode
-                      ? Border.all(color: _darkCardBorderColor.withOpacity(0.45))
+                      ? Border.all(
+                          color: _darkCardBorderColor.withOpacity(0.45))
                       : null,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SkillSwap Privacy Policy',
+                      'privacy_title'.tr(),
                       style: GoogleFonts.roboto(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: isDarkMode ? Colors.white : const Color(0xFF203068),
+                        color:
+                            isDarkMode ? Colors.white : const Color(0xFF203068),
                       ),
                     ),
                     SizedBox(height: 16),
-                    _buildSectionTitle(context, '1. Introduction'),
-                    _buildSectionContent(
-                        context,
-                        'Welcome to SkillSwap. We value your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our application to exchange skills.'),
+                    _buildSectionTitle(context, 'intro_title'.tr()),
+                    _buildSectionContent(context, 'intro_text'.tr()),
                     SizedBox(height: 16),
-                    _buildSectionTitle(context, '2. Information We Collect'),
-                    _buildSectionContent(
-                        context,
-                        'We collect information you provide directly to us, such as when you create an account, update your profile, and list skills you can teach or want to learn. This includes your name, email address, profile picture, and communication within the app.'),
+                    _buildSectionTitle(context, 'info_title'.tr()),
+                    _buildSectionContent(context, 'info_text'.tr()),
                     SizedBox(height: 16),
-                    _buildSectionTitle(context, '3. How We Use Your Information'),
-                    _buildSectionContent(
-                        context,
-                        'The information we collect is used to matched you with other users for skill exchange, maintain your account, improve our services, and communicate with you about updates and community guidelines.'),
+                    _buildSectionTitle(context, 'use_title'.tr()),
+                    _buildSectionContent(context, 'use_text'.tr()),
                     SizedBox(height: 16),
-                    _buildSectionTitle(context, '4. Data Sharing and Disclosure'),
-                    _buildSectionContent(
-                        context,
-                        'SkillSwap does not sell your personal data. We may share your public profile information (such as your name and listed skills) with other users to facilitate skill exchanges.'),
+                    _buildSectionTitle(context, 'share_title'.tr()),
+                    _buildSectionContent(context, 'share_text'.tr()),
                     SizedBox(height: 16),
-                    _buildSectionTitle(context, '5. Data Security'),
-                    _buildSectionContent(
-                        context,
-                        'We implement appropriate security measures to protect your personal information against unauthorized access, alteration, and destruction. However, no data transmission over the Internet can be guaranteed to be 100% secure.'),
+                    _buildSectionTitle(context, 'security_title'.tr()),
+                    _buildSectionContent(context, 'security_text'.tr()),
                     SizedBox(height: 16),
-                    _buildSectionTitle(context, '6. Your Rights'),
-                    _buildSectionContent(
-                        context,
-                        'You have the right to access, update, or delete your account information at any time within the app settings. You can also contact us for any privacy-related inquiries.'),
+                    _buildSectionTitle(context, 'rights_title'.tr()),
+                    _buildSectionContent(context, 'rights_text'.tr()),
                     SizedBox(height: 24),
                     Center(
                       child: Text(
-                        'Last updated: ${DateTime.now().year}',
+                        '${'last_updated'.tr()} ${DateTime.now().year}',
                         style: TextStyle(
                           color: isDarkMode ? Colors.white54 : Colors.grey,
                           fontStyle: FontStyle.italic,

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SavedVideosList extends StatelessWidget {
   const SavedVideosList({super.key});
@@ -12,14 +13,14 @@ class SavedVideosList extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Saved Video in History')),
-        body: const Center(child: Text('Not logged in')),
+        appBar: AppBar(title: Text('saved_video_in_history'.tr())),
+        body: Center(child: Text('not_logged_in'.tr())),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Video in History'),
+        title: Text('saved_video_in_history'.tr()),
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
       ),
@@ -32,7 +33,7 @@ class SavedVideosList extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Error loading video history'));
+            return Center(child: Text('error_loading_video_history'.tr()));
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -41,9 +42,9 @@ class SavedVideosList extends StatelessWidget {
 
           final docs = snapshot.data?.docs ?? [];
           if (docs.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'No saved videos.',
+                'no_saved_videos'.tr(),
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
@@ -58,7 +59,7 @@ class SavedVideosList extends StatelessWidget {
               final createdAt = data['createdAt'] as Timestamp?;
               final dateStr = createdAt != null
                   ? DateFormat('dd MMM yyyy, HH:mm').format(createdAt.toDate())
-                  : 'Unknown Date';
+                  : 'unknown_date'.tr();
 
               // Here we assume video is mock/preview
               return Card(
@@ -74,12 +75,12 @@ class SavedVideosList extends StatelessWidget {
                     child: Icon(Icons.video_library, color: Colors.white),
                   ),
                   title: Text(
-                    'Call with $teacherName',
+                    '${'call_with'.tr()} $teacherName',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 8.0),
-                    child: Text('Saved on $dateStr'),
+                    child: Text('${'saved_on'.tr()} $dateStr'),
                   ),
                   trailing: const Icon(Icons.play_circle_fill,
                       color: Colors.blueAccent, size: 32),
@@ -117,7 +118,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Call with ${widget.teacherName}'),
+        title: Text('${'call_with'.tr()} ${widget.teacherName}'),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -128,18 +129,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           children: [
             const Icon(Icons.videocam_off, color: Colors.white54, size: 80),
             const SizedBox(height: 20),
-            const Text(
-              "Видеоконференция не записана",
+            Text(
+              'video_not_recorded'.tr(),
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
-                "В текущей версии приложения запись WebRTC-потока на сервер не настроена. \n\nСистема сохранила только историю и время проведения данной видеоконференции.",
+                'webrtc_note'.tr(),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white54, fontSize: 14),
               ),

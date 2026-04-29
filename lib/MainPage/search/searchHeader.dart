@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SearchHeader extends StatefulWidget {
   final Function(String) onSearchChanged;
@@ -42,7 +43,7 @@ class _SearchHeaderState extends State<SearchHeader> {
             child: TextField(
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: "Search skills or people",
+                hintText: 'search_skills_or_people'.tr(),
                 hintStyle: TextStyle(
                   color: isDark ? Colors.white70 : Colors.white,
                 ),
@@ -104,8 +105,8 @@ class _SearchHeaderState extends State<SearchHeader> {
                       // Tabs
                       Row(
                         children: [
-                          _buildTab("Learn", 0),
-                          _buildTab("Teach", 1),
+                          _buildTab('learn'.tr(), 0),
+                          _buildTab('teach'.tr(), 1),
                         ],
                       ),
                     ],

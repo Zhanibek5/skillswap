@@ -63,13 +63,47 @@ exports.onMeetingCreated = onDocumentCreated(
 			finalTitle = `${senderName} • ${chatData.lastSkill}`;
 		}
 
+<<<<<<< HEAD
 		await sendToUser(recipientId, chatId, {
 			title: finalTitle,
 			body: 'Кездесу жоспарланды',
 			type: 'meeting',
 			senderData: senderData,
 			chatData: chatData,
+=======
+		const chatRef = admin.firestore().collection('chats').doc(chatId)
+		let shouldNotify = false
+
+		await admin.firestore().runTransaction(async tx => {
+			const currentChatDoc = await tx.get(chatRef)
+			if (!currentChatDoc.exists) return
+			const currentChatData = currentChatDoc.data()
+			const activeUsers = currentChatData.activeUsers || {}
+
+			let updateData = {}
+			if (activeUsers[recipientId] === true) {
+				updateData[`unreadCount.${recipientId}`] = 0
+			} else {
+				updateData[`unreadCount.${recipientId}`] =
+					admin.firestore.FieldValue.increment(1)
+				shouldNotify = true
+			}
+
+			if (Object.keys(updateData).length > 0) {
+				tx.update(chatRef, updateData)
+			}
+>>>>>>> c642037 (my local changes with translation)
 		})
+
+		if (shouldNotify) {
+			await sendToUser(recipientId, chatId, {
+				title: title,
+				body: 'meeting_scheduled',
+				type: 'meeting',
+				senderData: senderData,
+				chatData: chatData,
+			})
+		}
 	}
 )
 
@@ -103,13 +137,13 @@ exports.onMessageCreated = onDocumentCreated(
 				bodyText = data.text
 				break
 			case 'audio':
-				bodyText = '🎤 Дауыстық хабарлама'
+				bodyText = 'voice_message'
 				break
 			case 'image':
-				bodyText = '📷 Сурет жіберілді'
+				bodyText = 'image_sent'
 				break
 			default:
-				bodyText = 'Жаңа хабарлама'
+				bodyText = 'new_message'
 		}
 
 		let recipientId = null
@@ -229,17 +263,38 @@ exports.sendMeetingNotifications = onSchedule(
 							timestamp: admin.firestore.FieldValue.serverTimestamp(),
 							readBy: [],
 						})
-						await updateChatLastMessage(
+						await updateChatLastMessageAndUnread(
 							chatId,
-							'⏰ Кездесуге 10 минут қалды',
+							'reminder_10_min',
 							'system_meeting_10min'
 						)
 
+						// Use fresh chat data for active users check
+						const currentChatDoc = await admin
+							.firestore()
+							.collection('chats')
+							.doc(chatId)
+							.get()
+						const activeUsers = currentChatDoc.exists
+							? currentChatDoc.data().activeUsers || {}
+							: {}
+
 						for (const userId of participants) {
-							const otherUserId = participants.find(id => id !== userId) || userId
-							const otherUserDoc = await admin.firestore().collection('users').doc(otherUserId).get()
-							const otherUserName = otherUserDoc.exists ? otherUserDoc.data().firstName || 'Пайдаланушы' : 'Пайдаланушы'
-							const otherUserData = otherUserDoc.exists ? otherUserDoc.data() : null
+							if (activeUsers[userId] === true) continue
+
+							const otherUserId =
+								participants.find(id => id !== userId) || userId
+							const otherUserDoc = await admin
+								.firestore()
+								.collection('users')
+								.doc(otherUserId)
+								.get()
+							const otherUserName = otherUserDoc.exists
+								? otherUserDoc.data().firstName || 'Пайдаланушы'
+								: 'Пайдаланушы'
+							const otherUserData = otherUserDoc.exists
+								? otherUserDoc.data()
+								: null
 
 							let finalTitle = `⏰ ${otherUserName}`;
 							if (chatData.chatType === 'contract' && chatData.lastSkill) {
@@ -253,11 +308,16 @@ exports.sendMeetingNotifications = onSchedule(
 							}
 
 							await sendToUser(userId, chatId, {
+<<<<<<< HEAD
 								title: finalTitle,
 								body: 'Кездесу басталуына аз қалды',
+=======
+								title: `⏰ ${otherUserName}${skill}`,
+								body: 'soon_start',
+>>>>>>> c642037 (my local changes with translation)
 								type: 'meeting',
 								senderData: otherUserData,
-								chatData: chatData
+								chatData: chatData,
 							})
 						}
 					}
@@ -280,17 +340,38 @@ exports.sendMeetingNotifications = onSchedule(
 							timestamp: admin.firestore.FieldValue.serverTimestamp(),
 							readBy: [],
 						})
-						await updateChatLastMessage(
+						await updateChatLastMessageAndUnread(
 							chatId,
-							'🔔 Кездесу басталды',
+							'meeting_started',
 							'system_meeting_started'
 						)
 
+						// Use fresh chat data for active users check
+						const currentChatDoc = await admin
+							.firestore()
+							.collection('chats')
+							.doc(chatId)
+							.get()
+						const activeUsers = currentChatDoc.exists
+							? currentChatDoc.data().activeUsers || {}
+							: {}
+
 						for (const userId of participants) {
-							const otherUserId = participants.find(id => id !== userId) || userId
-							const otherUserDoc = await admin.firestore().collection('users').doc(otherUserId).get()
-							const otherUserName = otherUserDoc.exists ? otherUserDoc.data().firstName || 'Пайдаланушы' : 'Пайдаланушы'
-							const otherUserData = otherUserDoc.exists ? otherUserDoc.data() : null
+							if (activeUsers[userId] === true) continue
+
+							const otherUserId =
+								participants.find(id => id !== userId) || userId
+							const otherUserDoc = await admin
+								.firestore()
+								.collection('users')
+								.doc(otherUserId)
+								.get()
+							const otherUserName = otherUserDoc.exists
+								? otherUserDoc.data().firstName || 'Пайдаланушы'
+								: 'Пайдаланушы'
+							const otherUserData = otherUserDoc.exists
+								? otherUserDoc.data()
+								: null
 
 							let finalTitle = `🔔 ${otherUserName}`;
 							if (chatData.chatType === 'contract' && chatData.lastSkill) {
@@ -304,11 +385,16 @@ exports.sendMeetingNotifications = onSchedule(
 							}
 
 							await sendToUser(userId, chatId, {
+<<<<<<< HEAD
 								title: finalTitle,
 								body: 'Кездесу уақыты келді!',
+=======
+								title: `🔔 ${otherUserName}${skill}`,
+								body: 'time_to_meet',
+>>>>>>> c642037 (my local changes with translation)
 								type: 'meeting',
 								senderData: otherUserData,
-								chatData: chatData
+								chatData: chatData,
 							})
 						}
 					}
@@ -392,6 +478,35 @@ async function updateChatLastMessage(chatId, lastMessage, lastType) {
 		lastMessage,
 		lastTimestamp: admin.firestore.FieldValue.serverTimestamp(),
 		lastType,
+	})
+}
+
+async function updateChatLastMessageAndUnread(chatId, lastMessage, lastType) {
+	const chatRef = admin.firestore().collection('chats').doc(chatId)
+	await admin.firestore().runTransaction(async tx => {
+		const chatDoc = await tx.get(chatRef)
+		if (!chatDoc.exists) return
+
+		const chatData = chatDoc.data()
+		const activeUsers = chatData.activeUsers || {}
+		const participants = chatData.participants || []
+
+		let updateData = {
+			lastMessage,
+			lastTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+			lastType,
+		}
+
+		for (const userId of participants) {
+			if (activeUsers[userId] === true) {
+				updateData[`unreadCount.${userId}`] = 0
+			} else {
+				updateData[`unreadCount.${userId}`] =
+					admin.firestore.FieldValue.increment(1)
+			}
+		}
+
+		tx.update(chatRef, updateData)
 	})
 }
 
