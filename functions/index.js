@@ -52,11 +52,19 @@ exports.onMeetingCreated = onDocumentCreated(
 		const senderData = senderDoc.exists ? senderDoc.data() : null
 		const senderName = senderData?.firstName || 'Пайдаланушы'
 
-		const skill = chatData.lastSkill ? ` • ${chatData.lastSkill}` : ''
-		const title = `${senderName}${skill}`
+		let finalTitle = senderName;
+		if (chatData.chatType === 'contract' && chatData.lastSkill) {
+			if (chatData.teacherId === senderId) {
+				finalTitle = `📚 Учит ${chatData.lastSkill}: ${senderName}`;
+			} else if (chatData.learnerId === senderId) {
+				finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${senderName}`;
+			}
+		} else if (chatData.lastSkill) {
+			finalTitle = `${senderName} • ${chatData.lastSkill}`;
+		}
 
 		await sendToUser(recipientId, chatId, {
-			title: title,
+			title: finalTitle,
 			body: 'Кездесу жоспарланды',
 			type: 'meeting',
 			senderData: senderData,
@@ -148,10 +156,19 @@ exports.onMessageCreated = onDocumentCreated(
 
 			// 🔔 Notification тек offline кезде
 			if (shouldNotify && recipientId && chatData) {
-				const skill = chatData.lastSkill ? ` • ${chatData.lastSkill}` : ''
+				let finalTitle = senderName;
+				if (chatData.chatType === 'contract' && chatData.lastSkill) {
+					if (chatData.teacherId === senderId) {
+						finalTitle = `📚 Учит ${chatData.lastSkill}: ${senderName}`;
+					} else if (chatData.learnerId === senderId) {
+						finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${senderName}`;
+					}
+				} else if (chatData.lastSkill) {
+					finalTitle = `${senderName} • ${chatData.lastSkill}`;
+				}
 
 				await sendToUser(recipientId, chatId, {
-					title: `${senderName}${skill}`,
+					title: finalTitle,
 					body: bodyText,
 					type: 'chat',
 					senderData: senderData,
@@ -194,7 +211,6 @@ exports.sendMeetingNotifications = onSchedule(
 				const diffMs = meetingTime - now
 
 				const participants = chatData.participants || []
-				const skill = chatData.lastSkill ? ` • ${chatData.lastSkill}` : ''
 
 				// 🔹 10 минут қалғанда хабарлау
 				if (diffMs > 0 && diffMs <= 10 * 60 * 1000) {
@@ -225,8 +241,19 @@ exports.sendMeetingNotifications = onSchedule(
 							const otherUserName = otherUserDoc.exists ? otherUserDoc.data().firstName || 'Пайдаланушы' : 'Пайдаланушы'
 							const otherUserData = otherUserDoc.exists ? otherUserDoc.data() : null
 
+							let finalTitle = `⏰ ${otherUserName}`;
+							if (chatData.chatType === 'contract' && chatData.lastSkill) {
+								if (chatData.teacherId === otherUserId) {
+									finalTitle = `📚 Учит ${chatData.lastSkill}: ${otherUserName}`;
+								} else if (chatData.learnerId === otherUserId) {
+									finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${otherUserName}`;
+								}
+							} else if (chatData.lastSkill) {
+								finalTitle = `⏰ ${otherUserName} • ${chatData.lastSkill}`;
+							}
+
 							await sendToUser(userId, chatId, {
-								title: `⏰ ${otherUserName}${skill}`,
+								title: finalTitle,
 								body: 'Кездесу басталуына аз қалды',
 								type: 'meeting',
 								senderData: otherUserData,
@@ -265,8 +292,19 @@ exports.sendMeetingNotifications = onSchedule(
 							const otherUserName = otherUserDoc.exists ? otherUserDoc.data().firstName || 'Пайдаланушы' : 'Пайдаланушы'
 							const otherUserData = otherUserDoc.exists ? otherUserDoc.data() : null
 
+							let finalTitle = `🔔 ${otherUserName}`;
+							if (chatData.chatType === 'contract' && chatData.lastSkill) {
+								if (chatData.teacherId === otherUserId) {
+									finalTitle = `📚 Учит ${chatData.lastSkill}: ${otherUserName}`;
+								} else if (chatData.learnerId === otherUserId) {
+									finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${otherUserName}`;
+								}
+							} else if (chatData.lastSkill) {
+								finalTitle = `🔔 ${otherUserName} • ${chatData.lastSkill}`;
+							}
+
 							await sendToUser(userId, chatId, {
-								title: `🔔 ${otherUserName}${skill}`,
+								title: finalTitle,
 								body: 'Кездесу уақыты келді!',
 								type: 'meeting',
 								senderData: otherUserData,
