@@ -175,7 +175,7 @@ class MyApp extends StatelessWidget {
 
       // initialRoute: 'MainPage/skillMain.dart',
       // initialRoute: 'loginPage/verify_email.dart',
-      // initialRoute: 'firstPage/loadingPage.dart',
+      initialRoute: 'firstPage/loadingPage.dart',
     );
   }
 }

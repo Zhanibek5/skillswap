@@ -17,6 +17,44 @@ class ChatsListPage extends StatefulWidget {
 class _ChatsListPageState extends State<ChatsListPage> {
   final currentUserId = FirebaseAuth.instance.currentUser!.uid;
   String searchText = "";
+  String? _chatToDeleteId;
+
+  Future<void> _deleteChat(String chatId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text('delete_chat'.tr()),
+          content: Text('confirm_delete_chat'.tr()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('cancel'.tr()),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('delete'.tr(),
+                  style: const TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await FirebaseFirestore.instance.collection('chats').doc(chatId).update({
+        'participants': FieldValue.arrayRemove([currentUserId])
+      });
+      if (mounted) {
+        setState(() {
+          if (_chatToDeleteId == chatId) {
+            _chatToDeleteId = null;
+          }
+        });
+      }
+    }
+  }
 
   static const Color _darkCardColor = Color(0xFF0F1F3B);
   static const Color _darkCardBorderColor = Color(0xFF2B4C85);
@@ -199,15 +237,20 @@ class _ChatsListPageState extends State<ChatsListPage> {
                               Color tagTextColor = Colors.blue;
 
                               if (chatType == 'contract' && skill.isNotEmpty) {
-                                final isTeaching = chatData['teacherId'] == currentUserId;
+                                final isTeaching =
+                                    chatData['teacherId'] == currentUserId;
                                 if (isTeaching) {
-                                  tagText = '📚 Учит ' + skill;
+                                  tagText = '📚 ${'learner'.tr()} ' + skill;
                                   tagColor = Colors.purple;
-                                  tagTextColor = isDark ? Colors.purple[300]! : Colors.purple;
+                                  tagTextColor = isDark
+                                      ? Colors.purple[300]!
+                                      : Colors.purple;
                                 } else {
-                                  tagText = '🎓 Изучает ' + skill;
+                                  tagText = '🎓 ${'teacher'.tr()} ' + skill;
                                   tagColor = Colors.green;
-                                  tagTextColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+                                  tagTextColor = isDark
+                                      ? Colors.green[300]!
+                                      : Colors.green[700]!;
                                 }
                               }
 
@@ -238,7 +281,18 @@ class _ChatsListPageState extends State<ChatsListPage> {
                               }
 
                               return InkWell(
+                                onLongPress: () {
+                                  setState(() {
+                                    _chatToDeleteId = chat.id;
+                                  });
+                                },
                                 onTap: () {
+                                  if (_chatToDeleteId == chat.id) {
+                                    setState(() {
+                                      _chatToDeleteId = null;
+                                    });
+                                    return;
+                                  }
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -286,31 +340,61 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                                     children: [
                                                       Flexible(
                                                         child: Text(
-                                                          chatType == 'contract' ? name : (skill.isEmpty ? name : "$name • $skill"),
-                                                          overflow: TextOverflow.ellipsis,
-                                                          style: const TextStyle(
-                                                            fontWeight: FontWeight.w600,
+                                                          chatType == 'contract'
+                                                              ? name
+                                                              : (skill.isEmpty
+                                                                  ? name
+                                                                  : "$name • $skill"),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
                                                             fontSize: 15,
                                                           ),
                                                         ),
                                                       ),
-                                                      if (tagText.isNotEmpty) ...[
-                                                        const SizedBox(width: 8),
+                                                      if (tagText
+                                                          .isNotEmpty) ...[
+                                                        const SizedBox(
+                                                            width: 8),
                                                         Flexible(
                                                           child: Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                            decoration: BoxDecoration(
-                                                              color: tagColor.withOpacity(0.15),
-                                                              borderRadius: BorderRadius.circular(6),
-                                                              border: Border.all(color: tagColor.withOpacity(0.5), width: 0.5),
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        6,
+                                                                    vertical:
+                                                                        2),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: tagColor
+                                                                  .withOpacity(
+                                                                      0.15),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          6),
+                                                              border: Border.all(
+                                                                  color: tagColor
+                                                                      .withOpacity(
+                                                                          0.5),
+                                                                  width: 0.5),
                                                             ),
                                                             child: Text(
                                                               tagText,
-                                                              overflow: TextOverflow.ellipsis,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
                                                               style: TextStyle(
                                                                 fontSize: 10,
-                                                                fontWeight: FontWeight.w600,
-                                                                color: tagTextColor,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color:
+                                                                    tagTextColor,
                                                               ),
                                                             ),
                                                           ),
@@ -374,6 +458,12 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                           ],
                                         ),
                                       ),
+                                      if (_chatToDeleteId == chat.id)
+                                        IconButton(
+                                          icon: const Icon(Icons.delete,
+                                              color: Colors.red),
+                                          onPressed: () => _deleteChat(chat.id),
+                                        ),
                                     ],
                                   ),
                                 ),
