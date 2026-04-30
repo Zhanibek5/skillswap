@@ -4,6 +4,53 @@ const admin = require('firebase-admin')
 
 admin.initializeApp()
 
+function getChatSkill(chatData = {}) {
+	const data = chatData || {}
+
+	if (Array.isArray(data.selectedSkills)) {
+		return data.selectedSkills
+			.map(skill => String(skill || '').trim())
+			.filter(Boolean)
+			.join(', ')
+	}
+
+	return String(data.lastSkill || '').trim()
+}
+
+function buildSkillTitle(userName, chatData = {}) {
+	const name = String(userName || '').trim()
+	const skill = getChatSkill(chatData)
+
+	if (!skill) return name
+	if (!name) return skill
+
+	return `${name}: ${skill}`
+}
+
+function getNameFromTitle(title, skill) {
+	const rawTitle = String(title || '').trim()
+	if (!rawTitle) return ''
+
+	if (skill && rawTitle.endsWith(`: ${skill}`)) {
+		return rawTitle.slice(0, -skill.length - 2).trim()
+	}
+
+	const lastColonIndex = rawTitle.lastIndexOf(':')
+	if (lastColonIndex >= 0) {
+		return rawTitle.slice(lastColonIndex + 1).trim()
+	}
+
+	return rawTitle
+}
+
+function normalizeNotificationTitle(title, senderData, chatData = {}) {
+	const skill = getChatSkill(chatData)
+	if (!skill) return String(title || '').trim()
+
+	const name = senderData?.firstName || getNameFromTitle(title, skill)
+	return buildSkillTitle(name, chatData)
+}
+
 exports.deleteUnverifiedUsers = onSchedule('every 24 hours', async () => {
 	const result = await admin.auth().listUsers()
 	const now = new Date()
@@ -53,16 +100,7 @@ exports.onMeetingCreated = onDocumentCreated(
 		const senderData = senderDoc.exists ? senderDoc.data() : null
 		const senderName = senderData?.firstName || 'Пайдаланушы'
 
-		let finalTitle = senderName;
-		if (chatData.chatType === 'contract' && chatData.lastSkill) {
-			if (chatData.teacherId === senderId) {
-				finalTitle = `📚 Учит ${chatData.lastSkill}: ${senderName}`;
-			} else if (chatData.learnerId === senderId) {
-				finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${senderName}`;
-			}
-		} else if (chatData.lastSkill) {
-			finalTitle = `${senderName} • ${chatData.lastSkill}`;
-		}
+		const finalTitle = buildSkillTitle(senderName, chatData)
 
 		const chatRef = admin.firestore().collection('chats').doc(chatId)
 		let shouldNotify = false
@@ -182,16 +220,7 @@ exports.onMessageCreated = onDocumentCreated(
 
 			// 🔔 Notification тек offline кезде
 			if (shouldNotify && recipientId && chatData) {
-				let finalTitle = senderName;
-				if (chatData.chatType === 'contract' && chatData.lastSkill) {
-					if (chatData.teacherId === senderId) {
-						finalTitle = `📚 Учит ${chatData.lastSkill}: ${senderName}`;
-					} else if (chatData.learnerId === senderId) {
-						finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${senderName}`;
-					}
-				} else if (chatData.lastSkill) {
-					finalTitle = `${senderName} • ${chatData.lastSkill}`;
-				}
+				const finalTitle = buildSkillTitle(senderName, chatData)
 
 				await sendToUser(recipientId, chatId, {
 					title: finalTitle,
@@ -292,15 +321,9 @@ exports.sendMeetingNotifications = onSchedule(
 								? otherUserDoc.data()
 								: null
 
-							let finalTitle = `⏰ ${otherUserName}`;
-							if (chatData.chatType === 'contract' && chatData.lastSkill) {
-								if (chatData.teacherId === otherUserId) {
-									finalTitle = `📚 Учит ${chatData.lastSkill}: ${otherUserName}`;
-								} else if (chatData.learnerId === otherUserId) {
-									finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${otherUserName}`;
-								}
-							} else if (chatData.lastSkill) {
-								finalTitle = `⏰ ${otherUserName} • ${chatData.lastSkill}`;
+							let finalTitle = `⏰ ${otherUserName}`
+							if (getChatSkill(chatData)) {
+								finalTitle = buildSkillTitle(otherUserName, chatData)
 							}
 
 							await sendToUser(userId, chatId, {
@@ -367,15 +390,9 @@ exports.sendMeetingNotifications = onSchedule(
 								? otherUserDoc.data()
 								: null
 
-							let finalTitle = `🔔 ${otherUserName}`;
-							if (chatData.chatType === 'contract' && chatData.lastSkill) {
-								if (chatData.teacherId === otherUserId) {
-									finalTitle = `📚 Учит ${chatData.lastSkill}: ${otherUserName}`;
-								} else if (chatData.learnerId === otherUserId) {
-									finalTitle = `🎓 Изучает ${chatData.lastSkill}: ${otherUserName}`;
-								}
-							} else if (chatData.lastSkill) {
-								finalTitle = `🔔 ${otherUserName} • ${chatData.lastSkill}`;
+							let finalTitle = `🔔 ${otherUserName}`
+							if (getChatSkill(chatData)) {
+								finalTitle = buildSkillTitle(otherUserName, chatData)
 							}
 
 							await sendToUser(userId, chatId, {
@@ -466,20 +483,23 @@ async function sendToUser(userId, chatId, payload) {
 	}
 
 	const tokens = [...new Set(userData.fcmTokens)].filter(Boolean)
-	const selectedSkills = Array.isArray(payload.chatData.selectedSkills)
-		? payload.chatData.selectedSkills.join(', ')
-		: String(payload.chatData.lastSkill || '')
+	const selectedSkills = getChatSkill(payload.chatData)
+	const notificationTitle = normalizeNotificationTitle(
+		payload.title,
+		payload.senderData,
+		payload.chatData
+	)
 
 	for (const token of tokens) {
 		try {
 			await admin.messaging().send({
 				token: token,
 				notification: {
-					title: String(payload.title || ''),
+					title: notificationTitle,
 					body: String(payload.body || ''),
 				},
 				data: {
-					title: String(payload.title || ''),
+					title: notificationTitle,
 					body: String(payload.body || ''),
 					userImage: String(payload.senderData?.photoUrl || ''),
 					type: String(payload.type || ''),
