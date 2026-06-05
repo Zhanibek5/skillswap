@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skillswap/background/backgroundColor.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class UsersManagementPage extends StatefulWidget {
   const UsersManagementPage({super.key});
@@ -15,6 +16,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
   static const Color _darkCardColor = Color(0xFF0F1F3B);
   static const Color _darkCardBorderColor = Color(0xFF2B4C85);
   static const Color _accentColor = Color(0xFF1E88E5);
+  String searchText = "";
 
   void _showRoleDialog(String userId, String currentRole) {
     showDialog(
@@ -203,6 +205,7 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
@@ -216,126 +219,314 @@ class _UsersManagementPageState extends State<UsersManagementPage> {
       ),
       body: Stack(
         children: [
-          if (isDarkMode)
-            Backgroundcolor()
-          else
-            Container(color: Theme.of(context).scaffoldBackgroundColor),
-          SafeArea(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('users').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'no_users_found'.tr(),
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black87,
-                      ),
+          isDarkMode
+              ? Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: [0.0, 0.35, 0.7, 1.0],
+                      colors: [
+                        Color(0xFF0A1734),
+                        Color(0xFF0E214A),
+                        Color(0xFF122A66),
+                        Color(0xFF0D1B3E),
+                      ],
                     ),
-                  );
-                }
-
-                final users = snapshot.data!.docs;
-
-                return ListView.builder(
-                  padding: const EdgeInsets.only(
-                      top: kToolbarHeight + 8, bottom: 20),
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final userData =
-                        users[index].data() as Map<String, dynamic>;
-                    final userId = users[index].id;
-
-                    final firstName = userData['firstName'] ?? 'No Name';
-                    final lastName = userData['lastName'] ?? '';
-                    final email = userData['email'] ?? 'No Email';
-                    final role = userData['role'] ?? 'user';
-                    final isBanned = userData['isBanned'] ?? false;
-                    final photoUrl = userData['photoUrl'];
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                  ),
+                )
+              : Container(
+                  color: Colors.white,
+                ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Container(
+                    decoration: BoxDecoration(
                       color: isDarkMode
                           ? _darkCardColor
-                          : Theme.of(context).cardColor,
-                      shadowColor: isDarkMode
-                          ? Colors.blue.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.08),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: isDarkMode
-                            ? BorderSide(
-                                color: _darkCardBorderColor.withOpacity(0.45),
-                              )
-                            : BorderSide.none,
+                          : Colors.grey.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextField(
+                      onChanged: (value) =>
+                          setState(() => searchText = value.toLowerCase()),
+                      style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black),
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, surname or email',
+                        hintStyle: TextStyle(
+                            color: isDarkMode ? Colors.white70 : Colors.grey),
+                        prefixIcon: Icon(Icons.search,
+                            color: isDarkMode ? Colors.white70 : Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(10),
                       ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isDarkMode
-                              ? const Color(0xFF122A66)
-                              : Colors.grey.shade300,
-                          backgroundImage:
-                              photoUrl != null ? NetworkImage(photoUrl) : null,
-                          child: photoUrl == null
-                              ? Icon(
-                                  Icons.person,
-                                  color:
-                                      isDarkMode ? Colors.black : Colors.black,
-                                )
-                              : null,
-                        ),
-                        title: Text(
-                          '$firstName $lastName',
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '$email ${'role'.tr()} ${role.toUpperCase()}',
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
-                            height: 1.4,
-                          ),
-                        ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.more_time,
-                                  color: _accentColor),
-                              tooltip: 'add_time_balance'.tr(),
-                              onPressed: () => _showAddTimeDialog(
-                                  userId, "$firstName $lastName"),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _firestore.collection('users').snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'no_users_found'.tr(),
+                            style: TextStyle(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black87,
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.manage_accounts,
-                                  color: _accentColor),
-                              tooltip: 'change_role'.tr(),
-                              onPressed: () => _showRoleDialog(userId, role),
+                          ),
+                        );
+                      }
+
+                      var users = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final fname =
+                            (data['firstName'] ?? '').toString().toLowerCase();
+                        final lname =
+                            (data['lastName'] ?? '').toString().toLowerCase();
+                        final email =
+                            (data['email'] ?? '').toString().toLowerCase();
+                        return fname.contains(searchText) ||
+                            lname.contains(searchText) ||
+                            email.contains(searchText);
+                      }).toList();
+
+                      if (users.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'no_users_found'.tr(),
+                            style: TextStyle(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black87,
                             ),
-                            IconButton(
-                              icon: Icon(
-                                isBanned ? Icons.lock : Icons.lock_open,
-                                color: isBanned ? Colors.red : Colors.green,
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        itemCount: users.length,
+                        itemBuilder: (context, index) {
+                          final userData =
+                              users[index].data() as Map<String, dynamic>;
+                          final userId = users[index].id;
+
+                          final firstName =
+                              userData['firstName']?.toString().trim() ?? '';
+                          final lastName =
+                              userData['lastName']?.toString().trim() ?? '';
+                          final fullName = [firstName, lastName]
+                              .where((s) => s.isNotEmpty)
+                              .join(' ');
+                          final displayName =
+                              fullName.isNotEmpty ? fullName : 'No Name';
+
+                          final email = userData['email']?.toString() ?? '';
+                          final role = userData['role']?.toString() ?? 'user';
+                          final isBanned = userData['isBanned'] ?? false;
+                          final photoUrl =
+                              userData['photoUrl']?.toString() ?? '';
+
+                          Color roleColor;
+                          if (role.toLowerCase() == 'admin') {
+                            roleColor = Colors.green.shade600;
+                          } else if (role.toLowerCase() == 'moderator') {
+                            roleColor = Colors.red.shade600;
+                          } else {
+                            roleColor = Colors.grey.shade600;
+                          }
+
+                          return Card(
+                            elevation: 0,
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            color:
+                                isDarkMode ? Colors.transparent : Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: isDarkMode
+                                    ? const Color(0xFF2B4C85)
+                                    : Colors.grey.shade300,
+                                width: 2,
                               ),
-                              tooltip: isBanned
-                                  ? 'unban_user'.tr()
-                                  : 'ban_user'.tr(),
-                              onPressed: () => _toggleBan(userId, isBanned),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isDarkMode
+                                            ? const Color(0xFF2B4C85)
+                                            : Colors.grey.shade300,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 35,
+                                      backgroundColor: isDarkMode
+                                          ? Colors.grey[800]
+                                          : Colors.grey[200],
+                                      backgroundImage: photoUrl.isNotEmpty
+                                          ? NetworkImage(photoUrl)
+                                          : null,
+                                      child: photoUrl.isEmpty
+                                          ? Icon(Icons.person,
+                                              size: 35,
+                                              color: isDarkMode
+                                                  ? Colors.white70
+                                                  : Colors.grey[400])
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: GoogleFonts.roboto(
+                                            fontSize: 19,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : Colors.black87,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        if (email.isNotEmpty && email != 'null')
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '@ ',
+                                                style: GoogleFonts.roboto(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDarkMode
+                                                      ? Colors.blue.shade300
+                                                      : Colors.blue.shade700,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: Text(
+                                                  email,
+                                                  style: GoogleFonts.roboto(
+                                                    fontSize: 14,
+                                                    color: isDarkMode
+                                                        ? Colors.white70
+                                                        : Colors.black54,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: roleColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                role.toUpperCase(),
+                                                style: GoogleFonts.roboto(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: BoxConstraints(),
+                                                  icon: const Icon(
+                                                      Icons.more_time,
+                                                      size: 18,
+                                                      color: _accentColor),
+                                                  tooltip:
+                                                      'add_time_balance'.tr(),
+                                                  onPressed: () =>
+                                                      _showAddTimeDialog(
+                                                          userId, displayName),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                IconButton(
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: BoxConstraints(),
+                                                  icon: const Icon(
+                                                      Icons.manage_accounts,
+                                                      size: 18,
+                                                      color: _accentColor),
+                                                  tooltip: 'change_role'.tr(),
+                                                  onPressed: () =>
+                                                      _showRoleDialog(
+                                                          userId, role),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                IconButton(
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: BoxConstraints(),
+                                                  icon: Icon(
+                                                    isBanned
+                                                        ? Icons.lock
+                                                        : Icons.lock_open,
+                                                    size: 18,
+                                                    color: isBanned
+                                                        ? Colors.red
+                                                        : Colors.green,
+                                                  ),
+                                                  tooltip: isBanned
+                                                      ? 'unban_user'.tr()
+                                                      : 'ban_user'.tr(),
+                                                  onPressed: () => _toggleBan(
+                                                      userId, isBanned),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],

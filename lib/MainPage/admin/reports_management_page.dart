@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:skillswap/MainPage/search/userCard.dart';
 import 'package:skillswap/MainPage/chat/chatPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillswap/background/backgroundColor.dart';
@@ -32,33 +31,106 @@ class ReportsManagementPage extends StatelessWidget {
           builder: (context) {
             final bool isDarkMode =
                 Theme.of(context).brightness == Brightness.dark;
+            final data = doc.data() as Map<String, dynamic>;
+            final firstName = data['firstName']?.toString().trim() ?? '';
+            final lastName = data['lastName']?.toString().trim() ?? '';
+            final fullName =
+                [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
+            final displayName =
+                fullName.isNotEmpty ? fullName : 'username'.tr();
+
+            final email = data['email']?.toString() ?? '';
+            final photoUrl = data['photoUrl']?.toString() ?? '';
+
             return Dialog(
+              backgroundColor: Colors.transparent,
               insetPadding: const EdgeInsets.all(16),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.8,
-                child: Scaffold(
-                  appBar: AppBar(
-                      title: Text(
-                        'user_profile_view'.tr(),
-                        style: TextStyle(
-                          color: isDarkMode ? Colors.white : Colors.black,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24.0),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? _darkCardColor : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: isDarkMode
+                      ? Border.all(
+                          color: _darkCardBorderColor.withOpacity(0.45))
+                      : null,
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 10),
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor:
+                              isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                          backgroundImage: photoUrl.isNotEmpty
+                              ? NetworkImage(photoUrl)
+                              : null,
+                          child: photoUrl.isEmpty
+                              ? Icon(Icons.person,
+                                  size: 50,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.grey[600])
+                              : null,
                         ),
-                      ),
-                      foregroundColor: isDarkMode ? Colors.white : Colors.black,
-                      backgroundColor: isDarkMode ? _darkCardColor : null,
-                      leading: const CloseButton()),
-                  body: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: UserCard(
-                          userId: userId, mode: 'learn', userData: doc.data()!),
+                        const SizedBox(height: 20),
+                        Text(
+                          displayName,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 5),
+                        if (email.isNotEmpty && email != 'null')
+                          _buildProfileInfoRow(email, isDarkMode),
+                      ],
                     ),
-                  ),
+                    Positioned(
+                      top: -10,
+                      right: -10,
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
           });
     }
+  }
+
+  Widget _buildProfileInfoRow(String text, bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: isDarkMode ? Colors.white70 : Colors.grey[800],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showBanDialog(
@@ -175,7 +247,10 @@ class ReportsManagementPage extends StatelessWidget {
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text('ban'.tr()),
+                child: Text(
+                  'ban'.tr(),
+                  style: TextStyle(color: Colors.white),
+                ),
               )
             ],
           );
@@ -472,7 +547,10 @@ class ReportsManagementPage extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent),
-                      child: Text('ban_user'.tr()),
+                      child: Text(
+                        'ban_user'.tr(),
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   if (isFeedback)
                     ElevatedButton(
@@ -481,7 +559,8 @@ class ReportsManagementPage extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green),
-                      child: Text('mark_resolved'.tr()),
+                      child: Text('mark_resolved'.tr(),
+                          style: TextStyle(color: Colors.white)),
                     ),
                 ],
               ),

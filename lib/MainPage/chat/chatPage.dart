@@ -452,6 +452,28 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               ),
               OutlinedButton(
                 onPressed: () async {
+                  if (amILearner) {
+                    final userDoc = await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(currentUserId)
+                        .get();
+                    if (userDoc.exists) {
+                      final data = userDoc.data()!;
+                      final int balance = (data['timeBalance'] ?? 0) as int;
+                      if (balance < selectedDuration) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('not_enough_balance_warning'.tr()),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                    }
+                  }
+
                   Navigator.pop(context);
                   await _sendMeetingMessage(meetingTime, selectedDuration);
                 },
@@ -537,6 +559,19 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       selectedTime.hour,
       selectedTime.minute,
     );
+
+    final minAllowedTime = DateTime.now().add(const Duration(minutes: 15));
+    if (meetingDateTime.isBefore(minAllowedTime)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('meeting_15_min_warning'.tr()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
 
     _showConfirmDialog(meetingDateTime);
   }
@@ -693,6 +728,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       'lastMessage': text,
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': 'text',
+      'deletedFor': FieldValue.arrayRemove([widget.otherUserId, currentUserId]),
     }, SetOptions(merge: true));
 
     setState(() {
@@ -773,6 +809,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           : (fileType == 'image' ? '📷 Изображение' : '📁 Файл'),
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': fileType,
+      'deletedFor': FieldValue.arrayRemove([otherUserId, currentUserId]),
     });
   }
 
@@ -1214,6 +1251,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       'lastMessage': 'audio_message'.tr(),
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': 'audio',
+      'deletedFor': FieldValue.arrayRemove([otherUserId, currentUserId]),
     });
 
     try {
@@ -1363,21 +1401,26 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                 .doc(otherUserId)
                 .snapshots(),
             builder: (context, userSnapshot) {
-              if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+              if (!userSnapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final userData =
-                  userSnapshot.data!.data() as Map<String, dynamic>? ?? {};
+              final isDeleted = !userSnapshot.data!.exists;
+              final userData = isDeleted
+                  ? <String, dynamic>{}
+                  : userSnapshot.data!.data() as Map<String, dynamic>? ?? {};
 
-              bool isSupportAgent =
-                  widget.mode == 'support' && userData['role'] == 'admin';
+              // If the user is on the 'support' side of the chat (e.g. they tapped "Support" in settings),
+              // we hide the admin's name and show "Support" with a generic icon.
+              bool isSupportAgent = widget.mode == 'support';
               final userName = isSupportAgent
                   ? 'Support'
-                  : (userData['firstName'] ?? 'No Name');
+                  : (isDeleted
+                      ? 'deleted_user'.tr()
+                      : (userData['firstName'] ?? 'No Name'));
               final photoUrl = isSupportAgent
-                  ? 'https://cdn-icons-png.flaticon.com/512/3249/3249962.png'
-                  : (userData['photoUrl'] ?? '');
+                  ? 'assets/support.png'
+                  : (isDeleted ? '' : (userData['photoUrl'] ?? ''));
 
               return Column(
                 children: [
@@ -1405,19 +1448,14 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                               Theme.of(context).brightness == Brightness.dark
                                   ? const Color(0xFF2A2E35)
                                   : Colors.grey.shade200,
-                          child: ClipOval(
-                            child: photoUrl.isNotEmpty
-                                ? Image.network(
-                                    photoUrl,
-                                    width: 56,
-                                    height: 56,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(Icons.person, size: 28);
-                                    },
-                                  )
-                                : Icon(Icons.person, size: 33),
-                          ),
+                          backgroundImage: isSupportAgent
+                              ? const AssetImage('assets/support.png')
+                              : (photoUrl.isNotEmpty
+                                  ? NetworkImage(photoUrl)
+                                  : null) as ImageProvider?,
+                          child: !isSupportAgent && photoUrl.isEmpty
+                              ? const Icon(Icons.person, size: 33)
+                              : null,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1434,21 +1472,24 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
                               ),
-                              Text(
-                                overflow: TextOverflow.ellipsis,
-                                !chatLoaded
-                                    ? ""
-                                    : amILearner
-                                        ? "${'teacher'.tr()} ${widget.selectedSkills.join(", ")}"
-                                        : "${'learner'.tr()} ${widget.selectedSkills.join(", ")}",
-                                style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white54
-                                      : Colors.black38,
-                                  fontSize: 13,
+                              if (widget.mode != 'support' &&
+                                  widget.mode != 'support_admin' &&
+                                  widget.mode != 'admin_view')
+                                Text(
+                                  overflow: TextOverflow.ellipsis,
+                                  !chatLoaded
+                                      ? ""
+                                      : amILearner
+                                          ? "${'teacher'.tr()} ${widget.selectedSkills.join(", ")}"
+                                          : "${'learner'.tr()} ${widget.selectedSkills.join(", ")}",
+                                  style: TextStyle(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white54
+                                        : Colors.black38,
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
@@ -1537,7 +1578,15 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                               child: CircularProgressIndicator());
                         }
 
-                        final rawDocs = snapshot.data!.docs;
+                        var rawDocs = snapshot.data!.docs;
+
+                        // Filter out messages deleted for current user
+                        rawDocs = rawDocs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final deletedFor =
+                              List<String>.from(data['deletedFor'] ?? []);
+                          return !deletedFor.contains(currentUserId);
+                        }).toList();
 
                         if (rawDocs.isNotEmpty) {
                           final lastMsg = rawDocs.first;

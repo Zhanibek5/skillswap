@@ -115,7 +115,8 @@ class _ProfilePageState extends State<ProfilePage> {
               final bool canTeach = data['canTeach'] ?? false;
               final bool canLearn = data['canLearn'] ?? false;
               final rating = (data['teacherRating'] ?? 0).toDouble();
-              final int balanceMinutes = (data['timeBalance'] ?? data['balance'] ?? 120);
+              final int balanceMinutes =
+                  (data['timeBalance'] ?? data['balance'] ?? 120);
               final int timeEarned = (data['timeEarned'] ?? 0);
               final int timeSpent = (data['timeSpent'] ?? 0);
 
@@ -181,95 +182,106 @@ class _ProfilePageState extends State<ProfilePage> {
                                   )
                                 : null,
                           ),
-                          child: Row(
+                          child: Column(
                             children: [
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? const Color(0xFF122A66)
-                                    : Colors.grey.shade200,
-                                backgroundImage:
-                                    photoUrl != null && photoUrl.isNotEmpty
-                                        ? NetworkImage(photoUrl)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 45,
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF122A66)
+                                            : Colors.grey.shade200,
+                                    backgroundImage:
+                                        photoUrl != null && photoUrl.isNotEmpty
+                                            ? NetworkImage(photoUrl)
+                                            : null,
+                                    child: photoUrl == null || photoUrl.isEmpty
+                                        ? const Icon(Icons.person, size: 60)
                                         : null,
-                                child: photoUrl == null || photoUrl.isEmpty
-                                    ? Icon(Icons.person, size: 70)
-                                    : null,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'welcome'.tr(),
-                                      style: TextStyle(color: Colors.white70),
-                                    ),
-                                    Text(
-                                      (data['firstName'] != null &&
-                                              data['firstName']
-                                                  .toString()
-                                                  .isNotEmpty)
-                                          ? (firstName).trim()
-                                          : 'username'.tr(),
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (role == 'admin' ||
-                                        role == 'moderator') ...[
-                                      SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white24,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          adminTitle,
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                    SizedBox(height: 4),
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const EditProfilePage(),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? _darkCardColor
-                                          : Colors.white,
-                                  foregroundColor: Color(0xFF1E88E5),
-                                  side: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? BorderSide(
-                                          color:
-                                              _darkCardBorderColor.withOpacity(
-                                            0.45,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'welcome'.tr(),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
                                           ),
-                                        )
-                                      : null,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          (data['firstName'] != null &&
+                                                  data['firstName']
+                                                      .toString()
+                                                      .isNotEmpty)
+                                              ? firstName.trim()
+                                              : 'username'.tr(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        if (role == 'admin' ||
+                                            role == 'moderator') ...[
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white24,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              adminTitle,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const EditProfilePage(),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? _darkCardColor
+                                            : Colors.white,
+                                    foregroundColor: const Color(0xFF1E88E5),
+                                  ),
+                                  child: Text('edit'.tr()),
                                 ),
-                                child: Text('edit'.tr()),
                               ),
                             ],
                           ),
@@ -281,7 +293,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           children: [
                             _statItem(context, '⭐',
                                 "${rating.toStringAsFixed(1)}", 'rating'.tr()),
-                            _statItem(context, '⏱', _formatHoursMinutes(balanceMinutes), 'balance'.tr()),
+                            _statItem(
+                                context,
+                                '⏱',
+                                _formatHoursMinutes(balanceMinutes),
+                                'balance'.tr()),
                             _statItem(
                                 context, '🌐', languagesText, 'language'.tr()),
                           ],

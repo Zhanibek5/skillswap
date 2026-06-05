@@ -5,6 +5,7 @@ import 'app_data.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:skillswap/background/backgroundColor.dart';
+import 'login_page.dart';
 
 class DeleteAccountPage extends StatefulWidget {
   const DeleteAccountPage({super.key});
@@ -31,7 +32,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           email: controllerEmail.text, password: controllerPassword.text);
       AppData.navBarCurrentIndexNotifier.value = 0;
       AppData.onboardingCurrentIndexNotifier = 0;
-      popPage();
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const LoginPage(),
+        ),
+        (route) => false,
+      );
     } on FirebaseAuthException catch (e) {
       setState(() {
         if (e.code == 'invalid-email') {

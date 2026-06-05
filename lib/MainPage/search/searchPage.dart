@@ -342,8 +342,12 @@ class _SearchPageState extends State<SearchPage> {
 
                       return ListView.separated(
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 10),
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 20,
+                          bottom: 90,
+                        ),
                         itemCount: filteredUsers.length,
                         itemBuilder: (context, index) {
                           final doc = filteredUsers[index];

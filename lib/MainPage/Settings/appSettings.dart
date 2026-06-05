@@ -17,6 +17,7 @@ import 'instructions_page.dart';
 import 'package:skillswap/MainPage/profilePage/edit_profile_page.dart';
 import 'package:provider/provider.dart';
 import '../../settings_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -20,7 +21,14 @@ class SavedVideosList extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('saved_video_in_history'.tr()),
+        title: Text(
+          'saved_video_in_history'.tr(),
+          style: GoogleFonts.roboto(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
       ),

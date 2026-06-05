@@ -34,6 +34,7 @@ class ChatService {
       'lastMessage': text,
       'lastTimestamp': FieldValue.serverTimestamp(),
       'lastType': type,
+      'deletedFor': FieldValue.arrayRemove([receiverId, senderId]),
     }, SetOptions(merge: true));
   }
 }

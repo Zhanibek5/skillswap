@@ -122,7 +122,9 @@
 	"full_name": "Full Name",
 	"verification_email_sent": "We have sent a verification link to your email. Please check your inbox, and also check your spam folder if you don’t see it.",
 	"verify_email": "Verify Email",
+	"email_verified_success": "Email successfully verified! You can now log in.",
 	"delete_account_warning": "This action is permanent. Please enter your email and password to confirm.",
+	"deleted_user": "Deleted User",
 	"email_not_found": "This email is not registered",
 	"reset_failed": "Failed to reset password",
 	"you_are_here": "You are located here",
@@ -422,5 +424,8 @@
 	"rights_text": "You can access, update, or delete your account data at any time through the app settings.",
 
 	"last_updated": "Last updated:",
-	"add_time_balance": "Add Time Balance"
+	"add_time_balance": "Add Time Balance",
+	"meeting_15_min_warning": "Meetings can only be scheduled at least 15 minutes from the current time.",
+	"not_enough_balance_warning": "The learner's balance is insufficient for the selected meeting duration. Please reduce the meeting duration according to the available balance.",
+	"delete_for_both": "Delete for both"
 }

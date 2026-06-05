@@ -20,32 +20,95 @@ class _ChatsListPageState extends State<ChatsListPage> {
   String? _chatToDeleteId;
 
   Future<void> _deleteChat(String chatId) async {
+    bool deleteForBoth = false;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: Text('delete_chat'.tr()),
-          content: Text('confirm_delete_chat'.tr()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text('cancel'.tr()),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text('delete'.tr(),
-                  style: const TextStyle(color: Colors.red)),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: isDark ? _darkCardColor : Colors.white,
+              title: Text(
+                'delete_chat'.tr(),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'confirm_delete_chat'.tr(),
+                    style: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black87),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: deleteForBoth,
+                        onChanged: (val) {
+                          setState(() {
+                            deleteForBoth = val ?? false;
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: Text(
+                          'delete_for_both'.tr(),
+                          style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text('cancel'.tr()),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text('delete'.tr(),
+                      style: const TextStyle(color: Colors.red)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
 
     if (confirm == true) {
-      await FirebaseFirestore.instance.collection('chats').doc(chatId).update({
-        'participants': FieldValue.arrayRemove([currentUserId])
-      });
+      final chatRef =
+          FirebaseFirestore.instance.collection('chats').doc(chatId);
+      final messagesRef = chatRef.collection('messages');
+
+      if (deleteForBoth) {
+        // Delete all messages then delete chat doc
+        final messages = await messagesRef.get();
+        for (var doc in messages.docs) {
+          await doc.reference.delete();
+        }
+        await chatRef.delete();
+      } else {
+        // Delete only for current user
+        // 1. Mark chat doc
+        await chatRef.update({
+          'deletedFor': FieldValue.arrayUnion([currentUserId])
+        });
+
+        // 2. Hide all existing messages
+        final messages = await messagesRef.get();
+        for (var doc in messages.docs) {
+          await doc.reference.update({
+            'deletedFor': FieldValue.arrayUnion([currentUserId])
+          });
+        }
+      }
+
       if (mounted) {
         setState(() {
           if (_chatToDeleteId == chatId) {
@@ -172,7 +235,15 @@ class _ChatsListPageState extends State<ChatsListPage> {
                         return const Center(child: CircularProgressIndicator());
                       }
 
-                      final chats = snapshot.data!.docs.toList();
+                      var chats = snapshot.data!.docs.toList();
+
+                      // Filter out chats deleted for current user
+                      chats = chats.where((chat) {
+                        final data = chat.data() as Map<String, dynamic>;
+                        final deletedFor =
+                            List<String>.from(data['deletedFor'] ?? []);
+                        return !deletedFor.contains(currentUserId);
+                      }).toList();
 
                       /// SORT
                       chats.sort((a, b) {
@@ -219,19 +290,45 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                 .doc(otherUserId)
                                 .snapshots(),
                             builder: (context, userSnapshot) {
-                              if (!userSnapshot.hasData ||
-                                  !userSnapshot.data!.exists) {
+                              if (!userSnapshot.hasData) {
                                 return const SizedBox();
                               }
 
-                              final userData = userSnapshot.data!.data()
-                                  as Map<String, dynamic>;
+                              final isDeleted = !userSnapshot.data!.exists;
+                              final userData = isDeleted
+                                  ? <String, dynamic>{}
+                                  : userSnapshot.data!.data()
+                                      as Map<String, dynamic>;
 
-                              final name = userData['firstName'] ?? 'User';
-                              final photoUrl = userData['photoUrl'] ?? '';
+                              final isSupportChat =
+                                  chatData['isSupport'] == true;
+                              final otherUserRole = userData['role'] ?? 'user';
+                              final isOtherSupport = isSupportChat &&
+                                  (otherUserRole == 'admin' ||
+                                      otherUserRole == 'moderator');
+
+                              final name = isDeleted
+                                  ? 'deleted_user'.tr()
+                                  : (isOtherSupport
+                                      ? 'Support'
+                                      : (userData['firstName'] ?? 'User'));
+                              final photoUrl = isDeleted
+                                  ? ''
+                                  : (isOtherSupport
+                                      ? 'assets/support.png'
+                                      : (userData['photoUrl'] ?? ''));
+
                               final skill = chatData['lastSkill'] ?? '';
                               final chatType = chatData['chatType'] ?? 'basic';
 
+                              String chatMode = 'chat';
+                              if (isSupportChat) {
+                                chatMode = isOtherSupport
+                                    ? 'support'
+                                    : 'support_admin';
+                              } else if (chatType == 'contract') {
+                                chatMode = 'contract';
+                              }
                               String tagText = '';
                               Color tagColor = Colors.blue;
                               Color tagTextColor = Colors.blue;
@@ -311,7 +408,7 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                                 .split(',')
                                                 .map((e) => e.trim())
                                                 .toList(),
-                                        mode: 'chat',
+                                        mode: chatMode,
                                       ),
                                     ),
                                   );
@@ -323,12 +420,16 @@ class _ChatsListPageState extends State<ChatsListPage> {
                                     children: [
                                       CircleAvatar(
                                         radius: 26,
-                                        backgroundImage: photoUrl.isNotEmpty
-                                            ? NetworkImage(photoUrl)
-                                            : null,
-                                        child: photoUrl.isEmpty
-                                            ? const Icon(Icons.person)
-                                            : null,
+                                        backgroundImage: isOtherSupport
+                                            ? const AssetImage(
+                                                'assets/support.png')
+                                            : (photoUrl.isNotEmpty
+                                                ? NetworkImage(photoUrl)
+                                                : null) as ImageProvider?,
+                                        child:
+                                            !isOtherSupport && photoUrl.isEmpty
+                                                ? const Icon(Icons.person)
+                                                : null,
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
