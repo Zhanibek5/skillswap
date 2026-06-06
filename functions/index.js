@@ -1,8 +1,29 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const admin = require('firebase-admin')
+const fs = require('fs')
+const path = require('path')
 
 admin.initializeApp()
+
+// Load locales for notification translation
+const locales = {
+	en: JSON.parse(
+		fs.readFileSync(path.join(__dirname, 'locales', 'en.json'), 'utf8')
+	),
+	ru: JSON.parse(
+		fs.readFileSync(path.join(__dirname, 'locales', 'ru.json'), 'utf8')
+	),
+	kk: JSON.parse(
+		fs.readFileSync(path.join(__dirname, 'locales', 'kk.json'), 'utf8')
+	),
+}
+
+function translateNotificationBody(key, langCode) {
+	const code = langCode || 'en'
+	const localeData = locales[code] || locales['en']
+	return localeData[key] || key
+}
 
 function getChatSkill(chatData = {}) {
 	const data = chatData || {}
@@ -490,17 +511,22 @@ async function sendToUser(userId, chatId, payload) {
 		payload.chatData
 	)
 
+	const translatedBody = translateNotificationBody(
+		payload.body,
+		userData.language
+	)
+
 	for (const token of tokens) {
 		try {
 			await admin.messaging().send({
 				token: token,
 				notification: {
 					title: notificationTitle,
-					body: String(payload.body || ''),
+					body: String(translatedBody || ''),
 				},
 				data: {
 					title: notificationTitle,
-					body: String(payload.body || ''),
+					body: String(translatedBody || ''),
 					userImage: String(payload.senderData?.photoUrl || ''),
 					type: String(payload.type || ''),
 					chatId: String(chatId),
@@ -634,17 +660,22 @@ async function sendNotification(
 			// Көбінесе соңғы активті токенді қолданған дұрыс
 			const lastToken = uniqueTokens.slice(-1)
 
+			const translatedBody = translateNotificationBody(
+				notification.body,
+				userData.language
+			)
+
 			for (const token of lastToken) {
 				try {
 					await admin.messaging().send({
 						token: token,
 						notification: {
 							title: notification.title,
-							body: notification.body,
+							body: String(translatedBody || ''),
 						},
 						data: {
 							title: notification.title,
-							body: notification.body,
+							body: String(translatedBody || ''),
 							userImage: senderData?.photoUrl || '',
 							type: notification.type,
 							chatId: chatId,
