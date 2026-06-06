@@ -89,16 +89,17 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         setState(() {
           _connectionStatus = status;
         });
-        if (status.contains('IceConnectionStateDisconnected') ||
-            status.contains('IceConnectionStateClosed') ||
-            status.contains('IceConnectionStateFailed') ||
-            status.contains('ConnectionStateDisconnected') ||
-            status.contains('ConnectionStateClosed') ||
-            status.contains('ConnectionStateFailed')) {
-          _leaveCall(callFinished: true);
-        } else if (status.contains('IceConnectionStateConnected') ||
-            status.contains('ConnectionStateConnected')) {
-          if (!_callActuallyStarted) {
+        final st = status.toLowerCase();
+        final isConnectionEvent = st.startsWith('ice connection') || st.startsWith('connection:');
+        
+        if (st.contains('disconnected') ||
+            st.contains('closed') ||
+            st.contains('failed')) {
+          if (isConnectionEvent) {
+            _leaveCall(callFinished: true);
+          }
+        } else if (st.contains('connected')) {
+          if (isConnectionEvent && !_callActuallyStarted) {
             _callActuallyStarted = true;
 
             final startTime = DateTime.now();

@@ -560,12 +560,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       selectedTime.minute,
     );
 
-    final minAllowedTime = DateTime.now().add(const Duration(minutes: 15));
+    final minAllowedTime = DateTime.now();
     if (meetingDateTime.isBefore(minAllowedTime)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('meeting_15_min_warning'.tr()),
+            content: Text('Уақыт өтіп кеткен / Время прошло'),
             backgroundColor: Colors.orange,
           ),
         );
